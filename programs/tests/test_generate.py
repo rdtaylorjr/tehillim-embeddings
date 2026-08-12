@@ -59,6 +59,34 @@ class TestGenerateLocal:
         assert written == ["semantic_miqrabert_consonantal"]
         assert calls == [("davidmsmiley/MiqraBERT", False, False)]
 
+    def test_restricts_to_a_single_named_variation(self, tmp_path):
+        calls = []
+
+        def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
+            calls.append((vocalized, niqqud_only))
+            return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
+
+        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+
+        written = generate_local(
+            psalms, tmp_path, "bge-m3", variation="vocalized", compute=_fake_compute
+        )
+
+        assert written == ["semantic_bge_m3_vocalized"]
+        assert len(calls) == 1
+
+    def test_a_variation_not_offered_for_the_model_writes_nothing(self, tmp_path):
+        def _must_not_be_called(*args, **kwargs):
+            raise AssertionError("compute must not be called for an unavailable variation")
+
+        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+
+        written = generate_local(
+            psalms, tmp_path, "miqrabert", variation="vocalized", compute=_must_not_be_called
+        )
+
+        assert written == []
+
     def test_skips_a_variation_whose_tf_file_already_exists(self, tmp_path):
         from semantic.export import node_values, write_feature
 

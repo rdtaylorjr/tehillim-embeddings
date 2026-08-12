@@ -40,15 +40,20 @@ def generate_local(
     output_root: Path,
     slug: str,
     *,
+    variation: str | None = None,
     device: str | None = None,
     torch_dtype: str | None = None,
     compute: Callable[..., dict[int, np.ndarray]] = compute_half_verse_embeddings,
 ) -> list[str]:
-    """Generates every not-yet-written variation for one local model slug."""
+    """Generates every not-yet-written variation for one local model slug, or only `variation`."""
     technical_name = MODEL_REGISTRY[slug][0]
     written: list[str] = []
-    for variation, vocalized, niqqud_only, variation_description in variations_for_model(slug):
-        name = feature_name(slug, variation)
+    for variation_name, vocalized, niqqud_only, variation_description in variations_for_model(
+        slug
+    ):
+        if variation is not None and variation_name != variation:
+            continue
+        name = feature_name(slug, variation_name)
         if feature_path(output_root, name).exists():
             continue
         print(f"computing {name} from {technical_name}...", file=sys.stderr)
