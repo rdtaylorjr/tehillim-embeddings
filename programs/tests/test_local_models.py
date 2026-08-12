@@ -120,18 +120,20 @@ class TestRepairNeodictabertRopeBuffers:
         assert torch.equal(broken.freqs_cos, expected_cos)
         assert torch.equal(broken.freqs_sin, expected_sin)
 
-    def test_leaves_a_healthy_buffer_untouched(self):
+    def test_repairs_a_finite_but_uninitialized_buffer_too(self):
         import torch
 
         config = self._StubConfig()
-        cos, sin = _rope_frequencies(dim=4, length=4)
-        healthy = self._StubRopeModule(freqs_cos=cos.clone(), freqs_sin=sin.clone(), config=config)
-        auto_model = self._StubAutoModel([healthy])
+        garbage = self._StubRopeModule(
+            freqs_cos=torch.zeros(4, 2), freqs_sin=torch.zeros(4, 2), config=config
+        )
+        auto_model = self._StubAutoModel([garbage])
 
         _repair_neodictabert_rope_buffers(auto_model)
 
-        assert torch.equal(healthy.freqs_cos, cos)
-        assert torch.equal(healthy.freqs_sin, sin)
+        expected_cos, expected_sin = _rope_frequencies(dim=4, length=4)
+        assert torch.equal(garbage.freqs_cos, expected_cos)
+        assert torch.equal(garbage.freqs_sin, expected_sin)
 
     def test_ignores_modules_without_freqs_cos(self):
         class _Unrelated:
