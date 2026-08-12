@@ -34,9 +34,9 @@ against BHSA version `2021`.
 
 ## Family
 
-* [tehillim](https://github.com/rdtaylorjr/tehillim) - computational
+* [tehillim](https://github.com/rdtaylorjr/tehillim): computational
   analysis of the Hebrew psalms
-* [bhsa](https://github.com/etcbc/bhsa) - the core text and linguistic
+* [bhsa](https://github.com/etcbc/bhsa): the core text and linguistic
   annotation for the Hebrew Bible
 
 ## License
