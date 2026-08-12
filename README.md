@@ -17,7 +17,7 @@ against BHSA version `2021`.
 
 ## Data
 
-* **Feature files**: 31 Text-Fabric feature files in `tf/1.0/`, one per
+* **Feature files**: 37 Text-Fabric feature files in `tf/1.0/`, one per
   (model, variation) pair, named `semantic_<model>_<variation>`. Values are
   base64-encoded float32 embedding vectors, keyed to BHSA's
   `half_verse` nodes. See
