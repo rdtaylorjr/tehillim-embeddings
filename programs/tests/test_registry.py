@@ -4,7 +4,7 @@ import base64
 
 import numpy as np
 
-from embeddings.registry import (
+from semantic.registry import (
     MODEL_REGISTRY,
     TOKENIZER_STRIPS_ALL_DIACRITICS,
     VARIATIONS,

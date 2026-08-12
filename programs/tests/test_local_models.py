@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from embeddings.local_models import (
+from semantic.local_models import (
     KALM_EMBEDDING_MODEL,
     _encode_last_token_pooled,
     _evict_gte_multilingual_dynamic_module,
@@ -29,13 +29,10 @@ def _psalm(
     half_verses_unvocalized: tuple[str, ...],
     half_verses_niqqud_only: tuple[str, ...] = (),
 ):
-    from tehillim_pipeline.corpus import Psalm
+    from semantic.corpus import Psalm
 
     return Psalm(
         number=number,
-        verse_count=1,
-        words=(),
-        incipit="",
         half_verses=half_verses,
         half_verses_unvocalized=half_verses_unvocalized,
         half_verses_niqqud_only=half_verses_niqqud_only,
@@ -537,7 +534,7 @@ class TestComputeHalfVerseEmbeddingsGteRetry:
             return np.full((len(texts), 3), value)
 
     def test_retries_with_a_fresh_model_on_non_finite_output(self):
-        from embeddings.local_models import GTE_MULTILINGUAL_MODEL
+        from semantic.local_models import GTE_MULTILINGUAL_MODEL
 
         attempts = []
 
@@ -558,7 +555,7 @@ class TestComputeHalfVerseEmbeddingsGteRetry:
         assert np.all(np.isfinite(result[1]))
 
     def test_raises_after_every_attempt_stays_non_finite(self):
-        from embeddings.local_models import GTE_MULTILINGUAL_MODEL
+        from semantic.local_models import GTE_MULTILINGUAL_MODEL
 
         def _fake_factory(model_name, *, trust_remote_code=False, device=None, model_kwargs=None):
             return self._FakeModel(ok=False)
@@ -597,7 +594,7 @@ class TestComputeHalfVerseEmbeddingsRepairsAreWired:
     def test_neodictabert_rope_buffer_is_repaired(self):
         import torch
 
-        from embeddings.local_models import NEODICTABERT_MODEL
+        from semantic.local_models import NEODICTABERT_MODEL
 
         class _StubConfig:
             hidden_size = 8
@@ -637,7 +634,7 @@ class TestComputeHalfVerseEmbeddingsRepairsAreWired:
     def test_gte_multilingual_position_ids_buffer_is_repaired(self):
         import torch
 
-        from embeddings.local_models import GTE_MULTILINGUAL_MODEL
+        from semantic.local_models import GTE_MULTILINGUAL_MODEL
 
         class _StubPositionIdsModule:
             def __init__(self):

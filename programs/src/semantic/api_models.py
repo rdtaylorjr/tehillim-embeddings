@@ -13,7 +13,7 @@ GEMINI_MODEL = "google/gemini-embedding-2"
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
-#: Native dimensionality; fetch_gemini_embeddings never passes
+#: Native dimensionality. `fetch_gemini_embeddings` never passes
 #: `dimensions`, so output should never be truncated below this.
 GEMINI_DIMENSIONS = 3072
 

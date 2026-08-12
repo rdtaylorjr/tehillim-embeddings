@@ -11,8 +11,7 @@ MODEL_REGISTRY: dict[str, tuple[str, str, str]] = {
     "miqrabert": (
         "davidmsmiley/MiqraBERT",
         "miqrabert",
-        "MiqraBERT (Smiley, arXiv:2606.19638), fine-tuned from AlephBERT for "
-        "parallel-passage detection.",
+        "MiqraBERT, fine-tuned from AlephBERT for parallel-passage detection.",
     ),
     "alephbert": (
         "imvladikon/sentence-transformers-alephbert",
@@ -27,27 +26,27 @@ MODEL_REGISTRY: dict[str, tuple[str, str, str]] = {
     "berel": (
         "dicta-il/BEREL",
         "berel",
-        "BEREL, BERT trained on Rabbinic Hebrew (Shmidman et al. 2022, arXiv:2208.01875).",
+        "BEREL, BERT trained on Rabbinic Hebrew.",
     ),
     "bge-multilingual-gemma2": (
         "BAAI/bge-multilingual-gemma2",
         "bge_multilingual_gemma2",
-        "MIRACL SOTA multilingual encoder, fine-tuned from Gemma2-9B.",
+        "~9B param multilingual encoder, fine-tuned from Gemma2-9B.",
     ),
     "qwen3-embedding": (
         "Qwen/Qwen3-Embedding-8B",
         "qwen3_embedding_8b",
-        "MTEB multilingual open-weight leader.",
+        "~8B param multilingual encoder.",
     ),
     "kalm-embedding": (
         "tencent/KaLM-Embedding-Gemma3-12B-2511",
         "kalm_embedding_gemma3_12b_2511",
-        "MMTEB multilingual leader (Hu et al. 2025, arXiv:2506.20923).",
+        "~12B param multilingual encoder, fine-tuned from Gemma3-12B.",
     ),
     "llama-embed-nemotron": (
         "nvidia/llama-embed-nemotron-8b",
         "llama_embed_nemotron_8b",
-        "Multilingual MTEB leader as of October 2025, fine-tuned from Llama-3.1-8B "
+        "~8B param multilingual encoder, fine-tuned from Llama-3.1-8B "
         "with bidirectional attention. Non-commercial/research-use license.",
     ),
     "bge-m3": (
@@ -63,7 +62,7 @@ MODEL_REGISTRY: dict[str, tuple[str, str, str]] = {
     "me5-large-instruct": (
         "intfloat/multilingual-e5-large-instruct",
         "me5_large_instruct",
-        "~560M param multilingual encoder (Wang et al. 2024, arXiv:2402.05672).",
+        "~560M param multilingual encoder.",
     ),
     "gemini": (
         "google/gemini-embedding-2",

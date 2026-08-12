@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 from tf.fabric import Fabric
 
-from embeddings.registry import encode_vector
+from semantic.registry import encode_vector
 
 if TYPE_CHECKING:
-    from tehillim_pipeline.corpus import Psalm
+    from semantic.corpus import Psalm
 
 MODULE_VERSION = "1.0"
 
