@@ -1,8 +1,6 @@
-"""Unit tests for generate.py's orchestration: which (model, tier)
+"""Unit tests for generate.py's orchestration: which (model, variation)
 pairs get computed, the .tf-file-exists cache check, and API key
-handling. No monkeypatch: `compute`/`fetch` are passed as explicit
-arguments. Corpus/Psalm loading is exercised with hand-built Psalm
-objects, no real BHSA load.
+handling.
 """
 
 from __future__ import annotations
@@ -10,8 +8,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from tehillim_embeddings.export import feature_path
-from tehillim_embeddings.generate import generate_api, generate_local
+from embeddings.export import feature_path
+from embeddings.generate import generate_api, generate_local
 
 
 def _psalm(*, number: int, half_verses, half_verses_unvocalized, half_verses_niqqud_only=()):
@@ -30,7 +28,7 @@ def _psalm(*, number: int, half_verses, half_verses_unvocalized, half_verses_niq
 
 
 class TestGenerateLocal:
-    def test_computes_and_writes_every_tier_for_a_diacritic_preserving_model(self, tmp_path):
+    def test_computes_and_writes_every_variation_for_a_diacritic_preserving_model(self, tmp_path):
         calls = []
 
         def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
@@ -50,11 +48,11 @@ class TestGenerateLocal:
         for name in written:
             assert feature_path(tmp_path, name).exists()
 
-    def test_computes_only_one_tier_for_a_diacritic_stripping_model(self, tmp_path):
+    def test_computes_only_one_variation_for_a_diacritic_stripping_model(self, tmp_path):
         calls = []
 
         def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
-            calls.append(model_name)
+            calls.append((model_name, vocalized, niqqud_only))
             return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
@@ -62,10 +60,10 @@ class TestGenerateLocal:
         written = generate_local(psalms, tmp_path, "miqrabert", compute=_fake_compute)
 
         assert written == ["semantic_miqrabert_consonantal"]
-        assert len(calls) == 1
+        assert calls == [("davidmsmiley/MiqraBERT", False, False)]
 
-    def test_skips_a_tier_whose_tf_file_already_exists(self, tmp_path):
-        from tehillim_embeddings.export import node_values, write_feature
+    def test_skips_a_variation_whose_tf_file_already_exists(self, tmp_path):
+        from embeddings.export import node_values, write_feature
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
         write_feature(
@@ -76,7 +74,7 @@ class TestGenerateLocal:
         )
 
         def _must_not_be_called(*args, **kwargs):
-            raise AssertionError("compute must not be called for an already-written tier")
+            raise AssertionError("compute must not be called for an already-written variation")
 
         written = generate_local(psalms, tmp_path, "miqrabert", compute=_must_not_be_called)
 
@@ -104,10 +102,7 @@ class TestGenerateLocal:
 
 
 class TestGenerateApi:
-    def test_cache_miss_calls_fetch_once_per_tier_with_flattened_half_verses(
-        self, tmp_path, monkeypatch
-    ):
-        monkeypatch.setenv("TEHILLIM_OPENROUTER_API_KEY", "test-key")
+    def test_cache_miss_calls_fetch_once_per_variation_with_flattened_half_verses(self, tmp_path):
         calls = []
 
         def _fake_fetch(texts, *, api_key):
@@ -123,7 +118,13 @@ class TestGenerateApi:
             )
         ]
 
-        written = generate_api(psalms, tmp_path, "gemini", fetch=_fake_fetch)
+        written = generate_api(
+            psalms,
+            tmp_path,
+            "gemini",
+            fetch=_fake_fetch,
+            env={"TEHILLIM_OPENROUTER_API_KEY": "test-key"},
+        )
 
         assert written == [
             "semantic_gemini_embedding_2_consonantal",
@@ -138,7 +139,7 @@ class TestGenerateApi:
         assert all(api_key == "test-key" for _, api_key in calls)
 
     def test_cache_hit_never_calls_fetch(self, tmp_path):
-        from tehillim_embeddings.export import node_values, write_feature
+        from embeddings.export import node_values, write_feature
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
         for name in [
@@ -153,26 +154,22 @@ class TestGenerateApi:
         def _must_not_be_called(texts, *, api_key):
             raise AssertionError("fetch must not be called on a cache hit")
 
-        written = generate_api(psalms, tmp_path, "gemini", fetch=_must_not_be_called)
+        written = generate_api(psalms, tmp_path, "gemini", fetch=_must_not_be_called, env={})
 
         assert written == []
 
-    def test_missing_api_key_raises_naming_the_exact_env_var(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("TEHILLIM_OPENROUTER_API_KEY", raising=False)
+    def test_missing_api_key_raises_naming_the_exact_env_var(self, tmp_path):
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
 
         def _fake_fetch(texts, *, api_key):
             return np.zeros((1, 1))
 
         with pytest.raises(RuntimeError, match="TEHILLIM_OPENROUTER_API_KEY"):
-            generate_api(psalms, tmp_path, "gemini", fetch=_fake_fetch)
+            generate_api(psalms, tmp_path, "gemini", fetch=_fake_fetch, env={})
 
-    def test_missing_api_key_is_not_read_when_every_tier_is_already_cached(
-        self, tmp_path, monkeypatch
-    ):
-        from tehillim_embeddings.export import node_values, write_feature
+    def test_missing_api_key_is_not_read_when_every_variation_is_already_cached(self, tmp_path):
+        from embeddings.export import node_values, write_feature
 
-        monkeypatch.delenv("TEHILLIM_OPENROUTER_API_KEY", raising=False)
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
         for name in [
             "semantic_gemini_embedding_2_consonantal",
@@ -183,15 +180,14 @@ class TestGenerateApi:
                 tmp_path, name, node_values({1: np.zeros((1, 3))}, psalms), "already here"
             )
 
-        written = generate_api(
-            psalms, tmp_path, "gemini", fetch=lambda texts, *, api_key: np.zeros((1, 1))
-        )
+        def _must_not_be_called(texts, *, api_key):
+            raise AssertionError("fetch must not be called when every variation is cached")
+
+        written = generate_api(psalms, tmp_path, "gemini", fetch=_must_not_be_called, env={})
 
         assert written == []
 
-    def test_cohere_uses_its_own_api_key_env_var(self, tmp_path, monkeypatch):
-        monkeypatch.delenv("TEHILLIM_OPENROUTER_API_KEY", raising=False)
-        monkeypatch.setenv("TEHILLIM_COHERE_API_KEY", "cohere-key")
+    def test_cohere_uses_a_separate_api_key_env_var(self, tmp_path):
         calls = []
 
         def _fake_fetch(texts, *, api_key):
@@ -207,6 +203,12 @@ class TestGenerateApi:
             )
         ]
 
-        generate_api(psalms, tmp_path, "cohere", fetch=_fake_fetch)
+        generate_api(
+            psalms,
+            tmp_path,
+            "cohere",
+            fetch=_fake_fetch,
+            env={"TEHILLIM_COHERE_API_KEY": "cohere-key"},
+        )
 
         assert calls and all(key == "cohere-key" for key in calls)

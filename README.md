@@ -18,13 +18,17 @@ against BHSA version `2021`.
 ## Data
 
 * **Feature files**: 31 Text-Fabric feature files in `tf/1.0/`, one per
-  (model, tier) pair, named `semantic_<model>_<tier>`. Values are
+  (model, variation) pair, named `semantic_<model>_<variation>`. Values are
   base64-encoded float32 embedding vectors, keyed to BHSA's
   `half_verse` nodes. See
   [feature documentation](docs/feature_documentation.md) for the naming
-  scheme, the three tiers, and the full model list.
+  scheme, the three variations, and the full model list.
 * **Generation code**: `programs/`, reading tehillim's cached embeddings
-  and writing them out as Text-Fabric features.
+  and writing them out as Text-Fabric features. Run with
+  `tehillim/pipeline/.venv/bin/python3`, with `tehillim` and
+  `tehillim-embeddings` as sibling directories, after `tehillim-build`
+  or a Colab heavy-model run has populated
+  `tehillim/pipeline/data/embeddings_cache/`. Safe to re-run.
 
 ## Family
 

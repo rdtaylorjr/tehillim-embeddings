@@ -1,7 +1,4 @@
-"""Fetches half-verse embeddings from paid embedding APIs: Gemini
-Embedding 2, OpenAI text-embedding-3-large, and Voyage 4 (all via
-OpenRouter), and Cohere Embed v4 (via Cohere's own SDK).
-"""
+"""Fetches half-verse embeddings from Gemini, OpenAI, Cohere, and Voyage."""
 
 from __future__ import annotations
 
@@ -24,7 +21,7 @@ GEMINI_BATCH_SIZE = 100
 
 COHERE_MODEL = "embed-v4.0"
 
-#: Cohere's own default when `output_dimension` is never passed.
+#: Cohere's default when `output_dimension` is never passed.
 COHERE_DIMENSIONS = 1536
 
 #: Cohere's documented hard per-call limit.
@@ -41,19 +38,21 @@ OPENAI_BATCH_SIZE = 100
 
 VOYAGE_MODEL = "voyageai/voyage-4"
 
-#: Voyage's own default when `output_dimension` is never passed.
+#: Voyage's default when `output_dimension` is never passed.
 VOYAGE_DIMENSIONS = 1024
 
 VOYAGE_BATCH_SIZE = 100
 
 
 def _real_openai_client() -> Callable[..., Any]:
+    """Returns the real `openai.OpenAI` client class."""
     import openai
 
     return openai.OpenAI
 
 
 def _real_cohere_client() -> Callable[..., Any]:
+    """Returns the real `cohere.ClientV2` client class."""
     import cohere
 
     return cohere.ClientV2
@@ -62,11 +61,7 @@ def _real_cohere_client() -> Callable[..., Any]:
 def fetch_gemini_embeddings(
     texts: list[str], *, api_key: str, client_factory: Callable[..., Any] | None = None
 ) -> np.ndarray:
-    """`encoding_format="float"` is passed explicitly: the openai SDK
-    defaults to requesting base64 when numpy is importable, and
-    OpenRouter's Gemini backend rejects that. `client_factory` defaults
-    to the real `openai.OpenAI`.
-    """
+    """Fetches embeddings for `texts` from Gemini Embedding 2."""
     if client_factory is None:
         client_factory = _real_openai_client()
 
@@ -96,11 +91,7 @@ def fetch_gemini_embeddings(
 def fetch_cohere_embeddings(
     texts: list[str], *, api_key: str, client_factory: Callable[..., Any] | None = None
 ) -> np.ndarray:
-    """The real response field is `response.embeddings.float_`
-    (trailing underscore), confirmed against cohere-python's own type
-    definitions. `client_factory` defaults to the real
-    `cohere.ClientV2`.
-    """
+    """Fetches embeddings for `texts` from Cohere Embed v4."""
     if client_factory is None:
         client_factory = _real_cohere_client()
 
@@ -133,6 +124,7 @@ def fetch_cohere_embeddings(
 def fetch_openai_embeddings(
     texts: list[str], *, api_key: str, client_factory: Callable[..., Any] | None = None
 ) -> np.ndarray:
+    """Fetches embeddings for `texts` from OpenAI text-embedding-3-large."""
     if client_factory is None:
         client_factory = _real_openai_client()
 
@@ -162,6 +154,7 @@ def fetch_openai_embeddings(
 def fetch_voyage_embeddings(
     texts: list[str], *, api_key: str, client_factory: Callable[..., Any] | None = None
 ) -> np.ndarray:
+    """Fetches embeddings for `texts` from Voyage 4 via OpenRouter."""
     if client_factory is None:
         client_factory = _real_openai_client()
 

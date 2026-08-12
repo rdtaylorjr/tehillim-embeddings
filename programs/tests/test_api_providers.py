@@ -1,7 +1,6 @@
-"""Unit tests for api_providers.py. No monkeypatch: each fetch function
-takes `client_factory` as an explicit argument, so a fake SDK client is
-passed directly rather than patching `openai.OpenAI`/`cohere.ClientV2`.
-No real network calls anywhere in this file.
+"""Unit tests for api_providers.py. Each fetch function takes
+`client_factory` as an explicit argument, so a fake SDK client is
+passed directly. No real network calls anywhere in this file.
 """
 
 from __future__ import annotations
@@ -9,7 +8,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from tehillim_embeddings.api_providers import (
+from embeddings.api_providers import (
     fetch_cohere_embeddings,
     fetch_gemini_embeddings,
     fetch_openai_embeddings,
@@ -57,7 +56,7 @@ class _FakeCohereEmbeddings:
     def __init__(self, float_: list[list[float]] | None) -> None:
         # The real attribute is `float_` (trailing underscore, aliased
         # from the JSON key "float"), confirmed against cohere-python's
-        # own EmbedByTypeResponseEmbeddings type.
+        # EmbedByTypeResponseEmbeddings type.
         self.float_ = float_
 
 

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from tf.fabric import Fabric
 
-from tehillim_embeddings.registry import encode_vector
+from embeddings.registry import encode_vector
 
 if TYPE_CHECKING:
     from tehillim_pipeline.corpus import Psalm
@@ -17,12 +17,14 @@ MODULE_VERSION = "1.0"
 
 
 def feature_path(output_root: Path, name: str) -> Path:
+    """Returns the `.tf` file path for a feature name."""
     return output_root / "tf" / MODULE_VERSION / f"{name}.tf"
 
 
 def node_values(
     embeddings: dict[int, np.ndarray], psalms: list[Psalm]
 ) -> dict[int, str]:
+    """Maps each psalm's embedding vectors to its BHSA half-verse node ids."""
     values: dict[int, str] = {}
     for psalm in psalms:
         vectors = embeddings.get(psalm.number)
@@ -34,6 +36,7 @@ def node_values(
 
 
 def write_feature(output_root: Path, name: str, values: dict[int, str], description: str) -> None:
+    """Writes one Text-Fabric feature file."""
     location = output_root / "tf" / MODULE_VERSION
     TF = Fabric(locations=[], modules=[], silent="deep")
     TF.save(
