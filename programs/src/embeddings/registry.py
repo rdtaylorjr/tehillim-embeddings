@@ -1,7 +1,4 @@
-"""The model and tier registry shared by every generation path (local,
-Colab-heavy, and API), and the encoding used to store a vector as a
-Text-Fabric feature value.
-"""
+"""The model and variation registry shared by every generation path."""
 
 from __future__ import annotations
 
@@ -91,12 +88,12 @@ MODEL_REGISTRY: dict[str, tuple[str, str, str]] = {
 }
 
 #: Models whose tokenizer strips niqqud and cantillation before the
-#: model sees either. Only the consonantal tier is generated for these.
+#: model sees either. Only the consonantal variation is generated for these.
 TOKENIZER_STRIPS_ALL_DIACRITICS = {"miqrabert", "alephbert", "neodictabert", "berel"}
 
-#: (tier name, vocalized, niqqud_only, description). vocalized/
-#: niqqud_only match `_select_half_verses`'s own parameters.
-TIERS: list[tuple[str, bool, bool, str]] = [
+#: (variation name, vocalized, niqqud_only, description). vocalized/
+#: niqqud_only match `_select_half_verses`'s parameters.
+VARIATIONS: list[tuple[str, bool, bool, str]] = [
     ("consonantal", False, False, "Bare consonants. No niqqud, no cantillation."),
     ("vocalized", True, True, "Niqqud (vowel points) only. No cantillation marks."),
     (
@@ -108,30 +105,34 @@ TIERS: list[tuple[str, bool, bool, str]] = [
 ]
 
 
-def tiers_for_model(slug: str) -> list[tuple[str, bool, bool, str]]:
+def variations_for_model(slug: str) -> list[tuple[str, bool, bool, str]]:
+    """Returns the text variations to generate for a model slug."""
     if slug in TOKENIZER_STRIPS_ALL_DIACRITICS:
         return [
             (
                 "consonantal",
-                True,
                 False,
-                "Input text included niqqud and cantillation. This model's "
-                "tokenizer strips both before the model sees the text, so the "
-                "embedding is consonantal-only regardless of the input.",
+                False,
+                "Bare consonants. No niqqud, no cantillation. This model's "
+                "tokenizer strips niqqud and cantillation identically, so the "
+                "vocalized and cantillation variations would carry no "
+                "additional signal.",
             )
         ]
-    return TIERS
+    return VARIATIONS
 
 
-def feature_name(slug: str, tier: str) -> str:
+def feature_name(slug: str, variation: str) -> str:
+    """Returns the Text-Fabric feature name for a model slug and variation."""
     _, feature_slug, _ = MODEL_REGISTRY[slug]
-    return f"semantic_{feature_slug}_{tier}"
+    return f"semantic_{feature_slug}_{variation}"
 
 
-def feature_description(slug: str, tier_description: str) -> str:
+def feature_description(slug: str, variation_description: str) -> str:
+    """Returns the full `@description` text for a feature."""
     _, _, model_description = MODEL_REGISTRY[slug]
     return (
-        f"{model_description} {tier_description} "
+        f"{model_description} {variation_description} "
         "Value is base64-encoded raw float32 bytes of the "
         "half-verse's embedding vector. Decode with "
         "np.frombuffer(base64.b64decode(value), dtype='<f4')."
@@ -139,4 +140,5 @@ def feature_description(slug: str, tier_description: str) -> str:
 
 
 def encode_vector(vector: np.ndarray) -> str:
+    """Base64-encodes a vector's raw float32 bytes."""
     return base64.b64encode(vector.astype("<f4").tobytes()).decode("ascii")

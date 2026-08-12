@@ -1,5 +1,5 @@
 [project]
-name = "tehillim-embeddings"
+name = "embeddings"
 version = "0.1.0"
 description = "Generates and exports semantic embedding features for the Hebrew Psalms in Text-Fabric format."
 readme = "README.md"
@@ -22,7 +22,7 @@ dev = [
 ]
 
 [project.scripts]
-tehillim-embeddings-generate = "tehillim_embeddings.generate:main"
+tehillim-embeddings-generate = "embeddings.generate:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

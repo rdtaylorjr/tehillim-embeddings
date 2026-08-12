@@ -1,7 +1,7 @@
-"""Unit tests for local_models.py. No monkeypatch: every seam (model
-loader, encoder, device probe, sys.modules) is passed as an explicit
-function argument, defaulting to the real implementation in
-production and to a fake in these tests.
+"""Unit tests for local_models.py. Every seam (model loader, encoder,
+device probe, sys.modules) is passed as an explicit function argument,
+defaulting to the real implementation in production and to a fake in
+these tests.
 """
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from tehillim_embeddings.local_models import (
+from embeddings.local_models import (
     KALM_EMBEDDING_MODEL,
     _encode_last_token_pooled,
     _evict_gte_multilingual_dynamic_module,
@@ -197,8 +197,6 @@ class TestRepairGteMultilingualPositionIds:
 
 
 class TestEvictGteMultilingualDynamicModule:
-    # A real, fresh dict passed as the `modules` argument, not a
-    # monkeypatched sys.modules.
     def test_purges_matching_dynamic_module_entries(self):
         fake_modules = {
             "transformers_modules.Alibaba_hyphen_NLP.new_hyphen_impl.abc123.modeling": (
@@ -437,7 +435,7 @@ class TestComputeHalfVerseEmbeddingsTorchDtype:
                 return np.zeros((len(texts), 3))
 
         def _fake_factory(model_name, *, trust_remote_code=False, device=None):
-            # Deliberately does not accept model_kwargs - if
+            # Deliberately does not accept model_kwargs. If
             # compute_half_verse_embeddings passed it when torch_dtype
             # isn't given, this fake would raise TypeError.
             calls.append(True)
@@ -539,7 +537,7 @@ class TestComputeHalfVerseEmbeddingsGteRetry:
             return np.full((len(texts), 3), value)
 
     def test_retries_with_a_fresh_model_on_non_finite_output(self):
-        from tehillim_embeddings.local_models import GTE_MULTILINGUAL_MODEL
+        from embeddings.local_models import GTE_MULTILINGUAL_MODEL
 
         attempts = []
 
@@ -560,7 +558,7 @@ class TestComputeHalfVerseEmbeddingsGteRetry:
         assert np.all(np.isfinite(result[1]))
 
     def test_raises_after_every_attempt_stays_non_finite(self):
-        from tehillim_embeddings.local_models import GTE_MULTILINGUAL_MODEL
+        from embeddings.local_models import GTE_MULTILINGUAL_MODEL
 
         def _fake_factory(model_name, *, trust_remote_code=False, device=None, model_kwargs=None):
             return self._FakeModel(ok=False)
@@ -574,3 +572,97 @@ class TestComputeHalfVerseEmbeddingsGteRetry:
                 sentence_transformer_factory=_fake_factory,
                 release_gpu_memory=lambda: None,
             )
+
+
+class TestComputeHalfVerseEmbeddingsRepairsAreWired:
+    # compute_half_verse_embeddings calls the repair functions directly
+    # on model[0].auto_model for these two model names. These tests
+    # confirm that call actually happens, not just that the repair
+    # functions work correctly in isolation.
+    class _FakeSubModule:
+        def __init__(self, auto_model):
+            self.auto_model = auto_model
+
+    class _FakeModel:
+        def __init__(self, auto_model):
+            sub_module_cls = TestComputeHalfVerseEmbeddingsRepairsAreWired._FakeSubModule
+            self._sub_modules = [sub_module_cls(auto_model)]
+
+        def __getitem__(self, index):
+            return self._sub_modules[index]
+
+        def encode(self, texts, normalize_embeddings=True):
+            return np.zeros((len(texts), 3))
+
+    def test_neodictabert_rope_buffer_is_repaired(self):
+        import torch
+
+        from embeddings.local_models import NEODICTABERT_MODEL
+
+        class _StubConfig:
+            hidden_size = 8
+            num_attention_heads = 2
+            max_length = 4
+
+        class _StubRopeModule:
+            def __init__(self):
+                self.freqs_cos = torch.full((4, 2), float("nan"))
+                self.freqs_sin = torch.full((4, 2), float("nan"))
+                self.config = _StubConfig()
+
+        class _StubAutoModel:
+            def __init__(self, submodule):
+                self._submodule = submodule
+
+            def modules(self):
+                return iter([self._submodule])
+
+        broken = _StubRopeModule()
+        fake_model = self._FakeModel(_StubAutoModel(broken))
+
+        def _fake_factory(model_name, *, trust_remote_code=False, device=None):
+            return fake_model
+
+        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
+
+        compute_half_verse_embeddings(
+            [psalm],
+            NEODICTABERT_MODEL,
+            sentence_transformer_factory=_fake_factory,
+            release_gpu_memory=lambda: None,
+        )
+
+        assert not torch.isnan(broken.freqs_cos).any()
+
+    def test_gte_multilingual_position_ids_buffer_is_repaired(self):
+        import torch
+
+        from embeddings.local_models import GTE_MULTILINGUAL_MODEL
+
+        class _StubPositionIdsModule:
+            def __init__(self):
+                self.position_ids = torch.tensor([0, 4335441888, 59023, -1, 7453010313431162915])
+
+        class _StubAutoModel:
+            def __init__(self, submodule):
+                self._submodule = submodule
+
+            def modules(self):
+                return iter([self._submodule])
+
+        broken = _StubPositionIdsModule()
+        fake_model = self._FakeModel(_StubAutoModel(broken))
+
+        def _fake_factory(model_name, *, trust_remote_code=False, device=None, model_kwargs=None):
+            return fake_model
+
+        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
+
+        compute_half_verse_embeddings(
+            [psalm],
+            GTE_MULTILINGUAL_MODEL,
+            sentence_transformer_factory=_fake_factory,
+            release_gpu_memory=lambda: None,
+        )
+
+        assert torch.equal(broken.position_ids, torch.arange(5))
