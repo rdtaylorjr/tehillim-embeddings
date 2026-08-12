@@ -13,7 +13,7 @@ DEFAULT_BHSA_TF_PATH = Path.home() / "Developer" / "hebrew" / "bhsa" / "tf" / "2
 _REQUIRED_FEATURES = "otype book chapter verse g_word_utf8 g_cons_utf8 trailer_utf8"
 
 #: BHSA's registered format for consonantal-only text (`g_cons_utf8` plus
-#: `trailer_utf8`), confirmed against BHSA's own otext.tf.
+#: `trailer_utf8`), confirmed against BHSA's otext.tf.
 _UNVOCALIZED_FORMAT = "text-orig-plain"
 
 _PSALMS_BOOK_NAME = "Psalmi"
