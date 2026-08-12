@@ -23,12 +23,14 @@ against BHSA version `2021`.
   `half_verse` nodes. See
   [feature documentation](docs/feature_documentation.md) for the naming
   scheme, the three variations, and the full model list.
-* **Generation code**: `programs/`, reading tehillim's cached embeddings
-  and writing them out as Text-Fabric features. Run with
-  `tehillim/pipeline/.venv/bin/python3`, with `tehillim` and
-  `tehillim-embeddings` as sibling directories, after `tehillim-build`
-  or a Colab heavy-model run has populated
-  `tehillim/pipeline/data/embeddings_cache/`. Safe to re-run.
+* **Generation code**: `programs/`, loads psalm text from BHSA via
+  Text-Fabric and writes model output to Text-Fabric features, with no
+  intermediate cache. Run with
+  `programs/.venv/bin/python3 -m semantic.generate` for the local and
+  API models. The four Colab-only models run from
+  `programs/scripts/compute_large_embeddings.ipynb`. Each model checks
+  for its already-written feature file first, so both are safe to
+  re-run.
 
 ## Family
 

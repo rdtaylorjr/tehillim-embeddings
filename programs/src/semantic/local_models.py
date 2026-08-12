@@ -10,7 +10,8 @@ import numpy as np
 
 if TYPE_CHECKING:
     import torch
-    from tehillim_pipeline.corpus import Psalm
+
+    from semantic.corpus import Psalm
 
 MIQRABERT_MODEL = "davidmsmiley/MiqraBERT"
 ALEPHBERT_MODEL = "imvladikon/sentence-transformers-alephbert"
@@ -23,8 +24,8 @@ LLAMA_EMBED_NEMOTRON_MODEL = "nvidia/llama-embed-nemotron-8b"
 BGE_M3_MODEL = "BAAI/bge-m3"
 GTE_MULTILINGUAL_MODEL = "Alibaba-NLP/gte-multilingual-base"
 
-#: This checkpoint's NaN failure mode is intermittent even on CPU;
-#: retries, each paired with a dynamic-module eviction, are the actual
+#: This checkpoint's NaN failure mode is intermittent even on CPU.
+#: Retries, each paired with a dynamic-module eviction, are the actual
 #: fix.
 _GTE_MULTILINGUAL_MAX_ATTEMPTS = 5
 

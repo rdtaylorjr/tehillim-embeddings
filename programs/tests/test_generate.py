@@ -8,18 +8,15 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from embeddings.export import feature_path
-from embeddings.generate import generate_api, generate_local
+from semantic.export import feature_path
+from semantic.generate import generate_api, generate_local
 
 
 def _psalm(*, number: int, half_verses, half_verses_unvocalized, half_verses_niqqud_only=()):
-    from tehillim_pipeline.corpus import Psalm
+    from semantic.corpus import Psalm
 
     return Psalm(
         number=number,
-        verse_count=1,
-        words=(),
-        incipit="",
         half_verses=half_verses,
         half_verses_unvocalized=half_verses_unvocalized,
         half_verses_niqqud_only=half_verses_niqqud_only,
@@ -63,7 +60,7 @@ class TestGenerateLocal:
         assert calls == [("davidmsmiley/MiqraBERT", False, False)]
 
     def test_skips_a_variation_whose_tf_file_already_exists(self, tmp_path):
-        from embeddings.export import node_values, write_feature
+        from semantic.export import node_values, write_feature
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
         write_feature(
@@ -139,7 +136,7 @@ class TestGenerateApi:
         assert all(api_key == "test-key" for _, api_key in calls)
 
     def test_cache_hit_never_calls_fetch(self, tmp_path):
-        from embeddings.export import node_values, write_feature
+        from semantic.export import node_values, write_feature
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
         for name in [
@@ -168,7 +165,7 @@ class TestGenerateApi:
             generate_api(psalms, tmp_path, "gemini", fetch=_fake_fetch, env={})
 
     def test_missing_api_key_is_not_read_when_every_variation_is_already_cached(self, tmp_path):
-        from embeddings.export import node_values, write_feature
+        from semantic.export import node_values, write_feature
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
         for name in [

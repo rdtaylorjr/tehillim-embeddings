@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from embeddings import api_providers
-from embeddings.api_providers import API_KEY_ENV_VARS
-from embeddings.export import feature_path, node_values, write_feature
-from embeddings.local_models import _select_half_verses, compute_half_verse_embeddings
-from embeddings.registry import (
+from semantic import api_models
+from semantic.api_models import API_KEY_ENV_VARS
+from semantic.export import feature_path, node_values, write_feature
+from semantic.local_models import _select_half_verses, compute_half_verse_embeddings
+from semantic.registry import (
     MODEL_REGISTRY,
     feature_description,
     feature_name,
@@ -22,16 +22,16 @@ from embeddings.registry import (
 )
 
 if TYPE_CHECKING:
-    from tehillim_pipeline.corpus import Psalm
+    from semantic.corpus import Psalm
 
 _API_SLUGS = {"gemini", "cohere", "openai", "voyage"}
 
 #: slug -> real fetch function, used when `fetch` isn't passed.
 _REAL_FETCHERS: dict[str, Callable[..., np.ndarray]] = {
-    "gemini": api_providers.fetch_gemini_embeddings,
-    "cohere": api_providers.fetch_cohere_embeddings,
-    "openai": api_providers.fetch_openai_embeddings,
-    "voyage": api_providers.fetch_voyage_embeddings,
+    "gemini": api_models.fetch_gemini_embeddings,
+    "cohere": api_models.fetch_cohere_embeddings,
+    "openai": api_models.fetch_openai_embeddings,
+    "voyage": api_models.fetch_voyage_embeddings,
 }
 
 
@@ -110,7 +110,7 @@ def generate_api(
 
 def main() -> None:
     """Generates every missing feature for every registered model."""
-    from tehillim_pipeline.corpus import Corpus
+    from semantic.corpus import Corpus
 
     output_root = Path(__file__).resolve().parents[3]
     psalms = Corpus.load().psalms()

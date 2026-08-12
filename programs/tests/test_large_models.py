@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from embeddings.heavy import (
-    HEAVY_MODELS,
+from semantic.large_models import (
+    LARGE_MODELS,
     ensure_corpus_data,
     gpu_memory_summary,
     models_for_choice,
@@ -11,8 +11,8 @@ from embeddings.heavy import (
 
 
 class TestModelsForChoice:
-    def test_none_returns_every_heavy_model(self):
-        assert models_for_choice(None) == HEAVY_MODELS
+    def test_none_returns_every_large_model(self):
+        assert models_for_choice(None) == LARGE_MODELS
 
     def test_a_choice_returns_only_that_model(self):
         result = models_for_choice("kalm")
@@ -21,25 +21,22 @@ class TestModelsForChoice:
 
 
 class TestEnsureCorpusData:
-    def test_returns_the_defaults_when_both_already_exist(self, tmp_path):
+    def test_returns_the_default_when_it_already_exists(self, tmp_path):
         bhsa = tmp_path / "bhsa"
-        valence = tmp_path / "valence"
         bhsa.mkdir()
-        valence.mkdir()
 
         def _must_not_be_called(url: str, destination: Path) -> None:
-            raise AssertionError("clone must not be called when defaults already exist")
+            raise AssertionError("clone must not be called when the default already exists")
 
         result = ensure_corpus_data(
             bhsa_default=bhsa,
-            valence_default=valence,
             data_dir=tmp_path / "data",
             clone=_must_not_be_called,
         )
 
-        assert result == (bhsa, valence)
+        assert result == bhsa
 
-    def test_clones_both_when_neither_default_exists(self, tmp_path):
+    def test_clones_when_the_default_does_not_exist(self, tmp_path):
         clones: list[tuple[str, Path]] = []
 
         def _fake_clone(url: str, destination: Path) -> None:
@@ -49,17 +46,12 @@ class TestEnsureCorpusData:
         data_dir = tmp_path / "data"
         result = ensure_corpus_data(
             bhsa_default=tmp_path / "missing-bhsa",
-            valence_default=tmp_path / "missing-valence",
             data_dir=data_dir,
             clone=_fake_clone,
         )
 
-        assert result == (data_dir / "bhsa" / "tf" / "2021", data_dir / "valence" / "tf" / "2021")
-        cloned_urls = {url for url, _ in clones}
-        assert cloned_urls == {
-            "https://github.com/ETCBC/bhsa.git",
-            "https://github.com/ETCBC/valence.git",
-        }
+        assert result == data_dir / "bhsa" / "tf" / "2021"
+        assert clones == [("https://github.com/ETCBC/bhsa.git", data_dir / "bhsa")]
 
     def test_skips_cloning_a_repo_already_present_in_data_dir(self, tmp_path):
         data_dir = tmp_path / "data"
@@ -72,12 +64,11 @@ class TestEnsureCorpusData:
 
         ensure_corpus_data(
             bhsa_default=tmp_path / "missing-bhsa",
-            valence_default=tmp_path / "missing-valence",
             data_dir=data_dir,
             clone=_fake_clone,
         )
 
-        assert clones == ["https://github.com/ETCBC/valence.git"]
+        assert clones == []
 
 
 class _FakeCuda:
