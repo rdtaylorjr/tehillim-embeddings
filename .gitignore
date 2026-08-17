@@ -7,11 +7,6 @@
 .Trashes
 Thumbs.db
 
-# Text-Fabric compiled binary cache #
-######################################
-*.tfx
-.tf/
-
 # Python #
 ##########
 __pycache__/
