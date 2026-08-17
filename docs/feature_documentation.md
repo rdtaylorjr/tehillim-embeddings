@@ -93,7 +93,7 @@ from tf.fabric import Fabric
 
 TF = Fabric(locations=[
     "path/to/bhsa/tf/2021",
-    "path/to/tehillim-embeddings/tf/1.0",
+    "path/to/tehillim-embeddings/tf/2021",
 ])
 api = TF.load("semantic_bge_m3_vocalized semantic_openai_text_embedding_3_large_cantillation")
 ```

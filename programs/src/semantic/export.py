@@ -13,7 +13,7 @@ from semantic.registry import encode_vector
 if TYPE_CHECKING:
     from semantic.corpus import Psalm
 
-MODULE_VERSION = "1.0"
+MODULE_VERSION = "2021"
 
 
 def feature_path(output_root: Path, name: str) -> Path:
