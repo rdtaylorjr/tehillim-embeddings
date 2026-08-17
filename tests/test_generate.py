@@ -1,5 +1,5 @@
 """Unit tests for generate.py's orchestration: which (model, variation)
-pairs get computed, the .tf-file-exists cache check, and API key
+pairs get computed, the .parquet-file-exists cache check, and API key
 handling.
 """
 
@@ -8,7 +8,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from semantic.export import feature_path
+from semantic.export import dataset_path
 from semantic.generate import generate_api, generate_local
 
 
@@ -42,8 +42,8 @@ class TestGenerateLocal:
             "semantic_bge_m3_cantillation",
         ]
         assert len(calls) == 3
-        for name in written:
-            assert feature_path(tmp_path, name).exists()
+        for variation in ("consonantal", "vocalized", "cantillation"):
+            assert dataset_path(tmp_path, "bge_m3", variation).exists()
 
     def test_computes_only_one_variation_for_a_diacritic_stripping_model(self, tmp_path):
         calls = []
@@ -88,13 +88,14 @@ class TestGenerateLocal:
         assert written == []
 
     def test_skips_a_variation_whose_tf_file_already_exists(self, tmp_path):
-        from semantic.export import node_values, write_feature
+        from semantic.export import node_vectors, write_dataset
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-        write_feature(
+        write_dataset(
             tmp_path,
-            "semantic_miqrabert_consonantal",
-            node_values({1: np.zeros((1, 2))}, psalms),
+            "miqrabert",
+            "consonantal",
+            node_vectors({1: np.zeros((1, 2))}, psalms),
             "already here",
         )
 
@@ -164,16 +165,16 @@ class TestGenerateApi:
         assert all(api_key == "test-key" for _, api_key in calls)
 
     def test_cache_hit_never_calls_fetch(self, tmp_path):
-        from semantic.export import node_values, write_feature
+        from semantic.export import node_vectors, write_dataset
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-        for name in [
-            "semantic_gemini_embedding_2_consonantal",
-            "semantic_gemini_embedding_2_vocalized",
-            "semantic_gemini_embedding_2_cantillation",
-        ]:
-            write_feature(
-                tmp_path, name, node_values({1: np.zeros((1, 3))}, psalms), "already here"
+        for variation in ("consonantal", "vocalized", "cantillation"):
+            write_dataset(
+                tmp_path,
+                "gemini_embedding_2",
+                variation,
+                node_vectors({1: np.zeros((1, 3))}, psalms),
+                "already here",
             )
 
         def _must_not_be_called(texts, *, api_key):
@@ -193,16 +194,16 @@ class TestGenerateApi:
             generate_api(psalms, tmp_path, "gemini", fetch=_fake_fetch, env={})
 
     def test_missing_api_key_is_not_read_when_every_variation_is_already_cached(self, tmp_path):
-        from semantic.export import node_values, write_feature
+        from semantic.export import node_vectors, write_dataset
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-        for name in [
-            "semantic_gemini_embedding_2_consonantal",
-            "semantic_gemini_embedding_2_vocalized",
-            "semantic_gemini_embedding_2_cantillation",
-        ]:
-            write_feature(
-                tmp_path, name, node_values({1: np.zeros((1, 3))}, psalms), "already here"
+        for variation in ("consonantal", "vocalized", "cantillation"):
+            write_dataset(
+                tmp_path,
+                "gemini_embedding_2",
+                variation,
+                node_vectors({1: np.zeros((1, 3))}, psalms),
+                "already here",
             )
 
         def _must_not_be_called(texts, *, api_key):

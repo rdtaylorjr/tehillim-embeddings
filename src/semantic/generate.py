@@ -1,4 +1,4 @@
-"""Computes and writes semantic embedding features to Text-Fabric."""
+"""Computes and writes semantic embedding datasets as Parquet."""
 
 from __future__ import annotations
 
@@ -12,12 +12,12 @@ import numpy as np
 
 from semantic import api_models
 from semantic.api_models import API_KEY_ENV_VARS
-from semantic.export import feature_path, node_values, write_feature
+from semantic.export import dataset_path, node_vectors, write_dataset
 from semantic.local_models import _select_half_verses, compute_half_verse_embeddings
 from semantic.registry import (
     MODEL_REGISTRY,
-    feature_description,
-    feature_name,
+    dataset_description,
+    dataset_name,
     variations_for_model,
 )
 
@@ -46,15 +46,15 @@ def generate_local(
     compute: Callable[..., dict[int, np.ndarray]] = compute_half_verse_embeddings,
 ) -> list[str]:
     """Generates every not-yet-written variation for one local model slug, or only `variation`."""
-    technical_name = MODEL_REGISTRY[slug][0]
+    technical_name, model_slug, _ = MODEL_REGISTRY[slug]
     written: list[str] = []
     for variation_name, vocalized, niqqud_only, variation_description in variations_for_model(
         slug
     ):
         if variation is not None and variation_name != variation:
             continue
-        name = feature_name(slug, variation_name)
-        if feature_path(output_root, name).exists():
+        name = dataset_name(slug, variation_name)
+        if dataset_path(output_root, model_slug, variation_name).exists():
             continue
         print(f"computing {name} from {technical_name}...", file=sys.stderr)
         embeddings = compute(
@@ -65,8 +65,9 @@ def generate_local(
             device=device,
             torch_dtype=torch_dtype,
         )
-        values = node_values(embeddings, psalms)
-        write_feature(output_root, name, values, feature_description(slug, variation_description))
+        values = node_vectors(embeddings, psalms)
+        description = dataset_description(slug, variation_description)
+        write_dataset(output_root, model_slug, variation_name, values, description)
         written.append(name)
     return written
 
@@ -85,10 +86,11 @@ def generate_api(
     if env is None:
         env = dict(os.environ)
 
+    model_slug = MODEL_REGISTRY[slug][1]
     written: list[str] = []
     for variation, vocalized, niqqud_only, variation_description in variations_for_model(slug):
-        name = feature_name(slug, variation)
-        if feature_path(output_root, name).exists():
+        name = dataset_name(slug, variation)
+        if dataset_path(output_root, model_slug, variation).exists():
             continue
 
         env_var = API_KEY_ENV_VARS[slug]
@@ -107,17 +109,18 @@ def generate_api(
         print(f"fetching {name} from {slug}...", file=sys.stderr)
         vectors = fetch(texts, api_key=api_key)
         embeddings = {number: vectors[start:end] for number, start, end in spans}
-        values = node_values(embeddings, psalms)
-        write_feature(output_root, name, values, feature_description(slug, variation_description))
+        values = node_vectors(embeddings, psalms)
+        description = dataset_description(slug, variation_description)
+        write_dataset(output_root, model_slug, variation, values, description)
         written.append(name)
     return written
 
 
 def main() -> None:
-    """Generates every missing feature for every registered model."""
+    """Generates every missing dataset for every registered model."""
     from semantic.corpus import Corpus
 
-    output_root = Path(__file__).resolve().parents[3]
+    output_root = Path(__file__).resolve().parents[2]
     psalms = Corpus.load().psalms()
 
     written: list[str] = []
@@ -127,7 +130,7 @@ def main() -> None:
         else:
             written.extend(generate_local(psalms, output_root, slug))
 
-    print(f"wrote {len(written)} feature files", file=sys.stderr)
+    print(f"wrote {len(written)} dataset files", file=sys.stderr)
 
 
 if __name__ == "__main__":

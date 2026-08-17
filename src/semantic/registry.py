@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-import base64
-
-import numpy as np
-
-#: slug -> (technical model id, TF feature-name slug, description).
+#: slug -> (technical model id, dataset-name slug, description).
 MODEL_REGISTRY: dict[str, tuple[str, str, str]] = {
     "miqrabert": (
         "davidmsmiley/MiqraBERT",
@@ -121,23 +117,16 @@ def variations_for_model(slug: str) -> list[tuple[str, bool, bool, str]]:
     return VARIATIONS
 
 
-def feature_name(slug: str, variation: str) -> str:
-    """Returns the Text-Fabric feature name for a model slug and variation."""
-    _, feature_slug, _ = MODEL_REGISTRY[slug]
-    return f"semantic_{feature_slug}_{variation}"
+def dataset_name(slug: str, variation: str) -> str:
+    """Returns the Parquet dataset name for a model slug and variation."""
+    _, name_slug, _ = MODEL_REGISTRY[slug]
+    return f"semantic_{name_slug}_{variation}"
 
 
-def feature_description(slug: str, variation_description: str) -> str:
-    """Returns the full `@description` text for a feature."""
+def dataset_description(slug: str, variation_description: str) -> str:
+    """Returns the descriptive text stored in the Parquet file's metadata."""
     _, _, model_description = MODEL_REGISTRY[slug]
     return (
         f"{model_description} {variation_description} "
-        "Value is base64-encoded raw float32 bytes of the "
-        "half-verse's embedding vector. Decode with "
-        "np.frombuffer(base64.b64decode(value), dtype='<f4')."
+        "Columns: node_id (int32, BHSA half-verse node id), vector (float32 list)."
     )
-
-
-def encode_vector(vector: np.ndarray) -> str:
-    """Base64-encodes a vector's raw float32 bytes."""
-    return base64.b64encode(vector.astype("<f4").tobytes()).decode("ascii")

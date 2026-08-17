@@ -56,9 +56,7 @@ def _rope_frequencies(
 
 
 def _repair_neodictabert_rope_buffers(auto_model: Any) -> None:
-    """Recomputes this checkpoint's RoPE buffer unconditionally. It's `persistent=False`
-    and never actually populated by `from_pretrained`, so a non-NaN copy is still
-    uninitialized memory, not a correctly loaded value."""
+    """Recomputes RoPE buffers: persistent=False means from_pretrained never fills them."""
     for module in auto_model.modules():
         freqs_cos = getattr(module, "freqs_cos", None)
         if freqs_cos is None:

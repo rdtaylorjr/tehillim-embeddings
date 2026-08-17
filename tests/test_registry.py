@@ -1,16 +1,11 @@
 from __future__ import annotations
 
-import base64
-
-import numpy as np
-
 from semantic.registry import (
     MODEL_REGISTRY,
     TOKENIZER_STRIPS_ALL_DIACRITICS,
     VARIATIONS,
-    encode_vector,
-    feature_description,
-    feature_name,
+    dataset_description,
+    dataset_name,
     variations_for_model,
 )
 
@@ -30,36 +25,22 @@ class TestVariationsForModel:
         assert niqqud_only is False
 
 
-class TestFeatureName:
-    def test_combines_the_feature_slug_and_variation(self):
-        assert feature_name("bge-m3", "vocalized") == "semantic_bge_m3_vocalized"
+class TestDatasetName:
+    def test_combines_the_name_slug_and_variation(self):
+        assert dataset_name("bge-m3", "vocalized") == "semantic_bge_m3_vocalized"
 
     def test_uses_the_full_technical_slug_not_the_registry_key(self):
         assert (
-            feature_name("gemini", "cantillation") == "semantic_gemini_embedding_2_cantillation"
+            dataset_name("gemini", "cantillation") == "semantic_gemini_embedding_2_cantillation"
         )
 
 
-class TestFeatureDescription:
-    def test_combines_model_and_variation_descriptions_and_the_encoding_note(self):
-        description = feature_description("bge-m3", "Bare consonants.")
+class TestDatasetDescription:
+    def test_combines_model_and_variation_descriptions_and_the_schema_note(self):
+        description = dataset_description("bge-m3", "Bare consonants.")
         assert MODEL_REGISTRY["bge-m3"][2] in description
         assert "Bare consonants." in description
-        assert "base64" in description
-
-
-class TestEncodeVector:
-    def test_round_trips_through_base64(self):
-        vector = np.array([1.0, -2.5, 0.0], dtype=np.float32)
-        encoded = encode_vector(vector)
-        decoded = np.frombuffer(base64.b64decode(encoded), dtype="<f4")
-        assert np.array_equal(decoded, vector)
-
-    def test_casts_to_float32_before_encoding(self):
-        vector = np.array([1.0, 2.0], dtype=np.float64)
-        encoded = encode_vector(vector)
-        decoded = np.frombuffer(base64.b64decode(encoded), dtype="<f4")
-        assert decoded.dtype == np.float32
+        assert "node_id" in description
 
 
 class TestModelRegistryAndVariationsAreConsistent:
