@@ -11,6 +11,8 @@ from lexical.corpus import Corpus, LexicalPsalm
 from lexical.export import dataset_path, write_dataset
 from lexical.frequency import icf_weights as compute_icf_weights
 from lexical.frequency import lex0_token_frequencies, total_token_count
+from lexical.positional import positional_icf_vectors
+from lexical.recurrence import lag_profile_vectors
 from lexical.vectorize import (
     binary_presence_vectors,
     icf_weighted_vectors,
@@ -19,9 +21,25 @@ from lexical.vectorize import (
     tf_icf_vectors,
 )
 from lexical.vocabulary import VocabularyKey, build_vocabulary
+from lexical.zoning import positional_centroid_vectors
 
-_FORM_WEIGHTS = ("binary", "count", "log_count", "icf", "tf_icf")
+_FORM_WEIGHTS = (
+    "binary",
+    "count",
+    "log_count",
+    "icf",
+    "tf_icf",
+    "icf_pos2",
+    "icf_pos4",
+    "icf_pos8",
+    "icf_lag2",
+    "icf_lag4",
+    "icf_lag8",
+    "icf_posmean",
+)
 _LEXEME_WEIGHTS = ("binary",)
+_POSITIONAL_K = {"icf_pos2": 2, "icf_pos4": 4, "icf_pos8": 8}
+_LAG_K = {"icf_lag2": 2, "icf_lag4": 4, "icf_lag8": 8}
 
 
 def _vectors_for_weight(
@@ -42,6 +60,12 @@ def _vectors_for_weight(
         return icf_weighted_vectors(psalms, vocabulary, key, icf_weights)
     if weight == "tf_icf":
         return tf_icf_vectors(psalms, vocabulary, key, icf_weights)
+    if weight in _POSITIONAL_K:
+        return positional_icf_vectors(psalms, vocabulary, key, icf_weights, k=_POSITIONAL_K[weight])
+    if weight in _LAG_K:
+        return lag_profile_vectors(psalms, vocabulary, key, icf_weights, k=_LAG_K[weight])
+    if weight == "icf_posmean":
+        return positional_centroid_vectors(psalms, vocabulary, key, icf_weights)
     raise ValueError(f"unknown weight {weight!r}")
 
 
@@ -70,7 +94,7 @@ def generate(
 
 
 def main() -> None:
-    """Generates every missing lexical dataset: 5 form weightings plus the frozen lexeme_binary."""
+    """Generates every missing lexical dataset: 8 form weightings plus the frozen lexeme_binary."""
     output_root = Path(__file__).resolve().parents[2]
     corpus = Corpus.load()
     psalms = corpus.psalms()
