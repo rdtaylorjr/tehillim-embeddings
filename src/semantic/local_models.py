@@ -94,14 +94,10 @@ def _repair_gte_multilingual_position_ids(auto_model: Any) -> None:
         module.position_ids.copy_(expected)
 
 
-#: Decoder-only, last-token-pooled checkpoints that SentenceTransformer can't load at
-#: all (KaLM crashes outright, per its own model card's raw-transformers-only usage).
-#: Loaded via plain transformers instead, with pooling done by hand in `_encode_last_token_pooled`.
-RAW_TRANSFORMER_MODELS = {KALM_EMBEDDING_MODEL}
+#: SentenceTransformer can't load these: KaLM crashes, Harrier needs a processor it lacks.
+RAW_TRANSFORMER_MODELS = {KALM_EMBEDDING_MODEL, HARRIER_OSS_MODEL}
 
-#: Models whose own documented usage never passes trust_remote_code=True. Forcing it
-#: on Harrier (Gemma3-based) makes transformers resolve an AutoImageProcessor inherited
-#: from the multimodal base, raising OSError on a checkpoint that ships none.
+#: Models whose own documented usage never passes trust_remote_code=True.
 NO_TRUST_REMOTE_CODE_MODELS = {HARRIER_OSS_MODEL, F2LLM_V2_MODEL}
 
 
