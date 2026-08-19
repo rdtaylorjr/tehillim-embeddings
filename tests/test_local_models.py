@@ -10,10 +10,14 @@ import numpy as np
 import pytest
 
 from semantic.local_models import (
+    F2LLM_V2_MODEL,
+    HARRIER_OSS_MODEL,
     KALM_EMBEDDING_MODEL,
+    NO_TRUST_REMOTE_CODE_MODELS,
+    RAW_TRANSFORMER_MODELS,
     _encode_last_token_pooled,
     _evict_gte_multilingual_dynamic_module,
-    _load_kalm_raw_transformer,
+    _load_raw_transformer,
     _repair_gte_multilingual_position_ids,
     _repair_neodictabert_rope_buffers,
     _rope_frequencies,
@@ -280,8 +284,88 @@ class TestEncodeLastTokenPooled:
 
         assert np.allclose(np.linalg.norm(result, axis=1), 1.0)
 
+    def test_left_padded_batch_picks_the_final_column_not_the_mask_sum_index(self):
+        # KaLM's tokenizer_class is GemmaTokenizer, whose class-level padding_side
+        # is "left" (transformers tokenization_gemma.py), and its own
+        # tokenizer_config.json never overrides that. attention_mask.sum()-1
+        # indexing (correct for right-padding) instead lands inside the pad
+        # prefix for shorter rows under left-padding, so a batch with mixed
+        # real lengths must not silently collapse those rows to identical
+        # pad-region vectors: this is the mechanism verified as the root
+        # cause of the KaLM duplicate-embedding bug.
+        import torch
 
-class TestLoadKalmRawTransformerDevice:
+        class _FakeTokenizer:
+            def __call__(self, texts, *, padding, truncation, max_length, return_tensors):
+                # row 0: 3 real tokens, no padding. row 1: left-padded, 1 pad + 2 real.
+                return {
+                    "input_ids": torch.zeros((2, 3), dtype=torch.long),
+                    "attention_mask": torch.tensor([[1, 1, 1], [0, 1, 1]]),
+                }
+
+        class _FakeModel:
+            class _Output:
+                def __init__(self, hidden):
+                    self.last_hidden_state = hidden
+
+            def __call__(self, **inputs):
+                hidden = torch.tensor(
+                    [
+                        [[1.0, 0.0], [0.0, 1.0], [3.0, 4.0]],
+                        [[9.0, 9.0], [0.0, 5.0], [6.0, 8.0]],
+                    ]
+                )
+                return self._Output(hidden)
+
+            def parameters(self):
+                return iter([torch.zeros(1)])
+
+        result = _encode_last_token_pooled(["a", "b"], _FakeTokenizer(), _FakeModel())
+
+        expected = torch.nn.functional.normalize(
+            torch.tensor([[3.0, 4.0], [6.0, 8.0]]), p=2, dim=1
+        ).numpy()
+        assert np.allclose(result, expected)
+
+    def test_left_padding_detection_requires_every_row_to_end_on_a_real_token(self):
+        # A mixed batch where one row is right-padded (last position is pad)
+        # must not be misdetected as left-padded just because another row's
+        # final position happens to be real.
+        import torch
+
+        class _FakeTokenizer:
+            def __call__(self, texts, *, padding, truncation, max_length, return_tensors):
+                return {
+                    "input_ids": torch.zeros((2, 3), dtype=torch.long),
+                    "attention_mask": torch.tensor([[1, 1, 1], [1, 1, 0]]),
+                }
+
+        class _FakeModel:
+            class _Output:
+                def __init__(self, hidden):
+                    self.last_hidden_state = hidden
+
+            def __call__(self, **inputs):
+                hidden = torch.tensor(
+                    [
+                        [[1.0, 0.0], [0.0, 1.0], [3.0, 4.0]],
+                        [[5.0, 0.0], [0.0, 5.0], [9.0, 9.0]],
+                    ]
+                )
+                return self._Output(hidden)
+
+            def parameters(self):
+                return iter([torch.zeros(1)])
+
+        result = _encode_last_token_pooled(["a", "b"], _FakeTokenizer(), _FakeModel())
+
+        expected = torch.nn.functional.normalize(
+            torch.tensor([[3.0, 4.0], [0.0, 5.0]]), p=2, dim=1
+        ).numpy()
+        assert np.allclose(result, expected)
+
+
+class TestLoadRawTransformerDevice:
     class _FakeModel:
         def to(self, device):
             self.device = device
@@ -299,7 +383,7 @@ class TestLoadKalmRawTransformerDevice:
     def test_explicit_device_is_used_as_given_even_if_cuda_available(self):
         load_tokenizer, load_model = self._fake_loaders()
 
-        _, model = _load_kalm_raw_transformer(
+        _, model = _load_raw_transformer(
             "some-model",
             torch_dtype=None,
             device="cpu",
@@ -314,7 +398,7 @@ class TestLoadKalmRawTransformerDevice:
     def test_none_device_prefers_cuda_when_available(self):
         load_tokenizer, load_model = self._fake_loaders()
 
-        _, model = _load_kalm_raw_transformer(
+        _, model = _load_raw_transformer(
             "some-model",
             torch_dtype=None,
             device=None,
@@ -329,7 +413,7 @@ class TestLoadKalmRawTransformerDevice:
     def test_none_device_falls_back_to_mps_when_cuda_unavailable(self):
         load_tokenizer, load_model = self._fake_loaders()
 
-        _, model = _load_kalm_raw_transformer(
+        _, model = _load_raw_transformer(
             "some-model",
             torch_dtype=None,
             device=None,
@@ -344,7 +428,7 @@ class TestLoadKalmRawTransformerDevice:
     def test_none_device_falls_back_to_cpu_when_neither_available(self):
         load_tokenizer, load_model = self._fake_loaders()
 
-        _, model = _load_kalm_raw_transformer(
+        _, model = _load_raw_transformer(
             "some-model",
             torch_dtype=None,
             device=None,
@@ -449,15 +533,21 @@ class TestComputeHalfVerseEmbeddingsTorchDtype:
         assert calls == [True]
 
 
-class TestComputeHalfVerseEmbeddingsKalmRoutesAroundSentenceTransformer:
-    def test_kalm_model_name_never_touches_sentence_transformer_factory(self):
+class TestComputeHalfVerseEmbeddingsRawTransformerModelsRouteAroundSentenceTransformer:
+    def test_kalm_is_in_the_raw_transformer_set_harrier_is_not(self):
+        assert KALM_EMBEDDING_MODEL in RAW_TRANSFORMER_MODELS
+        assert HARRIER_OSS_MODEL not in RAW_TRANSFORMER_MODELS
+
+    def test_never_touches_sentence_transformer_factory(self):
+        model_name = KALM_EMBEDDING_MODEL
+
         def _fail(*args, **kwargs):
-            raise AssertionError("sentence_transformer_factory must not be used for KaLM")
+            raise AssertionError(f"sentence_transformer_factory must not be used for {model_name}")
 
         calls = []
 
-        def _fake_kalm_loader(model_name, *, torch_dtype, device):
-            calls.append((model_name, torch_dtype, device))
+        def _fake_raw_transformer_loader(name, *, torch_dtype, device):
+            calls.append((name, torch_dtype, device))
             return "fake-tokenizer", "fake-model"
 
         def _fake_pooler(texts, tokenizer, model):
@@ -469,23 +559,23 @@ class TestComputeHalfVerseEmbeddingsKalmRoutesAroundSentenceTransformer:
 
         result = compute_half_verse_embeddings(
             [psalm],
-            KALM_EMBEDDING_MODEL,
+            model_name,
             torch_dtype="bfloat16",
             device="cuda",
             sentence_transformer_factory=_fail,
-            kalm_loader=_fake_kalm_loader,
+            raw_transformer_loader=_fake_raw_transformer_loader,
             last_token_pooler=_fake_pooler,
             release_gpu_memory=lambda: None,
         )
 
-        assert calls == [(KALM_EMBEDDING_MODEL, "bfloat16", "cuda")]
+        assert calls == [(model_name, "bfloat16", "cuda")]
         assert result[1].shape == (2, 4)
 
     def test_loads_once_and_reuses_across_psalms(self):
         load_calls = []
         encode_calls = []
 
-        def _fake_kalm_loader(model_name, *, torch_dtype, device):
+        def _fake_raw_transformer_loader(model_name, *, torch_dtype, device):
             load_calls.append(model_name)
             return "tok", "mdl"
 
@@ -501,13 +591,94 @@ class TestComputeHalfVerseEmbeddingsKalmRoutesAroundSentenceTransformer:
         compute_half_verse_embeddings(
             psalms,
             KALM_EMBEDDING_MODEL,
-            kalm_loader=_fake_kalm_loader,
+            raw_transformer_loader=_fake_raw_transformer_loader,
             last_token_pooler=_fake_pooler,
             release_gpu_memory=lambda: None,
         )
 
         assert len(load_calls) == 1
         assert len(encode_calls) == 2
+
+
+class TestNoTrustRemoteCodeModels:
+    def test_harrier_and_f2llm_are_both_exempted(self):
+        assert HARRIER_OSS_MODEL in NO_TRUST_REMOTE_CODE_MODELS
+        assert F2LLM_V2_MODEL in NO_TRUST_REMOTE_CODE_MODELS
+
+    def test_kalm_still_requires_trust_remote_code(self):
+        assert KALM_EMBEDDING_MODEL not in NO_TRUST_REMOTE_CODE_MODELS
+
+    def test_harrier_goes_through_sentence_transformer_without_trust_remote_code(self):
+        calls = []
+
+        class _FakeModel:
+            def encode(self, texts, normalize_embeddings=True):
+                return np.zeros((len(texts), 3))
+
+        def _fake_factory(model_name, *, trust_remote_code=False, device=None):
+            calls.append(trust_remote_code)
+            return _FakeModel()
+
+        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
+
+        compute_half_verse_embeddings(
+            [psalm],
+            HARRIER_OSS_MODEL,
+            sentence_transformer_factory=_fake_factory,
+            release_gpu_memory=lambda: None,
+        )
+
+        assert calls == [False]
+
+    def test_f2llm_goes_through_sentence_transformer_without_trust_remote_code(self):
+        calls = []
+
+        class _FakeModel:
+            def encode(self, texts, normalize_embeddings=True):
+                return np.zeros((len(texts), 3))
+
+        def _fake_factory(model_name, *, trust_remote_code=False, device=None):
+            calls.append(trust_remote_code)
+            return _FakeModel()
+
+        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
+
+        compute_half_verse_embeddings(
+            [psalm],
+            F2LLM_V2_MODEL,
+            sentence_transformer_factory=_fake_factory,
+            release_gpu_memory=lambda: None,
+        )
+
+        assert calls == [False]
+
+    def test_kalm_still_gets_trust_remote_code_true_in_the_raw_loader(self):
+        calls = []
+
+        def _fake_load_tokenizer(model_name, *, trust_remote_code):
+            calls.append(trust_remote_code)
+            return "tok"
+
+        class _FakeModel:
+            def to(self, device):
+                return self
+
+            def eval(self):
+                return self
+
+        def _fake_load_model(model_name, *, trust_remote_code, **kwargs):
+            calls.append(trust_remote_code)
+            return _FakeModel()
+
+        _load_raw_transformer(
+            KALM_EMBEDDING_MODEL,
+            torch_dtype=None,
+            device="cpu",
+            load_tokenizer=_fake_load_tokenizer,
+            load_model=_fake_load_model,
+        )
+
+        assert calls == [True, True]
 
 
 class TestComputeHalfVerseEmbeddingsGteRetry:
