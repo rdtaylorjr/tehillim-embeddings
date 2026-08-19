@@ -43,6 +43,26 @@ class TestDatasetDescription:
         assert "node_id" in description
 
 
+class TestNewLargeModelsAreRegistered:
+    def test_harrier_oss_v1_uses_the_verified_hugging_face_id(self):
+        assert MODEL_REGISTRY["harrier-oss-v1"][0] == "microsoft/harrier-oss-v1-27b"
+
+    def test_f2llm_v2_uses_the_verified_hugging_face_id(self):
+        assert MODEL_REGISTRY["f2llm-v2"][0] == "codefuse-ai/F2LLM-v2-14B"
+
+    def test_both_get_all_three_text_variations(self):
+        assert [t[0] for t in variations_for_model("harrier-oss-v1")] == [
+            "consonantal",
+            "vocalized",
+            "cantillation",
+        ]
+        assert [t[0] for t in variations_for_model("f2llm-v2")] == [
+            "consonantal",
+            "vocalized",
+            "cantillation",
+        ]
+
+
 class TestModelRegistryAndVariationsAreConsistent:
     def test_every_model_registry_entry_has_three_fields(self):
         for slug, entry in MODEL_REGISTRY.items():

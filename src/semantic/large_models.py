@@ -8,6 +8,8 @@ from typing import Any
 
 from semantic.local_models import (
     BGE_MULTILINGUAL_GEMMA2_MODEL,
+    F2LLM_V2_MODEL,
+    HARRIER_OSS_MODEL,
     KALM_EMBEDDING_MODEL,
     LLAMA_EMBED_NEMOTRON_MODEL,
     QWEN3_EMBEDDING_MODEL,
@@ -20,6 +22,8 @@ LARGE_MODELS: tuple[tuple[str, str, str], ...] = (
     ("qwen3-embedding", QWEN3_EMBEDDING_MODEL, "auto"),
     ("kalm-embedding", KALM_EMBEDDING_MODEL, "bfloat16"),
     ("llama-embed-nemotron", LLAMA_EMBED_NEMOTRON_MODEL, "bfloat16"),
+    ("harrier-oss-v1", HARRIER_OSS_MODEL, "auto"),
+    ("f2llm-v2", F2LLM_V2_MODEL, "bfloat16"),
 )
 
 MODEL_CHOICES: dict[str, str] = {
@@ -27,6 +31,8 @@ MODEL_CHOICES: dict[str, str] = {
     "qwen3": "qwen3-embedding",
     "kalm": "kalm-embedding",
     "llama-nemotron": "llama-embed-nemotron",
+    "harrier": "harrier-oss-v1",
+    "f2llm": "f2llm-v2",
 }
 
 

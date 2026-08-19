@@ -21,6 +21,8 @@ BGE_MULTILINGUAL_GEMMA2_MODEL = "BAAI/bge-multilingual-gemma2"
 QWEN3_EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B"
 KALM_EMBEDDING_MODEL = "tencent/KaLM-Embedding-Gemma3-12B-2511"
 LLAMA_EMBED_NEMOTRON_MODEL = "nvidia/llama-embed-nemotron-8b"
+HARRIER_OSS_MODEL = "microsoft/harrier-oss-v1-27b"
+F2LLM_V2_MODEL = "codefuse-ai/F2LLM-v2-14B"
 BGE_M3_MODEL = "BAAI/bge-m3"
 GTE_MULTILINGUAL_MODEL = "Alibaba-NLP/gte-multilingual-base"
 
