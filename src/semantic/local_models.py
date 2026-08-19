@@ -94,7 +94,18 @@ def _repair_gte_multilingual_position_ids(auto_model: Any) -> None:
         module.position_ids.copy_(expected)
 
 
-def _load_kalm_raw_transformer(
+#: Decoder-only, last-token-pooled checkpoints that SentenceTransformer can't load at
+#: all (KaLM crashes outright, per its own model card's raw-transformers-only usage).
+#: Loaded via plain transformers instead, with pooling done by hand in `_encode_last_token_pooled`.
+RAW_TRANSFORMER_MODELS = {KALM_EMBEDDING_MODEL}
+
+#: Models whose own documented usage never passes trust_remote_code=True. Forcing it
+#: on Harrier (Gemma3-based) makes transformers resolve an AutoImageProcessor inherited
+#: from the multimodal base, raising OSError on a checkpoint that ships none.
+NO_TRUST_REMOTE_CODE_MODELS = {HARRIER_OSS_MODEL, F2LLM_V2_MODEL}
+
+
+def _load_raw_transformer(
     model_name: str,
     *,
     torch_dtype: str | None,
@@ -104,7 +115,7 @@ def _load_kalm_raw_transformer(
     cuda_available: Callable[[], bool] | None = None,
     mps_available: Callable[[], bool] | None = None,
 ) -> tuple[Any, Any]:
-    """Loads KaLM via plain transformers: SentenceTransformer crashes on it."""
+    """Loads a RAW_TRANSFORMER_MODELS checkpoint via plain transformers, bypassing ST."""
     if load_tokenizer is None or load_model is None:
         from transformers import AutoModel, AutoTokenizer
 
@@ -120,9 +131,10 @@ def _load_kalm_raw_transformer(
         if mps_available is None:
             mps_available = torch.backends.mps.is_available
 
-    tokenizer = load_tokenizer(model_name, trust_remote_code=True)
+    trust_remote_code = model_name not in NO_TRUST_REMOTE_CODE_MODELS
+    tokenizer = load_tokenizer(model_name, trust_remote_code=trust_remote_code)
     model_kwargs = {"torch_dtype": torch_dtype} if torch_dtype is not None else {}
-    model = load_model(model_name, trust_remote_code=True, **model_kwargs)
+    model = load_model(model_name, trust_remote_code=trust_remote_code, **model_kwargs)
     if device is not None:
         resolved_device = device
     elif cuda_available():
@@ -137,7 +149,7 @@ def _load_kalm_raw_transformer(
 
 
 def _encode_last_token_pooled(texts: list[str], tokenizer: Any, model: Any) -> np.ndarray:
-    """Last-token pooling and L2 normalization for KaLM."""
+    """Last-token pooling and L2 normalization, correct under either padding side."""
     import torch
 
     device = next(model.parameters()).device
@@ -146,8 +158,13 @@ def _encode_last_token_pooled(texts: list[str], tokenizer: Any, model: Any) -> n
     with torch.no_grad():
         outputs = model(**inputs)
     hidden = outputs.last_hidden_state
-    sequence_lengths = inputs["attention_mask"].sum(dim=1) - 1
-    pooled = hidden[torch.arange(hidden.shape[0], device=device), sequence_lengths]
+    attention_mask = inputs["attention_mask"]
+    left_padded = bool((attention_mask[:, -1].sum() == attention_mask.shape[0]).item())
+    if left_padded:
+        pooled = hidden[:, -1]
+    else:
+        sequence_lengths = attention_mask.sum(dim=1) - 1
+        pooled = hidden[torch.arange(hidden.shape[0], device=device), sequence_lengths]
     pooled = torch.nn.functional.normalize(pooled, p=2, dim=1)
     return pooled.to(torch.float32).cpu().numpy()
 
@@ -174,13 +191,15 @@ def compute_half_verse_embeddings(
     device: str | None = None,
     torch_dtype: str | None = None,
     sentence_transformer_factory: Callable[..., Any] | None = None,
-    kalm_loader: Callable[..., tuple[Any, Any]] = _load_kalm_raw_transformer,
+    raw_transformer_loader: Callable[..., tuple[Any, Any]] = _load_raw_transformer,
     last_token_pooler: Callable[[list[str], Any, Any], np.ndarray] = _encode_last_token_pooled,
     release_gpu_memory: Callable[[], None] = _release_gpu_memory,
 ) -> dict[int, np.ndarray]:
     """`niqqud_only=True` overrides `vocalized` with accent-stripped text."""
-    if model_name == KALM_EMBEDDING_MODEL:
-        tokenizer, raw_model = kalm_loader(model_name, torch_dtype=torch_dtype, device=device)
+    if model_name in RAW_TRANSFORMER_MODELS:
+        tokenizer, raw_model = raw_transformer_loader(
+            model_name, torch_dtype=torch_dtype, device=device
+        )
         embeddings: dict[int, np.ndarray] = {}
         for psalm in psalms:
             half_verses = _select_half_verses(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
@@ -200,11 +219,12 @@ def compute_half_verse_embeddings(
 
     model_kwargs = {"model_kwargs": {"torch_dtype": torch_dtype}} if torch_dtype is not None else {}
     attempts = _GTE_MULTILINGUAL_MAX_ATTEMPTS if model_name == GTE_MULTILINGUAL_MODEL else 1
+    trust_remote_code = model_name not in NO_TRUST_REMOTE_CODE_MODELS
     for attempt in range(1, attempts + 1):
         if model_name == GTE_MULTILINGUAL_MODEL and attempt > 1:
             _evict_gte_multilingual_dynamic_module()
         model = sentence_transformer_factory(
-            model_name, trust_remote_code=True, device=device, **model_kwargs
+            model_name, trust_remote_code=trust_remote_code, device=device, **model_kwargs
         )
         if model_name == NEODICTABERT_MODEL:
             _repair_neodictabert_rope_buffers(model[0].auto_model)
