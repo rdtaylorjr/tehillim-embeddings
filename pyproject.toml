@@ -1,5 +1,5 @@
 [project]
-name = "tehillim-representations"
+name = "representations"
 version = "0.2.0"
 description = "Generates and exports feature representations for the Hebrew Psalms as BHSA-node-keyed Parquet datasets."
 readme = "README.md"
