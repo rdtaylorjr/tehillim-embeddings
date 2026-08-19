@@ -3,7 +3,13 @@ from __future__ import annotations
 import numpy as np
 
 from lexical.corpus import LexicalPsalm
-from lexical.vectorize import binary_presence_vectors
+from lexical.vectorize import (
+    binary_presence_vectors,
+    icf_weighted_vectors,
+    log_count_vectors,
+    term_frequency_vectors,
+    tf_icf_vectors,
+)
 
 
 def _psalm(*, number, lexemes, forms, nodes):
@@ -75,3 +81,92 @@ class TestBinaryPresenceVectors:
         vectors = binary_presence_vectors(psalms, vocabulary, key="lex")
 
         assert vectors[100].dtype == np.float32
+
+    def test_matches_thresholding_term_frequency_vectors_exactly(self):
+        vocabulary = ("A", "B", "C")
+        psalms = [
+            _psalm(number=1, lexemes=(("A", "A", "C"), ("B",)), forms=((), ()), nodes=(100, 101))
+        ]
+
+        binary = binary_presence_vectors(psalms, vocabulary, key="lex")
+        counts = term_frequency_vectors(psalms, vocabulary, key="lex")
+
+        for node in binary:
+            expected = (counts[node] > 0).astype(np.float32)
+            assert np.array_equal(binary[node], expected)
+
+
+class TestTermFrequencyVectors:
+    def test_counts_repeated_occurrences_within_a_colon(self):
+        vocabulary = ("A", "B")
+        psalms = [_psalm(number=1, lexemes=(("A", "A", "A", "B"),), forms=((),), nodes=(100,))]
+
+        vectors = term_frequency_vectors(psalms, vocabulary, key="lex")
+
+        assert np.array_equal(vectors[100], [3.0, 1.0])
+
+    def test_absent_lexeme_counts_zero(self):
+        vocabulary = ("A", "B")
+        psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
+
+        vectors = term_frequency_vectors(psalms, vocabulary, key="lex")
+
+        assert np.array_equal(vectors[100], [1.0, 0.0])
+
+    def test_vectors_are_float32(self):
+        vocabulary = ("A",)
+        psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
+
+        vectors = term_frequency_vectors(psalms, vocabulary, key="lex")
+
+        assert vectors[100].dtype == np.float32
+
+
+class TestLogCountVectors:
+    def test_matches_log1p_of_the_raw_count(self):
+        vocabulary = ("A", "B")
+        psalms = [_psalm(number=1, lexemes=(("A", "A", "A"),), forms=((),), nodes=(100,))]
+
+        vectors = log_count_vectors(psalms, vocabulary, key="lex")
+
+        assert np.allclose(vectors[100], [np.log1p(3.0), 0.0])
+
+    def test_absent_lexeme_is_log1p_of_zero_which_is_zero(self):
+        vocabulary = ("A", "B")
+        psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
+
+        vectors = log_count_vectors(psalms, vocabulary, key="lex")
+
+        assert vectors[100][1] == 0.0
+
+
+class TestIcfWeightedVectors:
+    def test_scales_binary_presence_by_the_icf_weight(self):
+        vocabulary = ("A", "B")
+        psalms = [_psalm(number=1, lexemes=(("A", "A"),), forms=((),), nodes=(100,))]
+        icf_weights = {"A": 2.5, "B": 0.1}
+
+        vectors = icf_weighted_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
+
+        # binary presence collapses repetition to 1, then scaled by ICF.
+        assert np.allclose(vectors[100], [2.5, 0.0])
+
+    def test_absent_lexeme_stays_zero_regardless_of_its_icf_weight(self):
+        vocabulary = ("A", "B")
+        psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
+        icf_weights = {"A": 1.0, "B": 99.0}
+
+        vectors = icf_weighted_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
+
+        assert vectors[100][1] == 0.0
+
+
+class TestTfIcfVectors:
+    def test_scales_log_count_by_the_icf_weight(self):
+        vocabulary = ("A", "B")
+        psalms = [_psalm(number=1, lexemes=(("A", "A", "A"),), forms=((),), nodes=(100,))]
+        icf_weights = {"A": 2.0, "B": 5.0}
+
+        vectors = tf_icf_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
+
+        assert np.allclose(vectors[100], [np.log1p(3.0) * 2.0, 0.0])

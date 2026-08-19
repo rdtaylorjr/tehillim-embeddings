@@ -115,6 +115,42 @@ loaded via `use()`) on `node_id`.
   https://docs.cohere.com/changelog/embed-multimodal-v4
 * Voyage AI (2026). The Voyage 4 model family: shared embedding space
   with MoE architecture. https://blog.voyageai.com/2026/01/15/voyage-4/
+* Spärck Jones, K. (1972). A Statistical Interpretation of Term
+  Specificity and Its Application in Retrieval. Journal of
+  Documentation, 28(1), 11-21.
+
+## Lexical representations
+
+`src/lexical` builds representations directly from BHSA's `lex`/`lex0` features, independent of any
+learned embedding model: exact word choice and repetition, not what a semantic model infers.
+Datasets live under `data/type=lexical/`, in the same `node_id`/`vector` Parquet schema as the
+semantic datasets above, so they slot into any script that reads a `tehillim-embeddings` checkout
+with no code changes.
+
+* **Identity** (`lexical.vocabulary`): two vocabularies were compared, `lex0` (BHSA's bare
+  consonantal lexeme, homonyms collapsed) and `lex` (BHSA's disambiguated lexeme, homonyms kept
+  separate). Benchmarked against parallelism and genre, disambiguation showed no measurable
+  advantage under binary presence, so `lex0` is the default vocabulary. `lexeme_binary` (the `lex`
+  variant) is kept as a frozen control.
+* **Weighting** (`lexical.vectorize`, `lexical.frequency`): five colon-level weightings over the
+  `lex0` vocabulary were compared: `binary` (presence), `count` (raw term frequency), `log_count`
+  (`log(1+tf)`), `icf` (binary times smoothed inverse corpus frequency), and `tf_icf`
+  (`log(1+tf)` times ICF). ICF weight for lexeme ℓ is `log((T+1)/(f_ℓ+1)) + 1`, a smoothed
+  corpus-frequency weighting (Spärck Jones 1972) using whole-Hebrew-Bible token counts rather than
+  document frequency: `T` is the total token count across the whole Bible and `f_ℓ` is `lex0` ℓ's
+  whole-Bible token frequency, summed across every `lex` homonym sharing it. `icf` beat `binary` on
+  both parallelism and genre. Raw/log-count weighting did not help at either scale.
+
+| dataset | weighting |
+|---|---|
+| `data/type=lexical/vocab=form/weight=binary/` | `lex0`, binary presence (frozen) |
+| `data/type=lexical/vocab=form/weight=count/` | `lex0`, raw term frequency |
+| `data/type=lexical/vocab=form/weight=log_count/` | `lex0`, `log(1+tf)` |
+| `data/type=lexical/vocab=form/weight=icf/` | `lex0`, ICF-weighted binary presence |
+| `data/type=lexical/vocab=form/weight=tf_icf/` | `lex0`, ICF-weighted `log(1+tf)` |
+| `data/type=lexical/vocab=lexeme/weight=binary/` | `lex`, binary presence (frozen control) |
+
+Generate with `.venv/bin/python3 -m lexical.generate` (skips any dataset already written).
 
 ## Family
 
