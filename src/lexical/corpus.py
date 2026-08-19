@@ -10,7 +10,7 @@ from tf.fabric import Fabric
 
 DEFAULT_BHSA_TF_PATH = Path.home() / "Developer" / "hebrew" / "bhsa" / "tf" / "2021"
 
-_REQUIRED_FEATURES = "otype book chapter verse lex lex0"
+_REQUIRED_FEATURES = "otype book chapter verse lex lex0 freq_lex"
 
 _PSALMS_BOOK_NAME = "Psalmi"
 
@@ -30,6 +30,11 @@ class Corpus:
 
     def __init__(self, api: Any) -> None:
         self._api = api
+
+    @property
+    def api(self) -> Any:
+        """The underlying Text-Fabric API, for whole-corpus queries outside Psalms."""
+        return self._api
 
     @classmethod
     def load(cls, tf_path: Path | None = None) -> Corpus:

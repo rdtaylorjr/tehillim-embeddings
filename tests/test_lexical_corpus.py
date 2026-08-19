@@ -43,3 +43,15 @@ def test_load_accepts_an_explicit_path():
 
     corpus = Corpus.load(Path(DEFAULT_BHSA_TF_PATH))
     assert len(corpus.psalms()) == 150
+
+
+@pytest.mark.integration
+def test_api_property_exposes_the_whole_corpus_not_just_psalms():
+    from lexical.frequency import total_token_count
+
+    corpus = Corpus.load()
+    psalms_word_count = sum(len(lex) for p in corpus.psalms() for lex in p.half_verse_lexemes)
+
+    whole_bible_word_count = total_token_count(corpus.api)
+
+    assert whole_bible_word_count > psalms_word_count * 10
