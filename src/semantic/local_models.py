@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable, MutableMapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
@@ -208,7 +208,9 @@ def compute_half_verse_embeddings(
     if sentence_transformer_factory is None:
         from sentence_transformers import SentenceTransformer
 
-        sentence_transformer_factory = SentenceTransformer
+        factory = cast(Callable[..., Any], SentenceTransformer)
+    else:
+        factory = sentence_transformer_factory
 
     if model_name == GTE_MULTILINGUAL_MODEL and device is None:
         device = "cpu"
@@ -219,7 +221,7 @@ def compute_half_verse_embeddings(
     for attempt in range(1, attempts + 1):
         if model_name == GTE_MULTILINGUAL_MODEL and attempt > 1:
             _evict_gte_multilingual_dynamic_module()
-        model = sentence_transformer_factory(
+        model = factory(
             model_name, trust_remote_code=trust_remote_code, device=device, **model_kwargs
         )
         if model_name == NEODICTABERT_MODEL:

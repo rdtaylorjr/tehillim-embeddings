@@ -1,10 +1,11 @@
-# Tehillim Embeddings
+# Tehillim Representations
 
-A Parquet dataset of pre-computed embedding vectors for every
-half-verse of the Hebrew psalms, produced by 17 different Hebrew and
-multilingual embedding models: 4 Hebrew BERT-family models, 9
-open-weight multilingual encoders, and 4 embedding APIs (Gemini,
-OpenAI, Cohere, Voyage).
+A Parquet dataset of pre-computed feature representations for every
+half-verse of the Hebrew psalms: semantic embedding vectors from 17
+different Hebrew and multilingual embedding models (4 Hebrew
+BERT-family models, 9 open-weight multilingual encoders, and 4
+embedding APIs — Gemini, OpenAI, Cohere, Voyage), plus lexical
+representations built from BHSA's lexeme features.
 
 ## About
 
@@ -19,9 +20,9 @@ doesn't fit Text-Fabric's node-feature model well. The
 corpus-linguistic data it's keyed to (BHSA, `tehillim-parallelism`) is
 real Text-Fabric, loaded via `use()`.
 
-## Data
+## Semantic representations
 
-* **Dataset files**: 37 Parquet files under `data/`, one per (model, text
+* **Dataset files**: 43 Parquet files under `data/`, one per (model, text
   variant) pair, laid out as a Hive-partitioned directory tree:
   `type=semantic/model=<slug>/text=<variant>/part-0.parquet`. Columns:
   `node_id` (int32, a BHSA `half_verse` node id) and `vector` (float32
@@ -35,7 +36,7 @@ real Text-Fabric, loaded via `use()`.
 * **Generation code**: `src/semantic/`, loads psalm text from BHSA via
   Text-Fabric and writes model output as Parquet, with no intermediate
   cache. Run with `.venv/bin/python3 -m semantic.generate` for the local
-  and API models. The four Colab-only models run from
+  and API models. The six Colab-only models run from
   `scripts/compute_large_embeddings.ipynb`. Each model checks for its
   already-written dataset file first, so both are safe to re-run.
 
@@ -128,11 +129,11 @@ loaded via `use()`) on `node_id`.
 
 ## Lexical representations
 
-`src/lexical` builds representations directly from BHSA's `lex`/`lex0` features, independent of any
+`src/lexical` builds representations from BHSA's `lex`/`lex0` features, independent of any
 learned embedding model: exact word choice and repetition, not what a semantic model infers.
 Datasets live under `data/type=lexical/`, in the same `node_id`/`vector` Parquet schema as the
-semantic datasets above, so they slot into any script that reads a `tehillim-embeddings` checkout
-with no code changes.
+semantic datasets above, so they slot into any script that reads a `tehillim-representations`
+checkout with no code changes.
 
 * **Identity** (`lexical.vocabulary`): two vocabularies were compared, `lex0` (BHSA's bare
   consonantal lexeme, homonyms collapsed) and `lex` (BHSA's disambiguated lexeme, homonyms kept
