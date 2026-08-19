@@ -42,7 +42,7 @@ def log_count_vectors(
     return {node: np.log1p(vector).astype(np.float32) for node, vector in counts.items()}
 
 
-def _icf_vector(vocabulary: tuple[str, ...], icf_weights: dict[str, float]) -> np.ndarray:
+def icf_vector(vocabulary: tuple[str, ...], icf_weights: dict[str, float]) -> np.ndarray:
     """The ICF weight for each vocabulary entry, in vocabulary order."""
     return np.array([icf_weights[value] for value in vocabulary], dtype=np.float32)
 
@@ -54,7 +54,7 @@ def icf_weighted_vectors(
     icf_weights: dict[str, float],
 ) -> dict[int, np.ndarray]:
     """Binary presence x ICF(lexeme): a shared rare lexeme scores higher than a common one."""
-    weights = _icf_vector(vocabulary, icf_weights)
+    weights = icf_vector(vocabulary, icf_weights)
     binary = binary_presence_vectors(psalms, vocabulary, key)
     return {node: vector * weights for node, vector in binary.items()}
 
@@ -66,6 +66,6 @@ def tf_icf_vectors(
     icf_weights: dict[str, float],
 ) -> dict[int, np.ndarray]:
     """log(1 + tf) x ICF(lexeme): repetition and rarity combined."""
-    weights = _icf_vector(vocabulary, icf_weights)
+    weights = icf_vector(vocabulary, icf_weights)
     log_counts = log_count_vectors(psalms, vocabulary, key)
     return {node: vector * weights for node, vector in log_counts.items()}

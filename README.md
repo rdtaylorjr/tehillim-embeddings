@@ -1,8 +1,8 @@
 # Tehillim Embeddings
 
 A Parquet dataset of pre-computed embedding vectors for every
-half-verse of the Hebrew psalms, produced by 15 different Hebrew and
-multilingual embedding models: 4 Hebrew BERT-family models, 7
+half-verse of the Hebrew psalms, produced by 17 different Hebrew and
+multilingual embedding models: 4 Hebrew BERT-family models, 9
 open-weight multilingual encoders, and 4 embedding APIs (Gemini,
 OpenAI, Cohere, Voyage).
 
@@ -51,6 +51,8 @@ real Text-Fabric, loaded via `use()`.
 | Qwen3-Embedding-8B | `Qwen/Qwen3-Embedding-8B` | `qwen3_embedding_8b` | 4096 |
 | KaLM-Embedding-Gemma3-12B | `tencent/KaLM-Embedding-Gemma3-12B-2511` | `kalm_embedding_gemma3_12b_2511` | 3840 |
 | Llama-Embed-Nemotron-8B | `nvidia/llama-embed-nemotron-8b` | `llama_embed_nemotron_8b` | 4096 |
+| Harrier-OSS-v1-27B | `microsoft/harrier-oss-v1-27b` | `harrier_oss_v1_27b` | 5376 |
+| F2LLM-v2-14B | `codefuse-ai/F2LLM-v2-14B` | `f2llm_v2_14b` | 5120 |
 | BGE-M3 | `BAAI/bge-m3` | `bge_m3` | 1024 |
 | GTE-multilingual-base | `Alibaba-NLP/gte-multilingual-base` | `gte_multilingual_base` | 768 |
 | mE5-large-instruct | `intfloat/multilingual-e5-large-instruct` | `me5_large_instruct` | 1024 |
@@ -99,6 +101,11 @@ loaded via `use()`) on `node_id`.
 * Babakhin, Y. et al. (2025). Llama-Embed-Nemotron-8B: A Universal
   Text Embedding Model for Multilingual and Cross-Lingual Tasks.
   arXiv:2511.07025.
+* Microsoft (2026). harrier-oss-v1: Open-Source Multilingual Text
+  Embeddings. https://huggingface.co/microsoft/harrier-oss-v1-27b
+* Zhang, Z., Liao, Z., Yu, H., Di, P., & Wang, R. (2026). F2LLM-v2:
+  Inclusive, Performant, and Efficient Embeddings for a Multilingual
+  World. arXiv:2603.19223.
 * Chen, J. et al. (2024). BGE M3-Embedding: Multi-Lingual,
   Multi-Functionality, Multi-Granularity Text Embeddings Through
   Self-Knowledge Distillation. arXiv:2402.03216.
