@@ -45,6 +45,17 @@ MODEL_REGISTRY: dict[str, tuple[str, str, str]] = {
         "~8B param multilingual encoder, fine-tuned from Llama-3.1-8B "
         "with bidirectional attention. Non-commercial/research-use license.",
     ),
+    "harrier-oss-v1": (
+        "microsoft/harrier-oss-v1-27b",
+        "harrier_oss_v1_27b",
+        "~27B param multilingual encoder, decoder-only with last-token "
+        "pooling and L2 normalization.",
+    ),
+    "f2llm-v2": (
+        "codefuse-ai/F2LLM-v2-14B",
+        "f2llm_v2_14b",
+        "~14B param multilingual encoder, fine-tuned from Qwen3-14B.",
+    ),
     "bge-m3": (
         "BAAI/bge-m3",
         "bge_m3",

@@ -19,6 +19,15 @@ class TestModelsForChoice:
         assert len(result) == 1
         assert result[0][0] == "kalm-embedding"
 
+    def test_harrier_and_f2llm_are_registered_large_models(self):
+        slugs = {model[0] for model in LARGE_MODELS}
+        assert "harrier-oss-v1" in slugs
+        assert "f2llm-v2" in slugs
+
+    def test_harrier_and_f2llm_choices_resolve(self):
+        assert models_for_choice("harrier")[0][0] == "harrier-oss-v1"
+        assert models_for_choice("f2llm")[0][0] == "f2llm-v2"
+
 
 class TestEnsureCorpusData:
     def test_returns_the_default_when_it_already_exists(self, tmp_path):
