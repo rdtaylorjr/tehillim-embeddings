@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from lexical.corpus import LexicalPsalm
-from lexical.recurrence import lag_bin_index, lag_profile_vectors, normalized_lag
+from lexical.psalm_recurrence import lag_bin_index, normalized_lag, psalm_lag_profile_vectors
 
 
 def _psalm(*, number, lexemes, forms, nodes):
@@ -17,8 +17,6 @@ def _psalm(*, number, lexemes, forms, nodes):
 
 class TestNormalizedLag:
     def test_four_cola_deltas_match_hand_computation(self):
-        # triu_indices(4, k=1) order: (0,1),(0,2),(0,3),(1,2),(1,3),(2,3)
-        # |i-j|: 1,2,3,1,2,1 -> delta = |i-j|/(4-1)
         delta = normalized_lag(4)
 
         assert np.allclose(delta, [1 / 3, 2 / 3, 1.0, 1 / 3, 2 / 3, 1 / 3])
@@ -35,7 +33,6 @@ class TestLagBinIndex:
 
         bins = lag_bin_index(delta, k=2)
 
-        # [1/3, 2/3, 1.0, 1/3, 2/3, 1/3] -> [0, 1, 1, 0, 1, 0]
         assert bins.tolist() == [0, 1, 1, 0, 1, 0]
 
     def test_never_exceeds_the_last_bin_at_the_upper_boundary(self):
@@ -44,7 +41,7 @@ class TestLagBinIndex:
         assert bins.tolist() == [3]
 
 
-class TestLagProfileVectors:
+class TestPsalmLagProfileVectors:
     def test_vector_length_equals_k(self):
         vocabulary = ("A", "B", "C")
         icf_weights = {"A": 1.0, "B": 1.0, "C": 1.0}
@@ -57,13 +54,13 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4)
+        vectors = psalm_lag_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4
+        )
 
         assert len(vectors[100]) == 4
 
     def test_short_range_recurrence_scores_higher_in_the_near_bin(self):
-        # A colon repeats its immediate neighbor's vocabulary (adjacent recurrence), and nothing
-        # else repeats at long range: near-lag similarity should exceed far-lag similarity.
         vocabulary = ("A", "B", "C", "D", "E", "F")
         icf_weights = dict.fromkeys(vocabulary, 1.0)
         psalms = [
@@ -75,13 +72,14 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2)
+        vectors = psalm_lag_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+        )
 
         near_bin, far_bin = vectors[100]
         assert near_bin > far_bin
 
-    def test_each_colon_gets_its_own_neighbor_similarity_profile(self):
-        # colon 0 (A) matches colon 2 (A) exactly; colon 1 (B) matches neither closely.
+    def test_broadcasts_the_same_psalm_level_vector_to_every_colon_node(self):
         vocabulary = ("A", "B")
         icf_weights = {"A": 1.0, "B": 1.0}
         psalms = [
@@ -93,13 +91,12 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2)
+        vectors = psalm_lag_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+        )
 
-        assert not np.array_equal(vectors[100], vectors[101])
-        assert not np.array_equal(vectors[102], vectors[103])
-        # colon 0 and colon 2 both have content "A" but sit at different psalm positions,
-        # so their neighbor profiles (computed from their own position outward) differ.
-        assert not np.array_equal(vectors[100], vectors[102])
+        assert np.array_equal(vectors[100], vectors[101])
+        assert np.array_equal(vectors[102], vectors[103])
 
     def test_shuffled_order_changes_the_profile(self):
         vocabulary = ("A", "B", "C", "D", "E", "F")
@@ -113,8 +110,10 @@ class TestLagProfileVectors:
             )
         ]
 
-        natural = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2)
-        shuffled = lag_profile_vectors(
+        natural = psalm_lag_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+        )
+        shuffled = psalm_lag_profile_vectors(
             psalms,
             vocabulary,
             key="lex",
@@ -130,7 +129,9 @@ class TestLagProfileVectors:
         icf_weights = {"A": 1.0}
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4)
+        vectors = psalm_lag_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4
+        )
 
         assert np.allclose(vectors[100], [0.0, 0.0, 0.0, 0.0])
 
@@ -146,7 +147,9 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2)
+        vectors = psalm_lag_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+        )
 
         assert not np.isnan(vectors[100]).any()
 
@@ -162,6 +165,8 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex0", icf_weights=icf_weights, k=2)
+        vectors = psalm_lag_profile_vectors(
+            psalms, vocabulary, key="lex0", icf_weights=icf_weights, k=2
+        )
 
         assert len(vectors[100]) == 2
