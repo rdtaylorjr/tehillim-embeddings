@@ -1,4 +1,4 @@
-"""Psalm-level ICF-weighted positional pyramid: content aggregated into k normalized regions."""
+"""Colon-level ICF-weighted positional pyramid: each colon nonzero only in its own region."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def positional_icf_vectors(
     k: int,
     order_by_psalm: dict[int, np.ndarray] | None = None,
 ) -> dict[int, np.ndarray]:
-    """Psalm-level [B_1;...;B_k] ICF-weighted positional pyramid, broadcast to every colon node."""
+    """Per-colon [0;...;own ICF content;...;0]: nonzero only in the colon's own position bin."""
     weights = icf_vector(vocabulary, icf_weights)
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
@@ -39,14 +39,11 @@ def positional_icf_vectors(
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
         bins = bin_index(colon_positions(n), k)
 
-        blocks = np.zeros((k, dim), dtype=np.float32)
         for position, colon_index in enumerate(order):
+            block = np.zeros((k, dim), dtype=np.float32)
             for value in set(half_verses[colon_index]):
                 index = index_of.get(value)
                 if index is not None:
-                    blocks[bins[position], index] += weights[index]
-
-        psalm_vector = blocks.flatten()
-        for node in psalm.half_verse_nodes:
-            vectors[node] = psalm_vector
+                    block[bins[position], index] += weights[index]
+            vectors[psalm.half_verse_nodes[colon_index]] = block.flatten()
     return vectors

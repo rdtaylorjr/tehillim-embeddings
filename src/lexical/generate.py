@@ -1,4 +1,4 @@
-"""Computes and writes lexical datasets as Parquet: 5 form weightings, and frozen lexeme_binary."""
+"""Computes and writes lexical datasets as Parquet: 19 lex0 weightings, and frozen lex_binary."""
 
 from __future__ import annotations
 
@@ -12,6 +12,9 @@ from lexical.export import dataset_path, write_dataset
 from lexical.frequency import icf_weights as compute_icf_weights
 from lexical.frequency import lex0_token_frequencies, total_token_count
 from lexical.positional import positional_icf_vectors
+from lexical.psalm_position import psalm_positional_icf_vectors
+from lexical.psalm_recurrence import psalm_lag_profile_vectors
+from lexical.psalm_zoning import psalm_positional_centroid_vectors
 from lexical.recurrence import lag_profile_vectors
 from lexical.vectorize import (
     binary_presence_vectors,
@@ -23,7 +26,7 @@ from lexical.vectorize import (
 from lexical.vocabulary import VocabularyKey, build_vocabulary
 from lexical.zoning import positional_centroid_vectors
 
-_FORM_WEIGHTS = (
+_LEX0_WEIGHTS = (
     "binary",
     "count",
     "log_count",
@@ -36,10 +39,19 @@ _FORM_WEIGHTS = (
     "icf_lag4",
     "icf_lag8",
     "icf_posmean",
+    "icf_pos2_psalm",
+    "icf_pos4_psalm",
+    "icf_pos8_psalm",
+    "icf_lag2_psalm",
+    "icf_lag4_psalm",
+    "icf_lag8_psalm",
+    "icf_posmean_psalm",
 )
-_LEXEME_WEIGHTS = ("binary",)
+_LEX_WEIGHTS = ("binary",)
 _POSITIONAL_K = {"icf_pos2": 2, "icf_pos4": 4, "icf_pos8": 8}
 _LAG_K = {"icf_lag2": 2, "icf_lag4": 4, "icf_lag8": 8}
+_PSALM_POSITIONAL_K = {"icf_pos2_psalm": 2, "icf_pos4_psalm": 4, "icf_pos8_psalm": 8}
+_PSALM_LAG_K = {"icf_lag2_psalm": 2, "icf_lag4_psalm": 4, "icf_lag8_psalm": 8}
 
 
 def _vectors_for_weight(
@@ -66,6 +78,16 @@ def _vectors_for_weight(
         return lag_profile_vectors(psalms, vocabulary, key, icf_weights, k=_LAG_K[weight])
     if weight == "icf_posmean":
         return positional_centroid_vectors(psalms, vocabulary, key, icf_weights)
+    if weight in _PSALM_POSITIONAL_K:
+        return psalm_positional_icf_vectors(
+            psalms, vocabulary, key, icf_weights, k=_PSALM_POSITIONAL_K[weight]
+        )
+    if weight in _PSALM_LAG_K:
+        return psalm_lag_profile_vectors(
+            psalms, vocabulary, key, icf_weights, k=_PSALM_LAG_K[weight]
+        )
+    if weight == "icf_posmean_psalm":
+        return psalm_positional_centroid_vectors(psalms, vocabulary, key, icf_weights)
     raise ValueError(f"unknown weight {weight!r}")
 
 
@@ -73,28 +95,28 @@ def generate(
     psalms: list[LexicalPsalm], output_root: Path, icf_weights: dict[str, float]
 ) -> list[str]:
     """Writes every not-yet-written (vocab, weight) dataset, returns the names written."""
-    plan: list[tuple[str, VocabularyKey, str]] = [
-        ("form", "lex0", weight) for weight in _FORM_WEIGHTS
-    ] + [("lexeme", "lex", weight) for weight in _LEXEME_WEIGHTS]
+    plan: list[tuple[VocabularyKey, str]] = [("lex0", weight) for weight in _LEX0_WEIGHTS] + [
+        ("lex", weight) for weight in _LEX_WEIGHTS
+    ]
 
     written: list[str] = []
-    for vocab_name, key, weight in plan:
-        if dataset_path(output_root, vocab_name, weight).exists():
+    for key, weight in plan:
+        if dataset_path(output_root, key, weight).exists():
             continue
-        print(f"computing lexical vocab={vocab_name} weight={weight}...", file=sys.stderr)
+        print(f"computing lexical vocab={key} weight={weight}...", file=sys.stderr)
         vocabulary = build_vocabulary(psalms, key=key)
         vectors = _vectors_for_weight(psalms, vocabulary, key, weight, icf_weights)
         description = (
-            f"Lexical vectors over the {vocab_name} vocabulary ({key} BHSA feature), "
+            f"Lexical vectors over the {key} vocabulary (BHSA feature), "
             f"weight={weight}, dimension {len(vocabulary)}."
         )
-        write_dataset(output_root, vocab_name, weight, vectors, description)
-        written.append(f"{vocab_name}_{weight}")
+        write_dataset(output_root, key, weight, vectors, description)
+        written.append(f"{key}_{weight}")
     return written
 
 
 def main() -> None:
-    """Generates every missing lexical dataset: 8 form weightings plus the frozen lexeme_binary."""
+    """Generates every missing lexical dataset: 19 lex0 weightings plus the frozen lex_binary."""
     output_root = Path(__file__).resolve().parents[2]
     corpus = Corpus.load()
     psalms = corpus.psalms()

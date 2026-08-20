@@ -1,4 +1,4 @@
-"""Per-colon ICF lexical-recurrence lag profile: mean similarity to other colons by lag bin."""
+"""Psalm-level ICF lexical-recurrence lag profile, broadcast to every colon node in the psalm."""
 
 from __future__ import annotations
 
@@ -31,15 +31,17 @@ def _colon_vector(
     return vector
 
 
-def _full_cosine_similarity_matrix(vectors: np.ndarray) -> np.ndarray:
-    """cos(x_i, x_j) for every (i, j) pair, full symmetric matrix; 0 for a zero-norm colon."""
+def _pairwise_cosine_similarity(vectors: np.ndarray) -> np.ndarray:
+    """cos(x_i, x_j) for every i<j pair, in triu_indices order; 0 for a zero-norm colon vector."""
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
     safe_norms = np.where(norms == 0, 1.0, norms)
     normalized = vectors / safe_norms
-    return np.asarray(normalized @ normalized.T)
+    similarity = normalized @ normalized.T
+    rows, cols = np.triu_indices(len(vectors), k=1)
+    return np.asarray(similarity[rows, cols])
 
 
-def lag_profile_vectors(
+def psalm_lag_profile_vectors(
     psalms: list[LexicalPsalm],
     vocabulary: tuple[str, ...],
     key: VocabularyKey,
@@ -47,7 +49,7 @@ def lag_profile_vectors(
     k: int,
     order_by_psalm: dict[int, np.ndarray] | None = None,
 ) -> dict[int, np.ndarray]:
-    """Per-colon [r_1,...,r_k]: mean ICF-weighted similarity to every other colon, by lag bin."""
+    """Psalm-level [r_1,...,r_k]: mean ICF-weighted colon-pair cosine similarity per lag bin."""
     weights = icf_vector(vocabulary, icf_weights)
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
@@ -57,26 +59,19 @@ def lag_profile_vectors(
         half_verses = half_verses_for_key(psalm, key)
         n = len(half_verses)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
-
-        if n < 2:
-            for node in psalm.half_verse_nodes:
-                vectors[node] = np.zeros(k, dtype=np.float32)
-            continue
-
         ordered = [half_verses[i] for i in order]
-        colon_vectors = np.stack([_colon_vector(hv, index_of, weights, dim) for hv in ordered])
-        similarity = _full_cosine_similarity_matrix(colon_vectors)
-        positions = np.arange(n)
 
-        for position, colon_index in enumerate(order):
-            others = positions != position
-            delta = np.abs(positions[others] - position) / (n - 1)
+        profile = np.zeros(k, dtype=np.float32)
+        if n >= 2:
+            colon_vectors = np.stack([_colon_vector(hv, index_of, weights, dim) for hv in ordered])
+            delta = normalized_lag(n)
             bins = lag_bin_index(delta, k)
-            sims = similarity[position, others]
-            profile = np.zeros(k, dtype=np.float32)
+            similarities = _pairwise_cosine_similarity(colon_vectors)
             for b in range(k):
                 mask = bins == b
                 if mask.any():
-                    profile[b] = sims[mask].mean()
-            vectors[psalm.half_verse_nodes[colon_index]] = profile
+                    profile[b] = similarities[mask].mean()
+
+        for node in psalm.half_verse_nodes:
+            vectors[node] = profile
     return vectors
