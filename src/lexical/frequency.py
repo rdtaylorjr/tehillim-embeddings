@@ -1,4 +1,4 @@
-"""Whole-Hebrew-Bible token frequency and smoothed inverse corpus frequency (ICF) by lex0."""
+"""Whole-Hebrew-Bible token frequency and smoothed inverse corpus frequency, by lex0 or lex."""
 
 from __future__ import annotations
 
@@ -24,6 +24,17 @@ def lex0_token_frequencies(api: Any) -> dict[str, int]:
     for lex0, freq in lex_to_lex0_and_freq.values():
         totals[lex0] = totals.get(lex0, 0) + freq
     return totals
+
+
+def lex_token_frequencies(api: Any) -> dict[str, int]:
+    """Whole-Bible token count per lex: already disambiguated, no cross-homonym aggregation."""
+    F = api.F  # noqa: N806
+    frequencies: dict[str, int] = {}
+    for word in F.otype.s("word"):
+        lex = F.lex.v(word)
+        if lex not in frequencies:
+            frequencies[lex] = F.freq_lex.v(word)
+    return frequencies
 
 
 def icf_weights(lex0_frequencies: dict[str, int], total_tokens: int) -> dict[str, float]:

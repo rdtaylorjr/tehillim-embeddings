@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from lexical.corpus import LexicalPsalm
-from lexical.recurrence import lag_bin_index, lag_profile_vectors, normalized_lag
+from lexical.recurrence import lag_bin_index, normalized_lag, spacing_profile_vectors
 
 
 def _psalm(*, number, lexemes, forms, nodes):
@@ -57,7 +57,9 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4)
+        vectors = spacing_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4
+        )
 
         assert len(vectors[100]) == 4
 
@@ -75,7 +77,9 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2)
+        vectors = spacing_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+        )
 
         near_bin, far_bin = vectors[100]
         assert near_bin > far_bin
@@ -93,7 +97,9 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2)
+        vectors = spacing_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+        )
 
         assert not np.array_equal(vectors[100], vectors[101])
         assert not np.array_equal(vectors[102], vectors[103])
@@ -113,8 +119,10 @@ class TestLagProfileVectors:
             )
         ]
 
-        natural = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2)
-        shuffled = lag_profile_vectors(
+        natural = spacing_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+        )
+        shuffled = spacing_profile_vectors(
             psalms,
             vocabulary,
             key="lex",
@@ -130,7 +138,9 @@ class TestLagProfileVectors:
         icf_weights = {"A": 1.0}
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4)
+        vectors = spacing_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4
+        )
 
         assert np.allclose(vectors[100], [0.0, 0.0, 0.0, 0.0])
 
@@ -146,7 +156,9 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2)
+        vectors = spacing_profile_vectors(
+            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+        )
 
         assert not np.isnan(vectors[100]).any()
 
@@ -162,6 +174,8 @@ class TestLagProfileVectors:
             )
         ]
 
-        vectors = lag_profile_vectors(psalms, vocabulary, key="lex0", icf_weights=icf_weights, k=2)
+        vectors = spacing_profile_vectors(
+            psalms, vocabulary, key="lex0", icf_weights=icf_weights, k=2
+        )
 
         assert len(vectors[100]) == 2

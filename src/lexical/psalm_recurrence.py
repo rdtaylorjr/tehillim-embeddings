@@ -1,4 +1,4 @@
-"""Psalm-level ICF lexical-recurrence lag profile, broadcast to every colon node in the psalm."""
+"""Psalm-level ICF lexical-recurrence spacing profile, broadcast to every colon in the psalm."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _pairwise_cosine_similarity(vectors: np.ndarray) -> np.ndarray:
     return np.asarray(similarity[rows, cols])
 
 
-def psalm_lag_profile_vectors(
+def psalm_spacing_profile_vectors(
     psalms: list[LexicalPsalm],
     vocabulary: tuple[str, ...],
     key: VocabularyKey,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from lexical.corpus import LexicalPsalm
-from lexical.psalm_zoning import psalm_positional_centroid_vectors
+from lexical.psalm_zoning import psalm_position_mean_vectors
 
 
 def _psalm(*, number, lexemes, forms, nodes):
@@ -21,7 +21,7 @@ class TestPsalmPositionalCentroidVectors:
         icf_weights = {"A": 1.0, "B": 1.0, "C": 1.0}
         psalms = [_psalm(number=1, lexemes=(("A",), ("B",)), forms=((), ()), nodes=(100, 101))]
 
-        vectors = psalm_positional_centroid_vectors(
+        vectors = psalm_position_mean_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights
         )
 
@@ -39,7 +39,7 @@ class TestPsalmPositionalCentroidVectors:
             )
         ]
 
-        vectors = psalm_positional_centroid_vectors(
+        vectors = psalm_position_mean_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights
         )
 
@@ -58,7 +58,7 @@ class TestPsalmPositionalCentroidVectors:
             )
         ]
 
-        vectors = psalm_positional_centroid_vectors(
+        vectors = psalm_position_mean_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights
         )
 
@@ -78,7 +78,7 @@ class TestPsalmPositionalCentroidVectors:
             )
         ]
 
-        vectors = psalm_positional_centroid_vectors(
+        vectors = psalm_position_mean_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights
         )
 
@@ -97,7 +97,7 @@ class TestPsalmPositionalCentroidVectors:
             )
         ]
 
-        vectors = psalm_positional_centroid_vectors(
+        vectors = psalm_position_mean_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights
         )
 
@@ -110,7 +110,7 @@ class TestPsalmPositionalCentroidVectors:
         icf_weights = {"A": 1.0, "B": 99.0}
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
 
-        vectors = psalm_positional_centroid_vectors(
+        vectors = psalm_position_mean_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights
         )
 
@@ -129,7 +129,7 @@ class TestPsalmPositionalCentroidVectors:
             )
         ]
 
-        vectors = psalm_positional_centroid_vectors(
+        vectors = psalm_position_mean_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights
         )
 
@@ -148,10 +148,10 @@ class TestPsalmPositionalCentroidVectors:
             )
         ]
 
-        natural = psalm_positional_centroid_vectors(
+        natural = psalm_position_mean_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights
         )
-        shuffled = psalm_positional_centroid_vectors(
+        shuffled = psalm_position_mean_vectors(
             psalms,
             vocabulary,
             key="lex",
@@ -167,7 +167,7 @@ class TestPsalmPositionalCentroidVectors:
         icf_weights = {"A0": 1.0}
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=(("A0",),), nodes=(100,))]
 
-        vectors = psalm_positional_centroid_vectors(
+        vectors = psalm_position_mean_vectors(
             psalms, vocabulary, key="lex0", icf_weights=icf_weights
         )
 

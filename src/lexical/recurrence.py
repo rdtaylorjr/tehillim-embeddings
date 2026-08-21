@@ -1,4 +1,4 @@
-"""Per-colon ICF lexical-recurrence lag profile: mean similarity to other colons by lag bin."""
+"""Per-colon ICF lexical-recurrence: mean similarity to other colons, binned by spacing."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ def _full_cosine_similarity_matrix(vectors: np.ndarray) -> np.ndarray:
     return np.asarray(normalized @ normalized.T)
 
 
-def lag_profile_vectors(
+def spacing_profile_vectors(
     psalms: list[LexicalPsalm],
     vocabulary: tuple[str, ...],
     key: VocabularyKey,

@@ -1,4 +1,4 @@
-"""Generates N colon-order-shuffled icf_pos4 datasets, a shuffle-null control for parallelism."""
+"""Generates N colon-order-shuffled icf_position4 datasets, a shuffle-null control (parallelism)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ _K = 4
 def generate_shuffle_control_colon(
     psalms: list[LexicalPsalm], output_root: Path, icf_weights: dict[str, float], n_shuffles: int
 ) -> list[str]:
-    """Writes n_shuffles seeded, colon-order-shuffled icf_pos4 datasets, returns names."""
+    """Writes n_shuffles seeded, colon-order-shuffled icf_position4 datasets, returns names."""
     vocabulary = build_vocabulary(psalms, key="lex0")
     written: list[str] = []
     for seed in range(1, n_shuffles + 1):
@@ -27,15 +27,15 @@ def generate_shuffle_control_colon(
         vectors = positional_icf_vectors(
             psalms, vocabulary, "lex0", icf_weights, k=_K, order_by_psalm=order
         )
-        weight = f"icf_pos4_shuffle{seed:02d}"
-        description = f"Shuffle-null order-effect control for icf_pos4, seed {seed}."
-        write_dataset(output_root, "lex0", weight, vectors, description)
+        weight = f"icf_position4_shuffle{seed:02d}"
+        description = f"Shuffle-null order-effect control for icf_position4, seed {seed}."
+        write_dataset(output_root, "homograph", weight, vectors, description)
         written.append(weight)
     return written
 
 
 def main() -> None:
-    """Generates the shuffle-null control datasets for icf_pos4."""
+    """Generates the shuffle-null control datasets for icf_position4."""
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)

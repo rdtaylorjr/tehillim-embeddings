@@ -10,7 +10,7 @@ from lexical.vectorize import icf_vector
 from lexical.vocabulary import VocabularyKey, half_verses_for_key
 
 
-def positional_centroid_vectors(
+def position_mean_vectors(
     psalms: list[LexicalPsalm],
     vocabulary: tuple[str, ...],
     key: VocabularyKey,
