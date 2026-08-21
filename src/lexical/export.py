@@ -12,11 +12,11 @@ DATASET_VERSION = "1.0"
 
 
 def dataset_path(output_root: Path, vocab: str, weight: str, text: str | None = None) -> Path:
-    """Hive-partitioned `.parquet` path for a vocabulary/weighting, with an optional text tier."""
+    """Hive-partitioned `.parquet` path for a unit/construction, with an optional text tier."""
     text_segment = (f"text={text}",) if text is not None else ()
     return (
         output_root.joinpath(
-            "data", "type=lexical", f"vocab={vocab}", *text_segment, f"weight={weight}"
+            "data", "type=lexical", f"unit={vocab}", *text_segment, f"construction={weight}"
         )
         / "part-0.parquet"
     )

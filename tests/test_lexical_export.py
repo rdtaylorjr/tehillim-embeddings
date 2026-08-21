@@ -13,8 +13,8 @@ class TestDatasetPath:
             tmp_path
             / "data"
             / "type=lexical"
-            / "vocab=homograph"
-            / "weight=binary"
+            / "unit=homograph"
+            / "construction=binary"
             / "part-0.parquet"
         )
         assert path == expected
@@ -25,9 +25,9 @@ class TestDatasetPath:
             tmp_path
             / "data"
             / "type=lexical"
-            / "vocab=word"
+            / "unit=word"
             / "text=consonantal"
-            / "weight=binary"
+            / "construction=binary"
             / "part-0.parquet"
         )
         assert path == expected

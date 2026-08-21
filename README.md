@@ -135,13 +135,13 @@ Datasets live under `data/type=lexical/`, in the same `node_id`/`vector` Parquet
 semantic datasets above, so they slot into any script that reads a `tehillim-representations`
 checkout with no code changes.
 
-* **Identity** (`lexical.vocabulary`, `lexical.surface_vocabulary`): three vocabularies, `homograph`
+* **Identity** (`lexical.vocabulary`, `lexical.surface_vocabulary`): three units, `homograph`
   (BHSA's `lex0` feature, bare consonantal spelling, words that merely look alike are merged into
   one entry), `lexeme` (BHSA's `lex` feature, disambiguated, words that look alike but mean
   different things stay separate), and `word` (the inflected surface form as it occurs in text, no
   lemmatization at all). Benchmarked against parallelism and genre, disambiguation showed no
   measurable advantage over `homograph` under binary presence, so `homograph` is the default
-  vocabulary. `lexeme` was initially frozen at binary presence only, then given the full
+  unit. `lexeme` was initially frozen at binary presence only, then given the full
   weighting/positional family (below) as a follow-up: `homograph`'s whole-Bible ICF weighting
   merges a homograph's frequency across every disambiguated lexeme sharing that spelling, which
   `lexeme` ICF does not, since each `lexeme` has an independent whole-Bible frequency. That is a
@@ -149,9 +149,9 @@ checkout with no code changes.
   `consonantal`, `vocalized`, and `cantillation` (`lexical.surface_corpus`), so its full family is
   three times the size of `homograph`'s or `lexeme`'s.
 * **Weighting** (`lexical.vectorize`, `lexical.frequency`, `lexical.surface_vectorize`): five
-  colon-level weightings, run over all three vocabularies: `binary` (presence), `count` (raw term
+  colon-level weightings, run over all three units: `binary` (presence), `count` (raw term
   frequency), `log_count` (`log(1+tf)`), `icf` (binary times smoothed inverse corpus frequency),
-  and `tf_icf` (`log(1+tf)` times ICF). ICF weight for vocabulary entry ℓ is
+  and `tf_icf` (`log(1+tf)` times ICF). ICF weight for unit entry ℓ is
   `log((T+1)/(f_ℓ+1)) + 1`. That add-one form is scikit-learn's `TfidfTransformer` smoothing
   convention, substituting whole-Bible token frequency for document frequency. It is not itself the
   formula in Spärck Jones (1972), whose original idf is unsmoothed (`log(N/df)`) and
@@ -159,7 +159,7 @@ checkout with no code changes.
   implementation of that paper. `T` is the total token count across the whole Bible.
   For `homograph`, `f_ℓ` sums every disambiguated `lexeme`'s whole-Bible frequency sharing that
   spelling (`lexical.frequency.lex0_token_frequencies`). For `lexeme` and `word`, `f_ℓ` is that
-  entry's own whole-Bible frequency directly, no aggregation
+  entry's whole-Bible frequency directly, no aggregation
   (`lexical.frequency.lex_token_frequencies`, `lexical.surface_frequency.surface_token_frequencies`,
   the latter computed per text tier). `icf` beat `binary` on both parallelism and genre for
   `homograph`. Raw/log-count weighting did
@@ -167,26 +167,26 @@ checkout with no code changes.
 
 | dataset | weighting |
 |---|---|
-| `data/type=lexical/vocab=homograph/weight=binary/` | homograph, binary presence |
-| `data/type=lexical/vocab=homograph/weight=count/` | homograph, raw term frequency |
-| `data/type=lexical/vocab=homograph/weight=log_count/` | homograph, `log(1+tf)` |
-| `data/type=lexical/vocab=homograph/weight=icf/` | homograph, ICF-weighted binary presence |
-| `data/type=lexical/vocab=homograph/weight=tf_icf/` | homograph, ICF-weighted `log(1+tf)` |
-| `data/type=lexical/vocab=lexeme/weight=binary/` | lexeme, binary presence |
-| `data/type=lexical/vocab=lexeme/weight=count/` | lexeme, raw term frequency |
-| `data/type=lexical/vocab=lexeme/weight=log_count/` | lexeme, `log(1+tf)` |
-| `data/type=lexical/vocab=lexeme/weight=icf/` | lexeme, ICF-weighted binary presence (its own frequency) |
-| `data/type=lexical/vocab=lexeme/weight=tf_icf/` | lexeme, ICF-weighted `log(1+tf)` (its own frequency) |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=binary/` | word, binary presence |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=count/` | word, raw term frequency |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=log_count/` | word, `log(1+tf)` |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=icf/` | word, ICF-weighted binary presence (per-tier frequency) |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=tf_icf/` | word, ICF-weighted `log(1+tf)` (per-tier frequency) |
+| `data/type=lexical/unit=homograph/construction=binary/` | homograph, binary presence |
+| `data/type=lexical/unit=homograph/construction=count/` | homograph, raw term frequency |
+| `data/type=lexical/unit=homograph/construction=log_count/` | homograph, `log(1+tf)` |
+| `data/type=lexical/unit=homograph/construction=icf/` | homograph, ICF-weighted binary presence |
+| `data/type=lexical/unit=homograph/construction=tf_icf/` | homograph, ICF-weighted `log(1+tf)` |
+| `data/type=lexical/unit=lexeme/construction=binary/` | lexeme, binary presence |
+| `data/type=lexical/unit=lexeme/construction=count/` | lexeme, raw term frequency |
+| `data/type=lexical/unit=lexeme/construction=log_count/` | lexeme, `log(1+tf)` |
+| `data/type=lexical/unit=lexeme/construction=icf/` | lexeme, ICF-weighted binary presence (its frequency) |
+| `data/type=lexical/unit=lexeme/construction=tf_icf/` | lexeme, ICF-weighted `log(1+tf)` (its frequency) |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=binary/` | word, binary presence |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=count/` | word, raw term frequency |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=log_count/` | word, `log(1+tf)` |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf/` | word, ICF-weighted binary presence (per-tier frequency) |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=tf_icf/` | word, ICF-weighted `log(1+tf)` (per-tier frequency) |
 
 * **Position and recurrence, colon-level vs. psalm-level** (`lexical.positional`, `lexical.zoning`,
   `lexical.recurrence` for colon-level, `lexical.psalm_position`, `lexical.psalm_zoning`,
   `lexical.psalm_recurrence` for psalm-level, with a `lexical.surface_*` counterpart of each for
-  `word`): each half-verse's colon-level vector is nonzero only in its own region of the psalm, so
+  `word`): each half-verse's colon-level vector is nonzero only in that colon's region of the psalm, so
   two colons in the same psalm get different vectors, the correct construction for parallelism
   (comparing one colon against another). Each psalm-level vector broadcasts one whole-psalm summary
   to every colon in that psalm, the correct construction for genre (which pools colons into a psalm
@@ -194,43 +194,43 @@ checkout with no code changes.
   Both constructions share the same underlying formulas (k-bin ICF-weighted positional pyramid,
   `[binary, mean-position]` zoning, spacing-binned cosine-similarity recurrence profile), only the
   broadcast scope differs. Use the colon-level files for parallelism and the `_psalm`-suffixed
-  files for genre. Run over all three vocabularies, the `vocab=lexeme/` and `vocab=word/` table
-  rows below are the same 12 constructions, each keyed by that entry's own whole-Bible (or, for
+  files for genre. Run over all three units, the `unit=lexeme/` and `unit=word/` table
+  rows below are the same 12 constructions, each keyed by that entry's whole-Bible (or, for
   `word`, per-tier) frequency rather than a homograph's merged one. For `word` specifically,
   exact-surface-form recurrence within a short colon-level lag window is rare enough that some
-  `weight=icf_spacing{2,4,8}/` datasets (no `_psalm` suffix) leave almost every colon zero, so few
+  `construction=icf_spacing{2,4,8}/` datasets (no `_psalm` suffix) leave almost every colon zero, so few
   enough psalms survive mean-pooling to make genre scoring degenerate for those particular
   colon-level datasets. This does not affect the `_psalm`-broadcast recurrence datasets, which pool
   across the whole psalm before scoring.
 
 | dataset | construction |
 |---|---|
-| `data/type=lexical/vocab=homograph/weight=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
-| `data/type=lexical/vocab=homograph/weight=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
-| `data/type=lexical/vocab=homograph/weight=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
-| `data/type=lexical/vocab=homograph/weight=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
-| `data/type=lexical/vocab=homograph/weight=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
-| `data/type=lexical/vocab=homograph/weight=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
-| `data/type=lexical/vocab=lexeme/weight=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
-| `data/type=lexical/vocab=lexeme/weight=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
-| `data/type=lexical/vocab=lexeme/weight=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
-| `data/type=lexical/vocab=lexeme/weight=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
-| `data/type=lexical/vocab=lexeme/weight=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
-| `data/type=lexical/vocab=lexeme/weight=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
-| `data/type=lexical/vocab=word/text={consonantal,vocalized,cantillation}/weight=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
+| `data/type=lexical/unit=homograph/construction=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
+| `data/type=lexical/unit=homograph/construction=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
+| `data/type=lexical/unit=homograph/construction=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
+| `data/type=lexical/unit=homograph/construction=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
+| `data/type=lexical/unit=homograph/construction=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
+| `data/type=lexical/unit=homograph/construction=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
+| `data/type=lexical/unit=lexeme/construction=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
+| `data/type=lexical/unit=lexeme/construction=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
+| `data/type=lexical/unit=lexeme/construction=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
+| `data/type=lexical/unit=lexeme/construction=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
+| `data/type=lexical/unit=lexeme/construction=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
+| `data/type=lexical/unit=lexeme/construction=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
+| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
 
 * **Shuffle-null order control** (`lexical.shuffle_control`,
   `lexical.scripts.generate_shuffle_control`, `lexical.scripts.generate_shuffle_control_colon`):
   a within-psalm colon-order permutation, seeded per `(psalm.number, seed)`, used to test whether a
   positional representation's benchmark score reflects genuine colon-order signal rather than a
   mechanical artifact of the binning itself. `generate_shuffle_control` writes N seeded
-  `icf_position_mean_psalm_shuffleNN` psalm-broadcast datasets; `generate_shuffle_control_colon` writes N
-  seeded `icf_position4_shuffleNN` colon-level datasets. Scored in `tehillim-logos` via
+  `icf_position_mean_psalm_shuffleNN` psalm-broadcast datasets. `generate_shuffle_control_colon` writes N
+  seeded `icf_position4_shuffleNN` colon-level datasets. Scored in `tehillim-evaluate` via
   `order_shuffle_result` (real score minus mean shuffled score, plus a rank-based permutation
   p-value), not a z-score against the shuffled distribution's mean/std.
 
