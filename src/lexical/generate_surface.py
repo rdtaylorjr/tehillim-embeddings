@@ -109,12 +109,15 @@ def generate_surface(
         for weight in _FULL_WEIGHTS:
             if dataset_path(output_root, "word", weight, text=tier).exists():
                 continue
-            print(f"computing surface vocab=word text={tier} weight={weight}...", file=sys.stderr)
+            print(
+                f"computing surface unit=word text={tier} construction={weight}...",
+                file=sys.stderr,
+            )
             vectors = _vectors_for_weight(
                 psalms, vocabulary, tier, weight, icf_weights_by_tier[tier]
             )
             description = (
-                f"Surface word-form vectors, {tier} text, weight={weight}, "
+                f"Surface word-form vectors, {tier} text, construction={weight}, "
                 f"dimension {len(vocabulary)}."
             )
             write_dataset(output_root, "word", weight, vectors, description, text=tier)

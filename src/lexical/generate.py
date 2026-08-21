@@ -106,12 +106,12 @@ def generate(
         vocab_name = _VOCAB_NAMES[key]
         if dataset_path(output_root, vocab_name, weight).exists():
             continue
-        print(f"computing lexical vocab={vocab_name} weight={weight}...", file=sys.stderr)
+        print(f"computing lexical unit={vocab_name} construction={weight}...", file=sys.stderr)
         vocabulary = build_vocabulary(psalms, key=key)
         vectors = _vectors_for_weight(psalms, vocabulary, key, weight, icf_weights_by_key[key])
         description = (
-            f"Lexical vectors over the {vocab_name} vocabulary (BHSA {key} feature), "
-            f"weight={weight}, dimension {len(vocabulary)}."
+            f"Lexical vectors over the {vocab_name} unit (BHSA {key} feature), "
+            f"construction={weight}, dimension {len(vocabulary)}."
         )
         write_dataset(output_root, vocab_name, weight, vectors, description)
         written.append(f"{vocab_name}_{weight}")
