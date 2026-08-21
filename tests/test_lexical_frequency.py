@@ -4,7 +4,12 @@ import math
 
 import pytest
 
-from lexical.frequency import icf_weights, lex0_token_frequencies, total_token_count
+from lexical.frequency import (
+    icf_weights,
+    lex0_token_frequencies,
+    lex_token_frequencies,
+    total_token_count,
+)
 
 
 class _FakeFeature:
@@ -60,6 +65,14 @@ class TestLex0TokenFrequencies:
 
         # lex0 "X" covers lex X1 (freq 10) and X2 (freq 5), summed once each, not per-occurrence.
         assert result == {"X": 15, "Y": 3}
+
+
+class TestLexTokenFrequencies:
+    def test_reads_freq_lex_once_per_distinct_lex_no_cross_homonym_aggregation(self) -> None:
+        result = lex_token_frequencies(_fake_whole_bible_api())
+
+        # lex X1 (words 1,2) has freq_lex 10 once, not summed across its 2 occurrences.
+        assert result == {"X1": 10, "X2": 5, "Y1": 3}
 
 
 class TestIcfWeights:

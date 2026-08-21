@@ -1,23 +1,13 @@
-"""Psalm-level ICF lexical-recurrence spacing profile, broadcast to every colon in the psalm."""
+"""Psalm-level ICF lexical-recurrence over surface forms, broadcast to every colon."""
 
 from __future__ import annotations
 
 import numpy as np
 
-from lexical.corpus import LexicalPsalm
-from lexical.vectorize import icf_vector
-from lexical.vocabulary import VocabularyKey, half_verses_for_key
-
-
-def normalized_lag(n: int) -> np.ndarray:
-    """delta_ij = |i-j| / (n-1) for every i<j pair among n cola, in triu_indices(n, k=1) order."""
-    rows, cols = np.triu_indices(n, k=1)
-    return np.asarray(np.abs(rows - cols) / (n - 1))
-
-
-def lag_bin_index(delta: np.ndarray, k: int) -> np.ndarray:
-    """Which of k equal-width [0, 1] lag-distance bins each normalized separation falls into."""
-    return np.asarray(np.minimum((delta * k).astype(int), k - 1))
+from lexical.recurrence import lag_bin_index, normalized_lag
+from lexical.surface_corpus import SurfacePsalm
+from lexical.surface_vectorize import surface_icf_vector
+from lexical.surface_vocabulary import SurfaceTier, half_verses_for_tier
 
 
 def _colon_vector(
@@ -41,22 +31,22 @@ def _pairwise_cosine_similarity(vectors: np.ndarray) -> np.ndarray:
     return np.asarray(similarity[rows, cols])
 
 
-def psalm_spacing_profile_vectors(
-    psalms: list[LexicalPsalm],
+def surface_psalm_spacing_profile_vectors(
+    psalms: list[SurfacePsalm],
     vocabulary: tuple[str, ...],
-    key: VocabularyKey,
+    tier: SurfaceTier,
     icf_weights: dict[str, float],
     k: int,
     order_by_psalm: dict[int, np.ndarray] | None = None,
 ) -> dict[int, np.ndarray]:
     """Psalm-level [r_1,...,r_k]: mean ICF-weighted colon-pair cosine similarity per lag bin."""
-    weights = icf_vector(vocabulary, icf_weights)
+    weights = surface_icf_vector(vocabulary, icf_weights)
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
 
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = half_verses_for_key(psalm, key)
+        half_verses = half_verses_for_tier(psalm, tier)
         n = len(half_verses)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
         ordered = [half_verses[i] for i in order]

@@ -1,30 +1,30 @@
-"""Psalm-level frozen ICF inventory concatenated with lexeme-specific mean centered position."""
+"""Psalm-level frozen ICF inventory over surface forms, concatenated with mean centered position."""
 
 from __future__ import annotations
 
 import numpy as np
 
-from lexical.corpus import LexicalPsalm
 from lexical.positional import colon_positions
-from lexical.vectorize import icf_vector
-from lexical.vocabulary import VocabularyKey, half_verses_for_key
+from lexical.surface_corpus import SurfacePsalm
+from lexical.surface_vectorize import surface_icf_vector
+from lexical.surface_vocabulary import SurfaceTier, half_verses_for_tier
 
 
-def psalm_position_mean_vectors(
-    psalms: list[LexicalPsalm],
+def surface_psalm_position_mean_vectors(
+    psalms: list[SurfacePsalm],
     vocabulary: tuple[str, ...],
-    key: VocabularyKey,
+    tier: SurfaceTier,
     icf_weights: dict[str, float],
     order_by_psalm: dict[int, np.ndarray] | None = None,
 ) -> dict[int, np.ndarray]:
     """Psalm-level [b; m]: b = ICF if present anywhere, m = ICF x (2 * mean colon position - 1)."""
-    weights = icf_vector(vocabulary, icf_weights)
+    weights = surface_icf_vector(vocabulary, icf_weights)
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
 
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = half_verses_for_key(psalm, key)
+        half_verses = half_verses_for_tier(psalm, tier)
         n = len(half_verses)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
         ordered = [half_verses[i] for i in order]

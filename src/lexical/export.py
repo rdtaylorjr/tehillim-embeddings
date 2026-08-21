@@ -11,23 +11,27 @@ import pyarrow.parquet as pq
 DATASET_VERSION = "1.0"
 
 
-def dataset_path(output_root: Path, vocab: str, weight: str) -> Path:
-    """Returns the Hive-partitioned `.parquet` file path for a vocabulary and weighting scheme."""
+def dataset_path(output_root: Path, vocab: str, weight: str, text: str | None = None) -> Path:
+    """Hive-partitioned `.parquet` path for a vocabulary/weighting, with an optional text tier."""
+    text_segment = (f"text={text}",) if text is not None else ()
     return (
-        output_root
-        / "data"
-        / "type=lexical"
-        / f"vocab={vocab}"
-        / f"weight={weight}"
+        output_root.joinpath(
+            "data", "type=lexical", f"vocab={vocab}", *text_segment, f"weight={weight}"
+        )
         / "part-0.parquet"
     )
 
 
 def write_dataset(
-    output_root: Path, vocab: str, weight: str, vectors: dict[int, np.ndarray], description: str
+    output_root: Path,
+    vocab: str,
+    weight: str,
+    vectors: dict[int, np.ndarray],
+    description: str,
+    text: str | None = None,
 ) -> None:
     """Writes one Parquet file: columns node_id (int32) and vector (float32 list)."""
-    path = dataset_path(output_root, vocab, weight)
+    path = dataset_path(output_root, vocab, weight, text=text)
     path.parent.mkdir(parents=True, exist_ok=True)
     node_ids = sorted(vectors)
     dim = len(vectors[node_ids[0]])

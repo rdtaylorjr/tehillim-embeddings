@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from lexical.corpus import LexicalPsalm
-from lexical.zoning import positional_centroid_vectors
+from lexical.zoning import position_mean_vectors
 
 
 def _psalm(*, number, lexemes, forms, nodes):
@@ -21,9 +21,7 @@ class TestPositionalCentroidVectors:
         icf_weights = {"A": 1.0, "B": 1.0, "C": 1.0}
         psalms = [_psalm(number=1, lexemes=(("A",), ("B",)), forms=((), ()), nodes=(100, 101))]
 
-        vectors = positional_centroid_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
-        )
+        vectors = position_mean_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
 
         assert len(vectors[100]) == 6
 
@@ -40,9 +38,7 @@ class TestPositionalCentroidVectors:
             )
         ]
 
-        vectors = positional_centroid_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
-        )
+        vectors = position_mean_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
 
         # colon 0 has only A: b reflects this colon's own content, not the whole psalm's.
         assert np.allclose(vectors[100][:3], [2.0, 0.0, 0.0])
@@ -61,9 +57,7 @@ class TestPositionalCentroidVectors:
             )
         ]
 
-        vectors = positional_centroid_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
-        )
+        vectors = position_mean_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
 
         m = vectors[100][1]
         expected_t = 0.125
@@ -81,9 +75,7 @@ class TestPositionalCentroidVectors:
             )
         ]
 
-        vectors = positional_centroid_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
-        )
+        vectors = position_mean_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
 
         # symmetric colon positions -> symmetric signed m values, distinct per colon.
         assert vectors[100][1] < 0.0
@@ -103,9 +95,7 @@ class TestPositionalCentroidVectors:
             )
         ]
 
-        vectors = positional_centroid_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
-        )
+        vectors = position_mean_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
 
         m_early = vectors[100][2]
         m_late = vectors[103][3]
@@ -117,9 +107,7 @@ class TestPositionalCentroidVectors:
         icf_weights = {"A": 1.0, "B": 99.0}
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
 
-        vectors = positional_centroid_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
-        )
+        vectors = position_mean_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
 
         assert vectors[100][1] == 0.0  # b for B
         assert vectors[100][3] == 0.0  # m for B
@@ -136,9 +124,7 @@ class TestPositionalCentroidVectors:
             )
         ]
 
-        vectors = positional_centroid_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
-        )
+        vectors = position_mean_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
 
         assert not np.array_equal(vectors[100], vectors[101])
         # colon 0 and colon 2 share content (A) but sit at different positions.
@@ -156,10 +142,8 @@ class TestPositionalCentroidVectors:
             )
         ]
 
-        natural = positional_centroid_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
-        )
-        shuffled = positional_centroid_vectors(
+        natural = position_mean_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
+        shuffled = position_mean_vectors(
             psalms,
             vocabulary,
             key="lex",
@@ -175,8 +159,6 @@ class TestPositionalCentroidVectors:
         icf_weights = {"A0": 1.0}
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=(("A0",),), nodes=(100,))]
 
-        vectors = positional_centroid_vectors(
-            psalms, vocabulary, key="lex0", icf_weights=icf_weights
-        )
+        vectors = position_mean_vectors(psalms, vocabulary, key="lex0", icf_weights=icf_weights)
 
         assert len(vectors[100]) == 2

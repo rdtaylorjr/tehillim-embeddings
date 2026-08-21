@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from lexical.corpus import LexicalPsalm
-from lexical.psalm_recurrence import lag_bin_index, normalized_lag, psalm_lag_profile_vectors
+from lexical.psalm_recurrence import lag_bin_index, normalized_lag, psalm_spacing_profile_vectors
 
 
 def _psalm(*, number, lexemes, forms, nodes):
@@ -54,7 +54,7 @@ class TestPsalmLagProfileVectors:
             )
         ]
 
-        vectors = psalm_lag_profile_vectors(
+        vectors = psalm_spacing_profile_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4
         )
 
@@ -72,7 +72,7 @@ class TestPsalmLagProfileVectors:
             )
         ]
 
-        vectors = psalm_lag_profile_vectors(
+        vectors = psalm_spacing_profile_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
         )
 
@@ -91,7 +91,7 @@ class TestPsalmLagProfileVectors:
             )
         ]
 
-        vectors = psalm_lag_profile_vectors(
+        vectors = psalm_spacing_profile_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
         )
 
@@ -110,10 +110,10 @@ class TestPsalmLagProfileVectors:
             )
         ]
 
-        natural = psalm_lag_profile_vectors(
+        natural = psalm_spacing_profile_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
         )
-        shuffled = psalm_lag_profile_vectors(
+        shuffled = psalm_spacing_profile_vectors(
             psalms,
             vocabulary,
             key="lex",
@@ -129,7 +129,7 @@ class TestPsalmLagProfileVectors:
         icf_weights = {"A": 1.0}
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
 
-        vectors = psalm_lag_profile_vectors(
+        vectors = psalm_spacing_profile_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4
         )
 
@@ -147,7 +147,7 @@ class TestPsalmLagProfileVectors:
             )
         ]
 
-        vectors = psalm_lag_profile_vectors(
+        vectors = psalm_spacing_profile_vectors(
             psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
         )
 
@@ -165,7 +165,7 @@ class TestPsalmLagProfileVectors:
             )
         ]
 
-        vectors = psalm_lag_profile_vectors(
+        vectors = psalm_spacing_profile_vectors(
             psalms, vocabulary, key="lex0", icf_weights=icf_weights, k=2
         )
 
