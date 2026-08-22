@@ -30,14 +30,21 @@ def surface_psalm_positional_icf_vectors(
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
         bins = bin_index(colon_positions(n), k)
 
-        blocks = np.zeros((k, dim), dtype=np.float32)
+        flat_index_parts = []
+        flat_weight_parts = []
         for position, colon_index in enumerate(order):
-            for value in set(half_verses[colon_index]):
-                index = index_of.get(value)
-                if index is not None:
-                    blocks[bins[position], index] += weights[index]
+            indices = np.fromiter(
+                (index_of[v] for v in set(half_verses[colon_index]) if v in index_of),
+                dtype=np.int64,
+            )
+            flat_index_parts.append(bins[position] * dim + indices)
+            flat_weight_parts.append(weights[indices])
 
-        psalm_vector = blocks.flatten()
+        flat_indices = np.concatenate(flat_index_parts)
+        flat_values = np.concatenate(flat_weight_parts)
+        psalm_vector = np.bincount(flat_indices, weights=flat_values, minlength=k * dim).astype(
+            np.float32
+        )
         for node in psalm.half_verse_nodes:
             vectors[node] = psalm_vector
     return vectors

@@ -23,11 +23,9 @@ def lag_bin_index(delta: np.ndarray, k: int) -> np.ndarray:
 def _colon_vector(
     half_verse: tuple[str, ...], index_of: dict[str, int], weights: np.ndarray, dim: int
 ) -> np.ndarray:
+    indices = np.fromiter((index_of[v] for v in set(half_verse) if v in index_of), dtype=np.int64)
     vector = np.zeros(dim, dtype=np.float32)
-    for value in set(half_verse):
-        index = index_of.get(value)
-        if index is not None:
-            vector[index] = weights[index]
+    vector[indices] = weights[indices]
     return vector
 
 
@@ -73,10 +71,10 @@ def spacing_profile_vectors(
             delta = np.abs(positions[others] - position) / (n - 1)
             bins = lag_bin_index(delta, k)
             sims = similarity[position, others]
-            profile = np.zeros(k, dtype=np.float32)
-            for b in range(k):
-                mask = bins == b
-                if mask.any():
-                    profile[b] = sims[mask].mean()
-            vectors[psalm.half_verse_nodes[colon_index]] = profile
+            counts = np.bincount(bins, minlength=k)
+            sums = np.bincount(bins, weights=sims, minlength=k)
+            profile = np.zeros(k, dtype=np.float64)
+            nonzero = counts > 0
+            profile[nonzero] = sums[nonzero] / counts[nonzero]
+            vectors[psalm.half_verse_nodes[colon_index]] = profile.astype(np.float32)
     return vectors

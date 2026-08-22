@@ -4,8 +4,10 @@ A Parquet dataset of pre-computed feature representations for every
 half-verse of the Hebrew psalms: semantic embedding vectors from 17
 different Hebrew and multilingual embedding models (4 Hebrew
 BERT-family models, 9 open-weight multilingual encoders, and 4
-embedding APIs: Gemini, OpenAI, Cohere, Voyage), plus lexical
-representations built from BHSA's lexical and surface-form features.
+embedding APIs: Gemini, OpenAI, Cohere, Voyage), lexical
+representations built from BHSA's lexical and surface-form features,
+and morphological representations built from BHSA's word-level
+grammatical features.
 
 ## About
 
@@ -235,6 +237,62 @@ checkout with no code changes.
   p-value), not a z-score against the shuffled distribution's mean/std.
 
 Generate with `.venv/bin/python3 -m lexical.generate` (skips any dataset already written).
+
+## Morphological representations
+
+`src/morphological` builds representations from BHSA's word-level grammatical features (part of
+speech; gender, number, person, state; verbal stem/tense; pronominal-suffix gender/number/person),
+independent of lexical identity or meaning. Datasets live under `data/type=morphological/`, in the
+same `node_id`/`vector` Parquet schema as lexical/semantic, except the `morph_signature` trigram
+family, stored sparse (`node_id`/`indices`/`values`, `sparse=true` in the file's schema metadata)
+since its dimension (42 + 42² + 42³ = 75,894) is almost entirely zero per colon.
+
+* **POS skeleton** (`unit=sp`, `morphological.pos_ngram`): part-of-speech-only unigram/bigram/trigram
+  histograms, over the 14-value closed `SP_VOCABULARY` (no NA/unknown, `sp` always applies).
+* **Atomic morphology** (`unit=morph_atomic`, `unit=morph_gn`/`nu`/`ps`/`st`/`vs`/`vt`/`prs_gn`/`prs_nu`/`prs_ps`,
+  `unit=morph_full`, `morphological.atomic`): one histogram per feature over its own closed
+  vocabulary (`morphological.vocabulary`), `NA` counted as part of the distribution rather than
+  excluded, so a feature's applicability rate (e.g. "how many words are verbs") is visible
+  alongside its value distribution. `construction=atomic` is that feature alone,
+  `construction=sp_plus` is `[sp; feature]`, `unit=morph_atomic`/`construction=core` is
+  `[sp; gn; nu; ps; st; vs; vt]` (dim 66), `unit=morph_full`/`construction=all` additionally
+  includes the three `prs_*` suffix features (dim 77). A feature is never dropped from a later
+  bundle based on how it scored individually.
+* **Grammatical signatures** (`unit=morph_signature`, `morphological.signature`,
+  `morphological.signature_vectorize`): a per-word signature string concatenating every field that
+  word actually carries (`NA` fields omitted, `unknown` kept as its own literal token, field order
+  `vs|vt|ps|gn|nu|st` after `sp`), e.g. `verb|qal|perf|p3|m|sg`. Rare signatures (whole-Bible count
+  outside Psalms below `MIN_EXTERNAL_SUPPORT_K=1000`, frozen in
+  `morphological.signature_support` before any benchmark run, from the curve in
+  `data/config/morph_signature_external_support.csv`) collapse to `<RARE>` before n-grams are
+  formed. `construction=inventory` is the unigram histogram, `1_2gram`/`1_2_3gram` add cumulative
+  bigram/trigram blocks, the latter stored sparse (above).
+* **Pronominal suffix** (`unit=morph_suffix`, `morphological.suffix`): the same signature
+  construction restricted to the three `prs_*` fields, ordered `prs_ps|prs_gn|prs_nu`, with a
+  dedicated `<NONE>` token when a word carries no suffix at all (all three fields `NA`).
+  `construction=inventory` is the suffix histogram alone, `host_plus_suffix` is
+  `[morph_signature inventory; suffix inventory]`, `posmean` is the psalm-scale deployment below.
+* **Colon-level vs. psalm-broadcast**: every construction above ships both a colon-level file
+  (nonzero only in that colon, correct for parallelism) and a `_psalm`-suffixed psalm-broadcast
+  file (one whole-psalm vector repeated across its colons, correct for genre), the same convention
+  established in the lexical family above.
+* **Psalm-scale deployment** (`unit=morph_suffix`/`construction=posmean`, `morphological.deploy`):
+  `[b; m]` over the suffix vocabulary, `b` = 1.0 if present anywhere in the psalm, `m` = present
+  times `(2 * mean colon position - 1)`, uniform weight (no ICF: a closed-class categorical feature
+  doesn't carry rarity signal the way open-class lexical vocabulary does). Suffix was chosen as the
+  strongest single atomic-scale signal found across the feature/bundle checkpoints.
+* **Shuffle-null order control**: within-colon word-order shuffles
+  (`morphological.shuffle_control.shuffled_within_colon_order`) for the POS and signature n-gram
+  families, `construction=*_shuffleNN`; a within-psalm colon-order shuffle
+  (`lexical.shuffle_control.shuffled_order_by_psalm`, reused directly) for `posmean`,
+  `construction=posmean_shuffleNN`. 30 seeds each, scored the same way as the lexical family's
+  shuffle control.
+
+Generate with `.venv/bin/python3 -m morphological.generate_pos`,
+`.venv/bin/python3 -m morphological.generate_morphology`,
+`.venv/bin/python3 -m morphological.generate_signature`,
+`.venv/bin/python3 -m morphological.generate_suffix`, and
+`.venv/bin/python3 -m morphological.generate_deploy` (each skips any dataset already written).
 
 ## Family
 

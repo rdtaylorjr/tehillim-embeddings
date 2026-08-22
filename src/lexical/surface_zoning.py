@@ -30,11 +30,12 @@ def surface_position_mean_vectors(
         t = colon_positions(n)
 
         for position, colon_index in enumerate(order):
+            indices = np.fromiter(
+                (index_of[v] for v in set(half_verses[colon_index]) if v in index_of),
+                dtype=np.int64,
+            )
             present = np.zeros(dim, dtype=bool)
-            for value in set(half_verses[colon_index]):
-                index = index_of.get(value)
-                if index is not None:
-                    present[index] = True
+            present[indices] = True
 
             b = weights * present
             m = weights * present * (2 * t[position] - 1)

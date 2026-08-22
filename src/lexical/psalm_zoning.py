@@ -30,14 +30,19 @@ def psalm_position_mean_vectors(
         ordered = [half_verses[i] for i in order]
         t = colon_positions(n)
 
-        position_sums = np.zeros(dim, dtype=np.float64)
-        position_counts = np.zeros(dim, dtype=np.float64)
+        flat_index_parts = []
+        flat_t_parts = []
         for position, half_verse in enumerate(ordered):
-            for value in set(half_verse):
-                index = index_of.get(value)
-                if index is not None:
-                    position_sums[index] += t[position]
-                    position_counts[index] += 1.0
+            indices = np.fromiter(
+                (index_of[v] for v in set(half_verse) if v in index_of), dtype=np.int64
+            )
+            flat_index_parts.append(indices)
+            flat_t_parts.append(np.full(len(indices), t[position]))
+        flat_indices = np.concatenate(flat_index_parts)
+        flat_t = np.concatenate(flat_t_parts)
+
+        position_sums = np.bincount(flat_indices, weights=flat_t, minlength=dim)
+        position_counts = np.bincount(flat_indices, minlength=dim).astype(np.float64)
 
         present = position_counts > 0
         b = weights * present
