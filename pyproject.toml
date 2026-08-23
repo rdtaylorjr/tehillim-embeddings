@@ -1,6 +1,6 @@
 [project]
 name = "embeddings"
-version = "0.2.0"
+version = "0.3.0"
 description = "Generates and exports feature representations for the Hebrew Psalms as BHSA-node-keyed Parquet datasets."
 readme = "README.md"
 requires-python = ">=3.10"
