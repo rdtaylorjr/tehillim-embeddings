@@ -5,22 +5,20 @@ from __future__ import annotations
 import numpy as np
 
 from lexical.corpus import LexicalPsalm
-from lexical.vocabulary import VocabularyKey, half_verses_for_key
+from lexical.vocabulary import VocabularyKey, cola_for_key
 
 
 def term_frequency_vectors(
     psalms: list[LexicalPsalm], vocabulary: tuple[str, ...], key: VocabularyKey
 ) -> dict[int, np.ndarray]:
-    """One raw occurrence-count vector per half-verse node; every weighting derives from this."""
+    """One raw occurrence-count vector per colon node; every weighting derives from this."""
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = half_verses_for_key(psalm, key)
-        for node, half_verse in zip(psalm.half_verse_nodes, half_verses, strict=True):
-            indices = np.fromiter(
-                (index_of[v] for v in half_verse if v in index_of), dtype=np.int64
-            )
+        cola = cola_for_key(psalm, key)
+        for node, colon in zip(psalm.colon_nodes, cola, strict=True):
+            indices = np.fromiter((index_of[v] for v in colon if v in index_of), dtype=np.int64)
             vectors[node] = np.bincount(indices, minlength=dim).astype(np.float32)
     return vectors
 
@@ -28,7 +26,7 @@ def term_frequency_vectors(
 def binary_presence_vectors(
     psalms: list[LexicalPsalm], vocabulary: tuple[str, ...], key: VocabularyKey
 ) -> dict[int, np.ndarray]:
-    """One {0,1} vector per half-verse node, 1 where that colon contains the vocabulary entry."""
+    """One {0,1} vector per colon node, 1 where that colon contains the vocabulary entry."""
     counts = term_frequency_vectors(psalms, vocabulary, key)
     return {node: (vector > 0).astype(np.float32) for node, vector in counts.items()}
 
@@ -36,7 +34,7 @@ def binary_presence_vectors(
 def log_count_vectors(
     psalms: list[LexicalPsalm], vocabulary: tuple[str, ...], key: VocabularyKey
 ) -> dict[int, np.ndarray]:
-    """log(1 + term frequency) per half-verse node: repetition matters, damped."""
+    """log(1 + term frequency) per colon node: repetition matters, damped."""
     counts = term_frequency_vectors(psalms, vocabulary, key)
     return {node: np.log1p(vector).astype(np.float32) for node, vector in counts.items()}
 

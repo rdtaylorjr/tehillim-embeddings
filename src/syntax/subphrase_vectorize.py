@@ -21,9 +21,7 @@ def subphrase_rela_1gram_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndar
     """One `subphrase_rela_1gram` histogram per colon node."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_rela in zip(
-            psalm.half_verse_nodes, psalm.half_verse_subphrase_rela, strict=True
-        ):
+        for node, colon_rela in zip(psalm.colon_nodes, psalm.colon_subphrase_rela, strict=True):
             vectors[node] = subphrase_rela_unigram_histogram(colon_rela)
     return vectors
 
@@ -32,8 +30,8 @@ def subphrase_rela_1gram_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, n
     """Psalm-broadcast `subphrase_rela_1gram`: subphrase-count-weighted pooling, `par` masked."""
     columns = [
         (
-            psalm.half_verse_nodes,
-            tuple(colon_safe_subphrase_rela(c) for c in psalm.half_verse_subphrase_rela),
+            psalm.colon_nodes,
+            tuple(colon_safe_subphrase_rela(c) for c in psalm.colon_subphrase_rela),
         )
         for psalm in psalms
     ]

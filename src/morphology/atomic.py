@@ -48,26 +48,26 @@ _FULL_FEATURE_ORDER: tuple[FeatureKey, ...] = (
 )
 
 
-def _half_verses_for_feature(
+def _cola_for_feature(
     psalm: MorphologicalPsalm, feature: FeatureKey
 ) -> tuple[tuple[str, ...], ...]:
     if feature == "gn":
-        return psalm.half_verse_gn
+        return psalm.colon_gn
     if feature == "nu":
-        return psalm.half_verse_nu
+        return psalm.colon_nu
     if feature == "ps":
-        return psalm.half_verse_ps
+        return psalm.colon_ps
     if feature == "st":
-        return psalm.half_verse_st
+        return psalm.colon_st
     if feature == "vs":
-        return psalm.half_verse_vs
+        return psalm.colon_vs
     if feature == "vt":
-        return psalm.half_verse_vt
+        return psalm.colon_vt
     if feature == "prs_gn":
-        return psalm.half_verse_prs_gn
+        return psalm.colon_prs_gn
     if feature == "prs_nu":
-        return psalm.half_verse_prs_nu
-    return psalm.half_verse_prs_ps
+        return psalm.colon_prs_nu
+    return psalm.colon_prs_ps
 
 
 def atomic_histogram(colon_values: tuple[str, ...], vocabulary: tuple[str, ...]) -> np.ndarray:
@@ -81,8 +81,8 @@ def atomic_vectors(psalms: list[MorphologicalPsalm], feature: FeatureKey) -> dic
     vocabulary = _VOCABULARY_BY_FEATURE[feature]
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = _half_verses_for_feature(psalm, feature)
-        for node, colon_values in zip(psalm.half_verse_nodes, half_verses, strict=True):
+        cola = _cola_for_feature(psalm, feature)
+        for node, colon_values in zip(psalm.colon_nodes, cola, strict=True):
             vectors[node] = atomic_histogram(colon_values, vocabulary)
     return vectors
 
@@ -96,10 +96,10 @@ def atomic_psalm_vectors(
     dim = len(vocabulary)
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = _half_verses_for_feature(psalm, feature)
-        flattened = tuple(value for colon_values in half_verses for value in colon_values)
+        cola = _cola_for_feature(psalm, feature)
+        flattened = tuple(value for colon_values in cola for value in colon_values)
         psalm_vector = unigram_histogram(flattened, index_of, dim)
-        for node in psalm.half_verse_nodes:
+        for node in psalm.colon_nodes:
             vectors[node] = psalm_vector
     return vectors
 
@@ -111,7 +111,7 @@ def sp_plus_feature_vectors(
     feature_vectors = atomic_vectors(psalms, feature)
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_sp in zip(psalm.half_verse_nodes, psalm.half_verse_sp, strict=True):
+        for node, colon_sp in zip(psalm.colon_nodes, psalm.colon_sp, strict=True):
             vectors[node] = np.concatenate([pos_unigram_histogram(colon_sp), feature_vectors[node]])
     return vectors
 
@@ -130,7 +130,7 @@ def full_morphology_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.nd
     per_feature = {feature: atomic_vectors(psalms, feature) for feature in _FULL_FEATURE_ORDER}
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_sp in zip(psalm.half_verse_nodes, psalm.half_verse_sp, strict=True):
+        for node, colon_sp in zip(psalm.colon_nodes, psalm.colon_sp, strict=True):
             blocks = [pos_unigram_histogram(colon_sp)]
             blocks.extend(per_feature[feature][node] for feature in _FULL_FEATURE_ORDER)
             vectors[node] = np.concatenate(blocks)

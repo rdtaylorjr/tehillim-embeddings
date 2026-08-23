@@ -1,4 +1,4 @@
-"""Computes half-verse embeddings from local sentence-embedding models."""
+"""Computes colon embeddings from local sentence-embedding models."""
 
 from __future__ import annotations
 
@@ -34,13 +34,11 @@ _GTE_MULTILINGUAL_MAX_ATTEMPTS = 5
 ME5_LARGE_INSTRUCT_MODEL = "intfloat/multilingual-e5-large-instruct"
 
 
-def _select_half_verses(
-    psalm: Psalm, *, vocalized: bool, niqqud_only: bool = False
-) -> tuple[str, ...]:
-    """Selects a psalm's half-verse texts for the given text state."""
+def _select_cola(psalm: Psalm, *, vocalized: bool, niqqud_only: bool = False) -> tuple[str, ...]:
+    """Selects a psalm's colon texts for the given text state."""
     if niqqud_only:
-        return psalm.half_verses_niqqud_only
-    return psalm.half_verses if vocalized else psalm.half_verses_unvocalized
+        return psalm.cola_niqqud_only
+    return psalm.cola if vocalized else psalm.cola_unvocalized
 
 
 def _rope_frequencies(
@@ -178,7 +176,7 @@ def _release_gpu_memory() -> None:
         torch.mps.empty_cache()
 
 
-def compute_half_verse_embeddings(
+def compute_colon_embeddings(
     psalms: list[Psalm],
     model_name: str,
     *,
@@ -198,8 +196,8 @@ def compute_half_verse_embeddings(
         )
         embeddings: dict[int, np.ndarray] = {}
         for psalm in psalms:
-            half_verses = _select_half_verses(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
-            vectors = last_token_pooler(list(half_verses), tokenizer, raw_model)
+            cola = _select_cola(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
+            vectors = last_token_pooler(list(cola), tokenizer, raw_model)
             embeddings[psalm.number] = np.asarray(vectors)
         del tokenizer, raw_model
         release_gpu_memory()
@@ -230,8 +228,8 @@ def compute_half_verse_embeddings(
             _repair_gte_multilingual_position_ids(model[0].auto_model)
         embeddings = {}
         for psalm in psalms:
-            half_verses = _select_half_verses(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
-            vectors = model.encode(list(half_verses), normalize_embeddings=True)
+            cola = _select_cola(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
+            vectors = model.encode(list(cola), normalize_embeddings=True)
             embeddings[psalm.number] = np.asarray(vectors)
         del model
         release_gpu_memory()

@@ -14,8 +14,8 @@ def _psalm(*, number, words_per_colon, nodes=None):
     )
     return MorphologicalPsalm(
         number=number,
-        half_verse_nodes=nodes,
-        half_verse_sp=tuple(tuple(f"tag{i}" for i in range(n)) for n in words_per_colon),
+        colon_nodes=nodes,
+        colon_sp=tuple(tuple(f"tag{i}" for i in range(n)) for n in words_per_colon),
     )
 
 
@@ -60,7 +60,7 @@ class TestShuffledWithinColonOrder:
 
     def test_preserves_the_multiset_of_pos_tags_when_applied(self):
         psalms = [_psalm(number=1, words_per_colon=(4,), nodes=(600,))]
-        colon_sp = psalms[0].half_verse_sp[0]
+        colon_sp = psalms[0].colon_sp[0]
 
         order = shuffled_within_colon_order(psalms, seed=3)
         reordered = tuple(colon_sp[i] for i in order[600])

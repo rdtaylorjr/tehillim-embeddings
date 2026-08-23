@@ -6,7 +6,7 @@ import numpy as np
 
 from morphology.atomic import (
     FeatureKey,
-    _half_verses_for_feature,
+    _cola_for_feature,
     atomic_histogram,
     atomic_psalm_vectors,
 )
@@ -50,7 +50,7 @@ def morph_atomic_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.ndarr
     }
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_sp in zip(psalm.half_verse_nodes, psalm.half_verse_sp, strict=True):
+        for node, colon_sp in zip(psalm.colon_nodes, psalm.colon_sp, strict=True):
             blocks = [pos_unigram_histogram(colon_sp)]
             blocks.extend(per_feature[feature][node] for feature in _CORE_FEATURE_ORDER)
             vectors[node] = np.concatenate(blocks)
@@ -64,8 +64,8 @@ def atomic_histogram_column(
     vocabulary = _CORE_VOCABULARY[feature]
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = _half_verses_for_feature(psalm, feature)
-        for node, colon_values in zip(psalm.half_verse_nodes, half_verses, strict=True):
+        cola = _cola_for_feature(psalm, feature)
+        for node, colon_values in zip(psalm.colon_nodes, cola, strict=True):
             vectors[node] = atomic_histogram(colon_values, vocabulary)
     return vectors
 
@@ -105,7 +105,7 @@ def morph_signature_vectors(
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         collapsed = _collapsed_signatures(psalm, external_counts, k)
-        for node, colon_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+        for node, colon_sigs in zip(psalm.colon_nodes, collapsed, strict=True):
             vectors[node] = unigram_histogram(colon_sigs, index_of, dim)
     return vectors
 
@@ -120,8 +120,7 @@ def morph_signature_psalm_vectors(
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
     columns = [
-        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
-        for psalm in psalms
+        (psalm.colon_nodes, _collapsed_signatures(psalm, external_counts, k)) for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1,), index_of, dim, order_by_node=None)
 
@@ -139,7 +138,7 @@ def morph_signature_1_2gram_vectors(
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         collapsed = _collapsed_signatures(psalm, external_counts, k)
-        for node, colon_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+        for node, colon_sigs in zip(psalm.colon_nodes, collapsed, strict=True):
             ordered = reorder(colon_sigs, node, order_by_node)
             vectors[node] = np.concatenate(
                 [
@@ -163,7 +162,7 @@ def morph_signature_1_2_3gram_vectors(
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         collapsed = _collapsed_signatures(psalm, external_counts, k)
-        for node, colon_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+        for node, colon_sigs in zip(psalm.colon_nodes, collapsed, strict=True):
             ordered = reorder(colon_sigs, node, order_by_node)
             vectors[node] = np.concatenate(
                 [
@@ -186,8 +185,7 @@ def morph_signature_1_2gram_psalm_vectors(
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
     columns = [
-        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
-        for psalm in psalms
+        (psalm.colon_nodes, _collapsed_signatures(psalm, external_counts, k)) for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1, 2), index_of, dim, order_by_node)
 
@@ -203,8 +201,7 @@ def morph_signature_1_2_3gram_psalm_vectors(
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
     columns = [
-        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
-        for psalm in psalms
+        (psalm.colon_nodes, _collapsed_signatures(psalm, external_counts, k)) for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1, 2, 3), index_of, dim, order_by_node)
 
@@ -222,7 +219,7 @@ def morph_signature_1_2_3gram_sparse_vectors(
     vectors: dict[int, tuple[np.ndarray, np.ndarray]] = {}
     for psalm in psalms:
         collapsed = _collapsed_signatures(psalm, external_counts, k)
-        for node, colon_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+        for node, colon_sigs in zip(psalm.colon_nodes, collapsed, strict=True):
             ordered = reorder(colon_sigs, node, order_by_node)
             vectors[node] = sparse_1_2_3gram(ordered, index_of, dim)
     return vectors
@@ -239,7 +236,6 @@ def morph_signature_1_2_3gram_psalm_sparse_vectors(
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
     columns = [
-        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
-        for psalm in psalms
+        (psalm.colon_nodes, _collapsed_signatures(psalm, external_counts, k)) for psalm in psalms
     ]
     return sparse_pooled_1_2_3gram(columns, index_of, dim, order_by_node)

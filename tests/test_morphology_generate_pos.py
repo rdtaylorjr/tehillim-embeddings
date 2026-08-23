@@ -22,7 +22,7 @@ _FULL_WEIGHTS = (
 
 
 def _psalm(*, number, sp_by_colon, nodes):
-    return MorphologicalPsalm(number=number, half_verse_nodes=nodes, half_verse_sp=sp_by_colon)
+    return MorphologicalPsalm(number=number, colon_nodes=nodes, colon_sp=sp_by_colon)
 
 
 def _psalms():

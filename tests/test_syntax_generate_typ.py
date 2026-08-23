@@ -24,7 +24,7 @@ _FULL_WEIGHTS = (
 
 
 def _psalm(*, number, phrase_typ_by_colon, nodes):
-    return PhrasePsalm(number=number, half_verse_nodes=nodes, half_verse_typ=phrase_typ_by_colon)
+    return PhrasePsalm(number=number, colon_nodes=nodes, colon_typ=phrase_typ_by_colon)
 
 
 def _psalms():

@@ -14,7 +14,7 @@ import numpy as np
 from semantic import api_models
 from semantic.api_models import API_KEY_ENV_VARS
 from semantic.export import dataset_path, node_vectors, write_dataset
-from semantic.local_models import _select_half_verses, compute_half_verse_embeddings
+from semantic.local_models import _select_cola, compute_colon_embeddings
 from semantic.registry import (
     MODEL_REGISTRY,
     dataset_description,
@@ -44,7 +44,7 @@ def generate_local(
     variation: str | None = None,
     device: str | None = None,
     torch_dtype: str | None = None,
-    compute: Callable[..., dict[int, np.ndarray]] = compute_half_verse_embeddings,
+    compute: Callable[..., dict[int, np.ndarray]] = compute_colon_embeddings,
 ) -> list[str]:
     """Generates every not-yet-written variation for one local model slug, or only `variation`."""
     technical_name, model_slug, _ = MODEL_REGISTRY[slug]
@@ -100,9 +100,9 @@ def generate_api(
         texts: list[str] = []
         spans: list[tuple[int, int, int]] = []
         for psalm in psalms:
-            half_verses = _select_half_verses(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
+            cola = _select_cola(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
             start = len(texts)
-            texts.extend(half_verses)
+            texts.extend(cola)
             spans.append((psalm.number, start, len(texts)))
 
         print(f"fetching {name} from {slug}...", file=sys.stderr)

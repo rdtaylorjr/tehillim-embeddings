@@ -11,7 +11,7 @@ def shuffled_order_by_psalm(psalms: list[LexicalPsalm], seed: int) -> dict[int, 
     """One fixed-seed random permutation of colon indices per psalm, independent across psalms."""
     order_by_psalm: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        n = len(psalm.half_verse_nodes)
+        n = len(psalm.colon_nodes)
         rng = np.random.default_rng((psalm.number, seed))
         order_by_psalm[psalm.number] = rng.permutation(n)
     return order_by_psalm

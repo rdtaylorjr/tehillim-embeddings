@@ -28,7 +28,7 @@ def psalm_signatures(psalm: PhrasePsalm) -> tuple[tuple[str, ...], ...]:
     """One signature sequence per colon of `psalm`."""
     return tuple(
         colon_signatures(typ=typ, function=function)
-        for typ, function in zip(psalm.half_verse_typ, psalm.half_verse_function, strict=True)
+        for typ, function in zip(psalm.colon_typ, psalm.colon_function, strict=True)
     )
 
 
@@ -47,6 +47,6 @@ def psalm_full_signatures(psalm: PhrasePsalm) -> tuple[tuple[str, ...], ...]:
     return tuple(
         colon_full_signatures(typ=typ, function=function, det=det)
         for typ, function, det in zip(
-            psalm.half_verse_typ, psalm.half_verse_function, psalm.half_verse_det, strict=True
+            psalm.colon_typ, psalm.colon_function, psalm.colon_det, strict=True
         )
     )

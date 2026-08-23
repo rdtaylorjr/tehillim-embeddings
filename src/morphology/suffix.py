@@ -50,7 +50,7 @@ def psalm_suffix_signatures(psalm: MorphologicalPsalm) -> tuple[tuple[str, ...],
     return tuple(
         colon_suffix_signatures(prs_gn=gn, prs_nu=nu, prs_ps=ps)
         for gn, nu, ps in zip(
-            psalm.half_verse_prs_gn, psalm.half_verse_prs_nu, psalm.half_verse_prs_ps, strict=True
+            psalm.colon_prs_gn, psalm.colon_prs_nu, psalm.colon_prs_ps, strict=True
         )
     )
 
@@ -61,9 +61,7 @@ def suffix_inventory_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.n
     dim = len(SUFFIX_VOCABULARY)
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_sigs in zip(
-            psalm.half_verse_nodes, psalm_suffix_signatures(psalm), strict=True
-        ):
+        for node, colon_sigs in zip(psalm.colon_nodes, psalm_suffix_signatures(psalm), strict=True):
             vectors[node] = unigram_histogram(colon_sigs, index_of, dim)
     return vectors
 
@@ -73,7 +71,7 @@ def suffix_inventory_psalm_vectors(psalms: list[MorphologicalPsalm]) -> dict[int
     index_of = {value: i for i, value in enumerate(SUFFIX_VOCABULARY)}
     dim = len(SUFFIX_VOCABULARY)
     columns: list[PsalmColumns] = [
-        (psalm.half_verse_nodes, psalm_suffix_signatures(psalm)) for psalm in psalms
+        (psalm.colon_nodes, psalm_suffix_signatures(psalm)) for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1,), index_of, dim, order_by_node=None)
 
@@ -103,7 +101,7 @@ def host_plus_suffix_vectors(
         collapsed_host = _collapsed_signatures(psalm, external_counts, k)
         suffix_sigs = psalm_suffix_signatures(psalm)
         for node, host_colon, suffix_colon in zip(
-            psalm.half_verse_nodes, collapsed_host, suffix_sigs, strict=True
+            psalm.colon_nodes, collapsed_host, suffix_sigs, strict=True
         ):
             vectors[node] = np.concatenate(
                 [
@@ -124,8 +122,7 @@ def host_plus_suffix_psalm_vectors(
     host_index_of = {value: i for i, value in enumerate(signature_vocabulary)}
     host_dim = len(signature_vocabulary)
     host_columns: list[PsalmColumns] = [
-        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
-        for psalm in psalms
+        (psalm.colon_nodes, _collapsed_signatures(psalm, external_counts, k)) for psalm in psalms
     ]
     host_vectors = pooled_ngram_psalm_vectors(
         host_columns, (1,), host_index_of, host_dim, order_by_node=None

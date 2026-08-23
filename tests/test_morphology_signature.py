@@ -53,14 +53,14 @@ class TestPsalmSignatures:
     def test_builds_one_signature_sequence_per_colon(self):
         psalm = MorphologicalPsalm(
             number=1,
-            half_verse_nodes=(100, 101),
-            half_verse_sp=(("subs",), ("verb",)),
-            half_verse_gn=(("m",), ("m",)),
-            half_verse_nu=(("sg",), ("sg",)),
-            half_verse_ps=(("NA",), ("p3",)),
-            half_verse_st=(("a",), ("NA",)),
-            half_verse_vs=(("NA",), ("qal",)),
-            half_verse_vt=(("NA",), ("perf",)),
+            colon_nodes=(100, 101),
+            colon_sp=(("subs",), ("verb",)),
+            colon_gn=(("m",), ("m",)),
+            colon_nu=(("sg",), ("sg",)),
+            colon_ps=(("NA",), ("p3",)),
+            colon_st=(("a",), ("NA",)),
+            colon_vs=(("NA",), ("qal",)),
+            colon_vt=(("NA",), ("perf",)),
         )
         signatures = psalm_signatures(psalm)
         assert signatures == (("subs|m|sg|a",), ("verb|qal|perf|p3|m|sg",))
@@ -73,7 +73,7 @@ def test_a_real_bhsa_words_signature_matches_a_manual_tf_query():
     corpus = Corpus.load()
     psalm_1 = next(p for p in corpus.psalms() if p.number == 1)
     api = corpus.api
-    colon_node = psalm_1.half_verse_nodes[0]
+    colon_node = psalm_1.colon_nodes[0]
     first_word_node = api.L.d(colon_node, otype="word")[0]
 
     manual = build_signature(

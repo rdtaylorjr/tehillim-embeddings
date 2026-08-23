@@ -28,7 +28,7 @@ def phrase_full_signature_vectors(
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         collapsed = _collapsed_full_signatures(psalm, external_counts, k)
-        for node, colon_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+        for node, colon_sigs in zip(psalm.colon_nodes, collapsed, strict=True):
             vectors[node] = unigram_histogram(colon_sigs, index_of, dim)
     return vectors
 
@@ -40,7 +40,7 @@ def phrase_full_signature_psalm_vectors(
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
     columns = [
-        (psalm.half_verse_nodes, _collapsed_full_signatures(psalm, external_counts, k))
+        (psalm.colon_nodes, _collapsed_full_signatures(psalm, external_counts, k))
         for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1,), index_of, dim, order_by_node=None)

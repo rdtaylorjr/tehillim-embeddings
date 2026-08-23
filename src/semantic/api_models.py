@@ -1,4 +1,4 @@
-"""Fetches half-verse embeddings from Gemini, OpenAI, Cohere, and Voyage."""
+"""Fetches colon embeddings from Gemini, OpenAI, Cohere, and Voyage."""
 
 from __future__ import annotations
 
