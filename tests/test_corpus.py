@@ -50,9 +50,7 @@ def test_extracts_all_150_psalms_with_three_text_variants_and_real_node_ids():
     # the fully vocalized text.
     assert any("ָ" in hv for hv in psalm_1.half_verses_niqqud_only)
     assert any("֑" in hv for hv in psalm_1.half_verses)
-    assert not any(
-        any("֑" <= ch <= "֯" for ch in hv) for hv in psalm_1.half_verses_niqqud_only
-    )
+    assert not any(any("֑" <= ch <= "֯" for ch in hv) for hv in psalm_1.half_verses_niqqud_only)
 
     all_nodes = [node for p in psalms for node in p.half_verse_nodes]
     assert len(all_nodes) == len(set(all_nodes))

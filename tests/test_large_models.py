@@ -111,8 +111,6 @@ class TestGpuMemorySummary:
         assert gpu_memory_summary(fake_torch) is None
 
     def test_formats_memory_in_gigabytes(self):
-        fake_torch = _FakeTorch(
-            _FakeCuda(available=True, allocated=1e9, reserved=2e9, total=4e10)
-        )
+        fake_torch = _FakeTorch(_FakeCuda(available=True, allocated=1e9, reserved=2e9, total=4e10))
         summary = gpu_memory_summary(fake_torch)
         assert summary == "allocated=1.00GB reserved=2.00GB total=40.00GB"

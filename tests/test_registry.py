@@ -30,9 +30,7 @@ class TestDatasetName:
         assert dataset_name("bge-m3", "vocalized") == "semantic_bge_m3_vocalized"
 
     def test_uses_the_full_technical_slug_not_the_registry_key(self):
-        assert (
-            dataset_name("gemini", "cantillation") == "semantic_gemini_embedding_2_cantillation"
-        )
+        assert dataset_name("gemini", "cantillation") == "semantic_gemini_embedding_2_cantillation"
 
 
 class TestDatasetDescription:
