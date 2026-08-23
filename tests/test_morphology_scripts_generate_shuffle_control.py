@@ -132,3 +132,39 @@ class TestGenerateSignatureShuffleControl:
                 external_counts={},
                 k=1000,
             )
+
+    def test_writes_the_sparse_1_2_3gram_representation(self, tmp_path):
+        vocabulary = ("conj", "prep", "subs", "verb", "<RARE>")
+        written = generate_signature_shuffle_control(
+            _signature_psalms(),
+            tmp_path,
+            representation="1_2_3gram",
+            n_shuffles=2,
+            vocabulary=vocabulary,
+            external_counts=_external_counts(),
+            k=1000,
+        )
+
+        assert written == [
+            "morph_signature_1_2_3gram_shuffle01",
+            "morph_signature_1_2_3gram_shuffle02",
+        ]
+        path = dataset_path(tmp_path, "morph_signature", "1_2_3gram_shuffle01")
+        assert path.exists()
+        table = pq.read_table(path)
+        assert table.schema.metadata[b"sparse"] == b"true"
+
+    def test_writes_the_sparse_1_2_3gram_psalm_representation(self, tmp_path):
+        vocabulary = ("conj", "prep", "subs", "verb", "<RARE>")
+        written = generate_signature_shuffle_control(
+            _signature_psalms(),
+            tmp_path,
+            representation="1_2_3gram_psalm",
+            n_shuffles=1,
+            vocabulary=vocabulary,
+            external_counts=_external_counts(),
+            k=1000,
+        )
+
+        assert written == ["morph_signature_1_2_3gram_psalm_shuffle01"]
+        assert dataset_path(tmp_path, "morph_signature", "1_2_3gram_psalm_shuffle01").exists()

@@ -18,6 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    "pytest-cov>=5.0",
     "ruff>=0.6",
     "mypy>=1.10",
 ]
@@ -46,7 +47,18 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = ["--cov=src", "--cov-report=term-missing"]
 markers = [
     "integration: requires a local BHSA Text-Fabric dataset (see TEHILLIM_BHSA_PATH)",
     "api_integration: makes one real call to a paid embedding API, requires the provider's API key (skipped automatically when unset)",
+]
+
+[tool.coverage.run]
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 90
+exclude_also = [
+    "^def main\\(\\) -> None:$",
+    "^if __name__ == .__main__.:$",
 ]

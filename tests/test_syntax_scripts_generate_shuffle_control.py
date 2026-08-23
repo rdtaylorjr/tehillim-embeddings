@@ -5,7 +5,11 @@ import pytest
 
 from lexical.export import dataset_path as _dataset_path
 from syntax.corpus import PhrasePsalm
-from syntax.scripts.generate_shuffle_control import generate_shuffle_control
+from syntax.scripts.generate_shuffle_control import (
+    generate_shuffle_control,
+    generate_signature_shuffle_control,
+)
+from syntax.signature_support import build_signature_vocabulary
 
 
 def dataset_path(output_root, vocab, weight):
@@ -76,3 +80,44 @@ class TestGenerateShuffleControl:
         for weight in written:
             path_weight = weight.removeprefix("function_")
             assert dataset_path(tmp_path, "function", path_weight).exists()
+
+
+def _external_counts():
+    return {"NP:Subj": 5000, "VP:Pred": 5000}
+
+
+class TestGenerateSignatureShuffleControl:
+    def test_writes_n_seeded_signature_datasets(self, tmp_path):
+        vocabulary = build_signature_vocabulary(_external_counts(), k=1000)
+
+        written = generate_signature_shuffle_control(
+            _psalms(),
+            tmp_path,
+            "1_2gram",
+            n_shuffles=2,
+            vocabulary=vocabulary,
+            external_counts=_external_counts(),
+            k=1000,
+        )
+
+        assert written == [
+            "signature_1_2gram_shuffle01",
+            "signature_1_2gram_shuffle02",
+        ]
+        for weight in written:
+            path_weight = weight.removeprefix("signature_")
+            assert dataset_path(tmp_path, "signature", path_weight).exists()
+
+    def test_raises_on_an_unshuffleable_representation(self, tmp_path):
+        vocabulary = build_signature_vocabulary(_external_counts(), k=1000)
+
+        with pytest.raises(ValueError, match="no shuffle control"):
+            generate_signature_shuffle_control(
+                _psalms(),
+                tmp_path,
+                "inventory",
+                n_shuffles=1,
+                vocabulary=vocabulary,
+                external_counts=_external_counts(),
+                k=1000,
+            )
