@@ -6,7 +6,7 @@ import numpy as np
 
 from lexical.corpus import LexicalPsalm
 from lexical.vectorize import icf_vector
-from lexical.vocabulary import VocabularyKey, half_verses_for_key
+from lexical.vocabulary import VocabularyKey, cola_for_key
 
 
 def colon_positions(n: int) -> np.ndarray:
@@ -34,17 +34,17 @@ def positional_icf_vectors(
 
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = half_verses_for_key(psalm, key)
-        n = len(half_verses)
+        cola = cola_for_key(psalm, key)
+        n = len(cola)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
         bins = bin_index(colon_positions(n), k)
 
         for position, colon_index in enumerate(order):
             indices = np.fromiter(
-                (index_of[v] for v in set(half_verses[colon_index]) if v in index_of),
+                (index_of[v] for v in set(cola[colon_index]) if v in index_of),
                 dtype=np.int64,
             )
             block = np.zeros((k, dim), dtype=np.float32)
             block[bins[position], indices] = weights[indices]
-            vectors[psalm.half_verse_nodes[colon_index]] = block.flatten()
+            vectors[psalm.colon_nodes[colon_index]] = block.flatten()
     return vectors

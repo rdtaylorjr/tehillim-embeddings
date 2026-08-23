@@ -30,21 +30,21 @@ def test_extracts_all_150_psalms_with_three_aligned_text_tiers():
     assert [p.number for p in psalms] == list(range(1, 151))
 
     psalm_1 = next(p for p in psalms if p.number == 1)
-    assert len(psalm_1.half_verse_nodes) == 14
-    assert len(psalm_1.half_verse_consonantal) == 14
-    assert len(psalm_1.half_verse_vocalized) == 14
-    assert len(psalm_1.half_verse_cantillation) == 14
+    assert len(psalm_1.colon_nodes) == 14
+    assert len(psalm_1.colon_consonantal) == 14
+    assert len(psalm_1.colon_vocalized) == 14
+    assert len(psalm_1.colon_cantillation) == 14
 
     for consonantal, vocalized, cantillation in zip(
-        psalm_1.half_verse_consonantal,
-        psalm_1.half_verse_vocalized,
-        psalm_1.half_verse_cantillation,
+        psalm_1.colon_consonantal,
+        psalm_1.colon_vocalized,
+        psalm_1.colon_cantillation,
         strict=True,
     ):
         assert len(consonantal) == len(vocalized) == len(cantillation)
 
     # Cantillation carries strictly more marks than vocalized (niqqud only), so a colon with
     # any cantillation-bearing word must differ, while its consonantal form is always shorter.
-    first_word_cons = psalm_1.half_verse_consonantal[0][0]
-    first_word_cant = psalm_1.half_verse_cantillation[0][0]
+    first_word_cons = psalm_1.colon_consonantal[0][0]
+    first_word_cant = psalm_1.colon_cantillation[0][0]
     assert len(first_word_cons) <= len(first_word_cant)

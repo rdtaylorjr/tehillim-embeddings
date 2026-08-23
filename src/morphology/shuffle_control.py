@@ -13,7 +13,7 @@ def shuffled_within_colon_order(
     """One fixed-seed permutation of word indices per colon node, keyed by (node, seed)."""
     order_by_node: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_sp in zip(psalm.half_verse_nodes, psalm.half_verse_sp, strict=True):
+        for node, colon_sp in zip(psalm.colon_nodes, psalm.colon_sp, strict=True):
             m = len(colon_sp)
             rng = np.random.default_rng((node, seed))
             order_by_node[node] = rng.permutation(m)

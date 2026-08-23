@@ -6,7 +6,7 @@ import numpy as np
 
 from lexical.corpus import LexicalPsalm
 from lexical.vectorize import icf_vector
-from lexical.vocabulary import VocabularyKey, half_verses_for_key
+from lexical.vocabulary import VocabularyKey, cola_for_key
 
 
 def normalized_lag(n: int) -> np.ndarray:
@@ -21,9 +21,9 @@ def lag_bin_index(delta: np.ndarray, k: int) -> np.ndarray:
 
 
 def _colon_vector(
-    half_verse: tuple[str, ...], index_of: dict[str, int], weights: np.ndarray, dim: int
+    colon: tuple[str, ...], index_of: dict[str, int], weights: np.ndarray, dim: int
 ) -> np.ndarray:
-    indices = np.fromiter((index_of[v] for v in set(half_verse) if v in index_of), dtype=np.int64)
+    indices = np.fromiter((index_of[v] for v in set(colon) if v in index_of), dtype=np.int64)
     vector = np.zeros(dim, dtype=np.float32)
     vector[indices] = weights[indices]
     return vector
@@ -52,16 +52,16 @@ def spacing_profile_vectors(
 
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = half_verses_for_key(psalm, key)
-        n = len(half_verses)
+        cola = cola_for_key(psalm, key)
+        n = len(cola)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
 
         if n < 2:
-            for node in psalm.half_verse_nodes:
+            for node in psalm.colon_nodes:
                 vectors[node] = np.zeros(k, dtype=np.float32)
             continue
 
-        ordered = [half_verses[i] for i in order]
+        ordered = [cola[i] for i in order]
         colon_vectors = np.stack([_colon_vector(hv, index_of, weights, dim) for hv in ordered])
         similarity = _full_cosine_similarity_matrix(colon_vectors)
         positions = np.arange(n)
@@ -76,5 +76,5 @@ def spacing_profile_vectors(
             profile = np.zeros(k, dtype=np.float64)
             nonzero = counts > 0
             profile[nonzero] = sums[nonzero] / counts[nonzero]
-            vectors[psalm.half_verse_nodes[colon_index]] = profile.astype(np.float32)
+            vectors[psalm.colon_nodes[colon_index]] = profile.astype(np.float32)
     return vectors

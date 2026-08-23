@@ -98,7 +98,7 @@ MODEL_REGISTRY: dict[str, tuple[str, str, str]] = {
 TOKENIZER_STRIPS_ALL_DIACRITICS = {"miqrabert", "alephbert", "neodictabert", "berel"}
 
 #: (variation name, vocalized, niqqud_only, description). vocalized/
-#: niqqud_only match `_select_half_verses`'s parameters.
+#: niqqud_only match `_select_cola`'s parameters.
 VARIATIONS: list[tuple[str, bool, bool, str]] = [
     ("consonantal", False, False, "Bare consonants. No niqqud, no cantillation."),
     ("vocalized", True, True, "Niqqud (vowel points) only. No cantillation marks."),
@@ -139,5 +139,5 @@ def dataset_description(slug: str, variation_description: str) -> str:
     _, _, model_description = MODEL_REGISTRY[slug]
     return (
         f"{model_description} {variation_description} "
-        "Columns: node_id (int32, BHSA half-verse node id), vector (float32 list)."
+        "Columns: node_id (int32, BHSA colon node id), vector (float32 list)."
     )

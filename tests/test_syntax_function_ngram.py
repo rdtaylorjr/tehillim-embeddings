@@ -21,9 +21,7 @@ _DIM = len(FUNCTION_VOCABULARY)
 
 def _psalm(*, number, phrase_function_by_colon, nodes=None):
     nodes = nodes if nodes is not None else tuple(range(100, 100 + len(phrase_function_by_colon)))
-    return PhrasePsalm(
-        number=number, half_verse_nodes=nodes, half_verse_function=phrase_function_by_colon
-    )
+    return PhrasePsalm(number=number, colon_nodes=nodes, colon_function=phrase_function_by_colon)
 
 
 class TestPhraseFunctionUnigramHistogram:

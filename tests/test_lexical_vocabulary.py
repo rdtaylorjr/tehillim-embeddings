@@ -7,9 +7,9 @@ from lexical.vocabulary import build_vocabulary
 def _psalm(*, number, lexemes, forms):
     return LexicalPsalm(
         number=number,
-        half_verse_lexemes=lexemes,
-        half_verse_forms=forms,
-        half_verse_nodes=tuple(range(len(lexemes))),
+        colon_lexemes=lexemes,
+        colon_forms=forms,
+        colon_nodes=tuple(range(len(lexemes))),
     )
 
 
@@ -47,7 +47,7 @@ class TestBuildVocabulary:
         assert lex0_vocab == ("BR>",)
         assert len(lex0_vocab) < len(lex_vocab)
 
-    def test_repeated_lexemes_within_and_across_half_verses_count_once(self):
+    def test_repeated_lexemes_within_and_across_cola_count_once(self):
         psalms = [
             _psalm(number=1, lexemes=(("A", "A"), ("A",)), forms=(("A0", "A0"), ("A0",))),
         ]

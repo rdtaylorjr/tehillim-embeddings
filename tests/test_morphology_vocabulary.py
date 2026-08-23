@@ -86,16 +86,16 @@ class TestVocabulariesCoverEveryValueObservedInPsalms:
         corpus = Corpus.load()
         psalms = corpus.psalms()
         attribute_by_feature = {
-            "sp": "half_verse_sp",
-            "gn": "half_verse_gn",
-            "nu": "half_verse_nu",
-            "ps": "half_verse_ps",
-            "st": "half_verse_st",
-            "vs": "half_verse_vs",
-            "vt": "half_verse_vt",
-            "prs_gn": "half_verse_prs_gn",
-            "prs_nu": "half_verse_prs_nu",
-            "prs_ps": "half_verse_prs_ps",
+            "sp": "colon_sp",
+            "gn": "colon_gn",
+            "nu": "colon_nu",
+            "ps": "colon_ps",
+            "st": "colon_st",
+            "vs": "colon_vs",
+            "vt": "colon_vt",
+            "prs_gn": "colon_prs_gn",
+            "prs_nu": "colon_prs_nu",
+            "prs_ps": "colon_prs_ps",
         }
         for feature, vocabulary in _FEATURE_TO_VOCABULARY.items():
             attribute = attribute_by_feature[feature]

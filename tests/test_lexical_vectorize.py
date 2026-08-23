@@ -15,9 +15,9 @@ from lexical.vectorize import (
 def _psalm(*, number, lexemes, forms, nodes):
     return LexicalPsalm(
         number=number,
-        half_verse_lexemes=lexemes,
-        half_verse_forms=forms,
-        half_verse_nodes=nodes,
+        colon_lexemes=lexemes,
+        colon_forms=forms,
+        colon_nodes=nodes,
     )
 
 
@@ -46,7 +46,7 @@ class TestBinaryPresenceVectors:
 
         assert all(len(v) == 5 for v in vectors.values())
 
-    def test_covers_every_half_verse_node_across_multiple_psalms(self):
+    def test_covers_every_colon_node_across_multiple_psalms(self):
         vocabulary = ("A", "B")
         psalms = [
             _psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,)),

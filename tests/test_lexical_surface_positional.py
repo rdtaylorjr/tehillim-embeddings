@@ -9,10 +9,10 @@ from lexical.surface_positional import surface_positional_icf_vectors
 def _psalm(*, number, consonantal, nodes):
     return SurfacePsalm(
         number=number,
-        half_verse_consonantal=consonantal,
-        half_verse_vocalized=consonantal,
-        half_verse_cantillation=consonantal,
-        half_verse_nodes=nodes,
+        colon_consonantal=consonantal,
+        colon_vocalized=consonantal,
+        colon_cantillation=consonantal,
+        colon_nodes=nodes,
     )
 
 

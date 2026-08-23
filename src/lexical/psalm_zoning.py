@@ -7,7 +7,7 @@ import numpy as np
 from lexical.corpus import LexicalPsalm
 from lexical.positional import colon_positions
 from lexical.vectorize import icf_vector
-from lexical.vocabulary import VocabularyKey, half_verses_for_key
+from lexical.vocabulary import VocabularyKey, cola_for_key
 
 
 def psalm_position_mean_vectors(
@@ -24,17 +24,17 @@ def psalm_position_mean_vectors(
 
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = half_verses_for_key(psalm, key)
-        n = len(half_verses)
+        cola = cola_for_key(psalm, key)
+        n = len(cola)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
-        ordered = [half_verses[i] for i in order]
+        ordered = [cola[i] for i in order]
         t = colon_positions(n)
 
         flat_index_parts = []
         flat_t_parts = []
-        for position, half_verse in enumerate(ordered):
+        for position, colon in enumerate(ordered):
             indices = np.fromiter(
-                (index_of[v] for v in set(half_verse) if v in index_of), dtype=np.int64
+                (index_of[v] for v in set(colon) if v in index_of), dtype=np.int64
             )
             flat_index_parts.append(indices)
             flat_t_parts.append(np.full(len(indices), t[position]))
@@ -50,6 +50,6 @@ def psalm_position_mean_vectors(
         m = weights * present * (2 * mean_position - 1)
 
         psalm_vector = np.concatenate([b, m]).astype(np.float32)
-        for node in psalm.half_verse_nodes:
+        for node in psalm.colon_nodes:
             vectors[node] = psalm_vector
     return vectors

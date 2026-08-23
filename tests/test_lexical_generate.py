@@ -10,9 +10,9 @@ from lexical.generate import generate
 def _psalm(*, number, lexemes, forms, nodes):
     return LexicalPsalm(
         number=number,
-        half_verse_lexemes=lexemes,
-        half_verse_forms=forms,
-        half_verse_nodes=nodes,
+        colon_lexemes=lexemes,
+        colon_forms=forms,
+        colon_nodes=nodes,
     )
 
 
