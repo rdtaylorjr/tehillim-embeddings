@@ -294,6 +294,70 @@ Generate with `.venv/bin/python3 -m morphological.generate_pos`,
 `.venv/bin/python3 -m morphological.generate_suffix`, and
 `.venv/bin/python3 -m morphological.generate_deploy` (each skips any dataset already written).
 
+## Phrase representations
+
+`src/phrase` builds representations from BHSA's phrase- and subphrase-level syntactic
+annotations, independent of word-level morphology. Datasets live under `data/type=phrase/`, all
+dense (the largest signature-trigram family is dim 14,424, safely below the sparse threshold used
+for morphology's 75,894-dim trigram family).
+
+* **Phrase type and function** (`unit=phrase_typ`/`phrase_function`, `phrase.typ_ngram`/
+  `function_ngram`): unigram/bigram/trigram histograms over the closed `TYP_VOCABULARY` (13
+  values) and `FUNCTION_VOCABULARY` (29 values), reusing `morphological.ngram`'s vocabulary-agnostic
+  histogram/pooling functions directly.
+* **Marginal baseline** (`unit=phrase_marginal`, `phrase.marginal`): `[phrase_typ; phrase_function]`
+  independent-marginals concatenation, the baseline H5.5 asks whether a joint type-function
+  signature beats.
+* **Phrase signatures** (`unit=phrase_signature`, `phrase.signature`/`signature_vectorize`): a
+  per-atom `typ:function` signature, e.g. `NP:Subj`. Rare signatures (whole-Bible count outside
+  Psalms below `MIN_EXTERNAL_SUPPORT_K=1000`, frozen in `phrase.signature_support` before any
+  benchmark run, from `data/config/phrase_signature_external_support.csv`'s 105-value curve)
+  collapse to `<RARE>` before n-grams are formed, leaving a 24-value vocabulary.
+  `construction=inventory` is the unigram histogram, `1_2gram`/`1_2_3gram` add cumulative
+  bigram/trigram blocks.
+* **Determination and full signature** (`unit=phrase_det`, `phrase.det_vectorize`; `unit=
+  phrase_full_signature`, `phrase.full_signature_vectorize`): `det`'s own independent 3-value
+  histogram (`DET_VOCABULARY`), and a `typ:function:det` full-signature inventory (135 distinct
+  whole-Bible values, `MIN_EXTERNAL_SUPPORT_K_FULL=1000` collapsing to a 29-value vocabulary,
+  frozen from `data/config/phrase_full_signature_external_support.csv`), tested only conditionally
+  against the plain `phrase_signature` inventory.
+* **Structural complexity** (`unit=phrase_complexity`, `phrase.complexity`): conventional per-colon
+  counts, not new inferential machinery: `[n_atoms, n_phrases, mean_words_per_atom,
+  proportion_multi_atom_phrases]`.
+* **Phrase-atom relations** (`unit=phrase_rela`, `phrase.rela`/`rela_vectorize`): a unigram
+  histogram over `SAFE_RELA_VOCABULARY` (`NA, Appo, Link, Sfxs, Spec`), with `rela=Para`
+  (phrase-atom parallelism marker) masked to `NA` before histogramming and permanently excluded
+  from the vocabulary, since it would otherwise leak the parallelism benchmark's own target
+  variable into a representation scored against it.
+* **Subphrase relations** (`unit=phrase_subphrase_rela`, `phrase.subphrase`/
+  `subphrase_vectorize`): the same quarantine pattern for subphrase `rela=par` (BHSA's
+  subphrase-level parallelism marker, distinct from and far more common than phrase-atom `Para`),
+  over `SAFE_SUBPHRASE_RELA_VOCABULARY` (`NA, adj, atr, dem, mod, rec`). 61% of colons have no
+  subphrases at all, so this representation's colon-level population is unusually sparse;
+  genre-side scoring against it must tolerate a degenerate (e.g. single-psalm) population rather
+  than assume every representation clears the usual minimum.
+* **Colon-level vs. psalm-broadcast**: every construction above ships both a colon-level file
+  (correct for parallelism) and a `_psalm`-suffixed psalm-broadcast file (correct for genre), the
+  same convention established in the lexical and morphological families above.
+* **Psalm-scale deployment** (`unit=phrase_signature`/`construction=posmean`, `phrase.deploy`):
+  `[b; m]` over the (RARE-collapsed) signature vocabulary, reusing morphological's deployment
+  formula and `lexical.shuffle_control.shuffled_order_by_psalm` for its shuffle-null.
+* **Shuffle-null order control**: within-colon atom-order shuffles
+  (`phrase.shuffle_control.shuffled_within_colon_order`) for the type/function/signature n-gram
+  families, `construction=*_shuffleNN`, 30 seeds, scored the same way as the lexical and
+  morphological families' shuffle controls.
+
+Generate with `.venv/bin/python3 -m phrase.generate_typ`,
+`.venv/bin/python3 -m phrase.generate_function`,
+`.venv/bin/python3 -m phrase.generate_marginal`,
+`.venv/bin/python3 -m phrase.generate_signature`,
+`.venv/bin/python3 -m phrase.generate_det`,
+`.venv/bin/python3 -m phrase.generate_full_signature`,
+`.venv/bin/python3 -m phrase.generate_complexity`,
+`.venv/bin/python3 -m phrase.generate_rela`,
+`.venv/bin/python3 -m phrase.generate_subphrase`, and
+`.venv/bin/python3 -m phrase.generate_deploy` (each skips any dataset already written).
+
 ## Family
 
 * [tehillim](https://github.com/rdtaylorjr/tehillim): computational
