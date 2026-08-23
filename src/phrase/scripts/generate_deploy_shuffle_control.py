@@ -19,13 +19,6 @@ _DATASET_TYPE = "phrase"
 _UNIT = "phrase_signature"
 _CONSTRUCTION = "posmean"
 
-_DEFAULT_SUPPORT_PATH = (
-    Path(__file__).resolve().parents[3]
-    / "data"
-    / "config"
-    / "phrase_signature_external_support.csv"
-)
-
 
 def generate_shuffle_control(
     psalms: list[PhrasePsalm],
@@ -60,7 +53,8 @@ def main() -> None:
 
     corpus = Corpus.load()
     psalms = corpus.psalms()
-    external_counts = load_external_signature_counts(_DEFAULT_SUPPORT_PATH)
+    support_path = args.output_root / "config" / "phrase_signature_external_support.csv"
+    external_counts = load_external_signature_counts(support_path)
     vocabulary = build_signature_vocabulary(external_counts, MIN_EXTERNAL_SUPPORT_K)
     written = generate_shuffle_control(
         psalms,

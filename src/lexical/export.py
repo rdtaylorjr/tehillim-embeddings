@@ -22,7 +22,6 @@ def dataset_path(
     text_segment = (f"text={text}",) if text is not None else ()
     return (
         output_root.joinpath(
-            "data",
             f"type={dataset_type}",
             f"unit={vocab}",
             *text_segment,

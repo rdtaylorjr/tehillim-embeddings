@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -36,7 +37,9 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
 
 def main() -> None:
     """Generates every missing phrase_marginal dataset."""
-    output_root = Path(__file__).resolve().parents[2]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-root", type=Path, required=True)
+    output_root = parser.parse_args().output_root
     corpus = Corpus.load()
     psalms = corpus.psalms()
     written = generate(psalms, output_root)

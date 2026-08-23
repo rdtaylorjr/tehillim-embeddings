@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -120,7 +121,9 @@ def generate(
 
 def main() -> None:
     """Generates every missing lexical dataset: 19 weightings each for homograph and lexeme."""
-    output_root = Path(__file__).resolve().parents[2]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-root", type=Path, required=True)
+    output_root = parser.parse_args().output_root
     corpus = Corpus.load()
     psalms = corpus.psalms()
     total_tokens = total_token_count(corpus.api)

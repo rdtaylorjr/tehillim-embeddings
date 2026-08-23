@@ -41,13 +41,6 @@ _SIGNATURE_BUILDERS = {
     "1_2_3gram_psalm": phrase_signature_1_2_3gram_psalm_vectors,
 }
 
-_DEFAULT_SUPPORT_PATH = (
-    Path(__file__).resolve().parents[3]
-    / "data"
-    / "config"
-    / "phrase_signature_external_support.csv"
-)
-
 _BUILDERS_BY_UNIT = {
     "phrase_typ": {
         "1_2gram": phrase_typ_1_2gram_vectors,
@@ -141,7 +134,8 @@ def main() -> None:
     corpus = Corpus.load()
     psalms = corpus.psalms()
     if args.unit == "phrase_signature":
-        external_counts = load_external_signature_counts(_DEFAULT_SUPPORT_PATH)
+        support_path = args.output_root / "config" / "phrase_signature_external_support.csv"
+        external_counts = load_external_signature_counts(support_path)
         vocabulary = build_signature_vocabulary(external_counts, MIN_EXTERNAL_SUPPORT_K)
         written = generate_signature_shuffle_control(
             psalms,

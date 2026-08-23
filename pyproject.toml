@@ -1,5 +1,5 @@
 [project]
-name = "representations"
+name = "embeddings"
 version = "0.2.0"
 description = "Generates and exports feature representations for the Hebrew Psalms as BHSA-node-keyed Parquet datasets."
 readme = "README.md"
@@ -23,7 +23,7 @@ dev = [
 ]
 
 [project.scripts]
-tehillim-representations-generate = "semantic.generate:main"
+tehillim-embeddings-generate = "semantic.generate:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]
