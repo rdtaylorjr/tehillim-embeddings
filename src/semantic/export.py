@@ -27,9 +27,7 @@ def dataset_path(output_root: Path, model: str, variation: str) -> Path:
     )
 
 
-def node_vectors(
-    embeddings: dict[int, np.ndarray], psalms: list[Psalm]
-) -> dict[int, np.ndarray]:
+def node_vectors(embeddings: dict[int, np.ndarray], psalms: list[Psalm]) -> dict[int, np.ndarray]:
     """Maps each psalm's embedding vectors to its BHSA half-verse node ids."""
     values: dict[int, np.ndarray] = {}
     for psalm in psalms:

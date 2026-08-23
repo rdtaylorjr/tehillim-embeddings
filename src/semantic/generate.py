@@ -48,9 +48,7 @@ def generate_local(
     """Generates every not-yet-written variation for one local model slug, or only `variation`."""
     technical_name, model_slug, _ = MODEL_REGISTRY[slug]
     written: list[str] = []
-    for variation_name, vocalized, niqqud_only, variation_description in variations_for_model(
-        slug
-    ):
+    for variation_name, vocalized, niqqud_only, variation_description in variations_for_model(slug):
         if variation is not None and variation_name != variation:
             continue
         name = dataset_name(slug, variation_name)

@@ -66,9 +66,10 @@ class TestWriteDataset:
         write_dataset(tmp_path, "bge_m3", "vocalized", vectors, "a description")
 
         table = pq.read_table(dataset_path(tmp_path, "bge_m3", "vocalized"))
-        assert table["vector"].type.value_type == "float32" or str(
-            table["vector"].type.value_type
-        ) == "float"
+        assert (
+            table["vector"].type.value_type == "float32"
+            or str(table["vector"].type.value_type) == "float"
+        )
 
     def test_stores_the_description_in_file_metadata(self, tmp_path):
         vectors = {100: np.array([1.0], dtype=np.float32)}

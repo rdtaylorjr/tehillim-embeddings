@@ -202,9 +202,7 @@ class TestRepairGteMultilingualPositionIds:
 class TestEvictGteMultilingualDynamicModule:
     def test_purges_matching_dynamic_module_entries(self):
         fake_modules = {
-            "transformers_modules.Alibaba_hyphen_NLP.new_hyphen_impl.abc123.modeling": (
-                object()
-            ),
+            "transformers_modules.Alibaba_hyphen_NLP.new_hyphen_impl.abc123.modeling": (object()),
             "transformers_modules.Alibaba_hyphen_NLP.new_hyphen_impl.abc123.configuration": (
                 object()
             ),
