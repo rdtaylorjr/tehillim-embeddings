@@ -6,7 +6,7 @@ different Hebrew and multilingual embedding models (4 Hebrew
 BERT-family models, 9 open-weight multilingual encoders, and 4
 embedding APIs: Gemini, OpenAI, Cohere, Voyage), lexical
 representations built from BHSA's lexical and surface-form features,
-and morphological representations built from BHSA's word-level
+and morphology representations built from BHSA's word-level
 grammatical features.
 
 ## About
@@ -19,14 +19,14 @@ dataset is a real Text-Fabric node id from BHSA version `2021`, so the
 two are directly joinable without any separate alignment step. This
 dataset is not itself a Text-Fabric module, since dense vector data
 doesn't fit Text-Fabric's node-feature model well. The
-corpus-linguistic data it's keyed to (BHSA, `tehillim-parallelism`) is
+corpus-linguistic data it's keyed to (BHSA) is
 real Text-Fabric, loaded via `use()`.
 
 ## Semantic representations
 
 * **Dataset files**: 43 Parquet files under `data/`, one per (model, text
   variant) pair, laid out as a Hive-partitioned directory tree:
-  `type=semantic/model=<slug>/text=<variant>/part-0.parquet`. Columns:
+  `domain=semantic/model=<slug>/text=<variant>/part-0.parquet`. Columns:
   `node_id` (int32, a BHSA `half_verse` node id) and `vector` (float32
   list). Every dataset is scoped to the book of Psalms: rows exist for its
   5,203 `half_verse` nodes, not for the rest of BHSA's `half_verse` node
@@ -75,12 +75,11 @@ real Text-Fabric, loaded via `use()`.
 ```python
 import pandas as pd
 
-vectors = pd.read_parquet("data/type=semantic/model=bge_m3/text=vocalized/part-0.parquet")
+vectors = pd.read_parquet("data/domain=semantic/model=bge_m3/text=vocalized/part-0.parquet")
 vectors = vectors.set_index("node_id")["vector"]
 ```
 
-Join against BHSA or `tehillim-parallelism` (both real Text-Fabric,
-loaded via `use()`) on `node_id`.
+Join against BHSA (real Text-Fabric, loaded via `use()`) on `node_id`.
 
 ### Citations
 
@@ -133,7 +132,7 @@ loaded via `use()`) on `node_id`.
 
 `src/lexical` builds representations from BHSA's lexical and surface-form features, independent of
 any learned embedding model: exact word choice and repetition, not what a semantic model infers.
-Datasets live under `data/type=lexical/`, in the same `node_id`/`vector` Parquet schema as the
+Datasets live under `data/domain=lexical/`, in the same `node_id`/`vector` Parquet schema as the
 semantic datasets above, so they slot into any script that reads a `tehillim-embeddings`
 checkout with no code changes.
 
@@ -169,21 +168,21 @@ checkout with no code changes.
 
 | dataset | weighting |
 |---|---|
-| `data/type=lexical/unit=homograph/construction=binary/` | homograph, binary presence |
-| `data/type=lexical/unit=homograph/construction=count/` | homograph, raw term frequency |
-| `data/type=lexical/unit=homograph/construction=log_count/` | homograph, `log(1+tf)` |
-| `data/type=lexical/unit=homograph/construction=icf/` | homograph, ICF-weighted binary presence |
-| `data/type=lexical/unit=homograph/construction=tf_icf/` | homograph, ICF-weighted `log(1+tf)` |
-| `data/type=lexical/unit=lexeme/construction=binary/` | lexeme, binary presence |
-| `data/type=lexical/unit=lexeme/construction=count/` | lexeme, raw term frequency |
-| `data/type=lexical/unit=lexeme/construction=log_count/` | lexeme, `log(1+tf)` |
-| `data/type=lexical/unit=lexeme/construction=icf/` | lexeme, ICF-weighted binary presence (its frequency) |
-| `data/type=lexical/unit=lexeme/construction=tf_icf/` | lexeme, ICF-weighted `log(1+tf)` (its frequency) |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=binary/` | word, binary presence |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=count/` | word, raw term frequency |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=log_count/` | word, `log(1+tf)` |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf/` | word, ICF-weighted binary presence (per-tier frequency) |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=tf_icf/` | word, ICF-weighted `log(1+tf)` (per-tier frequency) |
+| `data/domain=lexical/unit=homograph/construction=binary/` | homograph, binary presence |
+| `data/domain=lexical/unit=homograph/construction=count/` | homograph, raw term frequency |
+| `data/domain=lexical/unit=homograph/construction=log_count/` | homograph, `log(1+tf)` |
+| `data/domain=lexical/unit=homograph/construction=icf/` | homograph, ICF-weighted binary presence |
+| `data/domain=lexical/unit=homograph/construction=tf_icf/` | homograph, ICF-weighted `log(1+tf)` |
+| `data/domain=lexical/unit=lexeme/construction=binary/` | lexeme, binary presence |
+| `data/domain=lexical/unit=lexeme/construction=count/` | lexeme, raw term frequency |
+| `data/domain=lexical/unit=lexeme/construction=log_count/` | lexeme, `log(1+tf)` |
+| `data/domain=lexical/unit=lexeme/construction=icf/` | lexeme, ICF-weighted binary presence (its frequency) |
+| `data/domain=lexical/unit=lexeme/construction=tf_icf/` | lexeme, ICF-weighted `log(1+tf)` (its frequency) |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=binary/` | word, binary presence |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=count/` | word, raw term frequency |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=log_count/` | word, `log(1+tf)` |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf/` | word, ICF-weighted binary presence (per-tier frequency) |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=tf_icf/` | word, ICF-weighted `log(1+tf)` (per-tier frequency) |
 
 * **Position and recurrence, colon-level vs. psalm-level** (`lexical.positional`, `lexical.zoning`,
   `lexical.recurrence` for colon-level, `lexical.psalm_position`, `lexical.psalm_zoning`,
@@ -207,24 +206,24 @@ checkout with no code changes.
 
 | dataset | construction |
 |---|---|
-| `data/type=lexical/unit=homograph/construction=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
-| `data/type=lexical/unit=homograph/construction=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
-| `data/type=lexical/unit=homograph/construction=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
-| `data/type=lexical/unit=homograph/construction=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
-| `data/type=lexical/unit=homograph/construction=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
-| `data/type=lexical/unit=homograph/construction=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
-| `data/type=lexical/unit=lexeme/construction=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
-| `data/type=lexical/unit=lexeme/construction=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
-| `data/type=lexical/unit=lexeme/construction=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
-| `data/type=lexical/unit=lexeme/construction=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
-| `data/type=lexical/unit=lexeme/construction=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
-| `data/type=lexical/unit=lexeme/construction=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
-| `data/type=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
+| `data/domain=lexical/unit=homograph/construction=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
+| `data/domain=lexical/unit=homograph/construction=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
+| `data/domain=lexical/unit=homograph/construction=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
+| `data/domain=lexical/unit=homograph/construction=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
+| `data/domain=lexical/unit=homograph/construction=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
+| `data/domain=lexical/unit=homograph/construction=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
+| `data/domain=lexical/unit=lexeme/construction=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
+| `data/domain=lexical/unit=lexeme/construction=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
+| `data/domain=lexical/unit=lexeme/construction=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
+| `data/domain=lexical/unit=lexeme/construction=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
+| `data/domain=lexical/unit=lexeme/construction=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
+| `data/domain=lexical/unit=lexeme/construction=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position{2,4,8}/` | colon-level, `k`-bin positional pyramid |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position_mean/` | colon-level, `[binary, mean-position]` zoning |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_spacing{2,4,8}/` | colon-level, spacing-binned recurrence profile |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position{2,4,8}_psalm/` | psalm-broadcast positional pyramid |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_position_mean_psalm/` | psalm-broadcast `[binary, mean-position]` zoning |
+| `data/domain=lexical/unit=word/text={consonantal,vocalized,cantillation}/construction=icf_spacing{2,4,8}_psalm/` | psalm-broadcast recurrence profile |
 
 * **Shuffle-null order control** (`lexical.shuffle_control`,
   `lexical.scripts.generate_shuffle_control`, `lexical.scripts.generate_shuffle_control_colon`):
@@ -238,36 +237,36 @@ checkout with no code changes.
 
 Generate with `.venv/bin/python3 -m lexical.generate` (skips any dataset already written).
 
-## Morphological representations
+## Morphology representations
 
-`src/morphological` builds representations from BHSA's word-level grammatical features (part of
+`src/morphology` builds representations from BHSA's word-level grammatical features (part of
 speech; gender, number, person, state; verbal stem/tense; pronominal-suffix gender/number/person),
-independent of lexical identity or meaning. Datasets live under `data/type=morphological/`, in the
+independent of lexical identity or meaning. Datasets live under `data/domain=morphology/`, in the
 same `node_id`/`vector` Parquet schema as lexical/semantic, except the `morph_signature` trigram
 family, stored sparse (`node_id`/`indices`/`values`, `sparse=true` in the file's schema metadata)
 since its dimension (42 + 42² + 42³ = 75,894) is almost entirely zero per colon.
 
-* **POS skeleton** (`unit=sp`, `morphological.pos_ngram`): part-of-speech-only unigram/bigram/trigram
+* **POS skeleton** (`unit=sp`, `morphology.pos_ngram`): part-of-speech-only unigram/bigram/trigram
   histograms, over the 14-value closed `SP_VOCABULARY` (no NA/unknown, `sp` always applies).
 * **Atomic morphology** (`unit=morph_atomic`, `unit=morph_gn`/`nu`/`ps`/`st`/`vs`/`vt`/`prs_gn`/`prs_nu`/`prs_ps`,
-  `unit=morph_full`, `morphological.atomic`): one histogram per feature over its own closed
-  vocabulary (`morphological.vocabulary`), `NA` counted as part of the distribution rather than
+  `unit=morph_full`, `morphology.atomic`): one histogram per feature over its own closed
+  vocabulary (`morphology.vocabulary`), `NA` counted as part of the distribution rather than
   excluded, so a feature's applicability rate (e.g. "how many words are verbs") is visible
   alongside its value distribution. `construction=atomic` is that feature alone,
   `construction=sp_plus` is `[sp; feature]`, `unit=morph_atomic`/`construction=core` is
   `[sp; gn; nu; ps; st; vs; vt]` (dim 66), `unit=morph_full`/`construction=all` additionally
   includes the three `prs_*` suffix features (dim 77). A feature is never dropped from a later
   bundle based on how it scored individually.
-* **Grammatical signatures** (`unit=morph_signature`, `morphological.signature`,
-  `morphological.signature_vectorize`): a per-word signature string concatenating every field that
+* **Grammatical signatures** (`unit=morph_signature`, `morphology.signature`,
+  `morphology.signature_vectorize`): a per-word signature string concatenating every field that
   word actually carries (`NA` fields omitted, `unknown` kept as its own literal token, field order
   `vs|vt|ps|gn|nu|st` after `sp`), e.g. `verb|qal|perf|p3|m|sg`. Rare signatures (whole-Bible count
   outside Psalms below `MIN_EXTERNAL_SUPPORT_K=1000`, frozen in
-  `morphological.signature_support` before any benchmark run, from the curve in
-  `data/config/morph_signature_external_support.csv`) collapse to `<RARE>` before n-grams are
+  `morphology.signature_support` before any benchmark run, from the curve in
+  `config/morph_signature_external_support.csv`) collapse to `<RARE>` before n-grams are
   formed. `construction=inventory` is the unigram histogram, `1_2gram`/`1_2_3gram` add cumulative
   bigram/trigram blocks, the latter stored sparse (above).
-* **Pronominal suffix** (`unit=morph_suffix`, `morphological.suffix`): the same signature
+* **Pronominal suffix** (`unit=morph_suffix`, `morphology.suffix`): the same signature
   construction restricted to the three `prs_*` fields, ordered `prs_ps|prs_gn|prs_nu`, with a
   dedicated `<NONE>` token when a word carries no suffix at all (all three fields `NA`).
   `construction=inventory` is the suffix histogram alone, `host_plus_suffix` is
@@ -276,60 +275,60 @@ since its dimension (42 + 42² + 42³ = 75,894) is almost entirely zero per colo
   (nonzero only in that colon, correct for parallelism) and a `_psalm`-suffixed psalm-broadcast
   file (one whole-psalm vector repeated across its colons, correct for genre), the same convention
   established in the lexical family above.
-* **Psalm-scale deployment** (`unit=morph_suffix`/`construction=posmean`, `morphological.deploy`):
+* **Psalm-scale deployment** (`unit=morph_suffix`/`construction=posmean`, `morphology.deploy`):
   `[b; m]` over the suffix vocabulary, `b` = 1.0 if present anywhere in the psalm, `m` = present
   times `(2 * mean colon position - 1)`, uniform weight (no ICF: a closed-class categorical feature
   doesn't carry rarity signal the way open-class lexical vocabulary does). Suffix was chosen as the
   strongest single atomic-scale signal found across the feature/bundle checkpoints.
 * **Shuffle-null order control**: within-colon word-order shuffles
-  (`morphological.shuffle_control.shuffled_within_colon_order`) for the POS and signature n-gram
+  (`morphology.shuffle_control.shuffled_within_colon_order`) for the POS and signature n-gram
   families, `construction=*_shuffleNN`; a within-psalm colon-order shuffle
   (`lexical.shuffle_control.shuffled_order_by_psalm`, reused directly) for `posmean`,
   `construction=posmean_shuffleNN`. 30 seeds each, scored the same way as the lexical family's
   shuffle control.
 
-Generate with `.venv/bin/python3 -m morphological.generate_pos`,
-`.venv/bin/python3 -m morphological.generate_morphology`,
-`.venv/bin/python3 -m morphological.generate_signature`,
-`.venv/bin/python3 -m morphological.generate_suffix`, and
-`.venv/bin/python3 -m morphological.generate_deploy` (each skips any dataset already written).
+Generate with `.venv/bin/python3 -m morphology.generate_pos`,
+`.venv/bin/python3 -m morphology.generate_morphology`,
+`.venv/bin/python3 -m morphology.generate_signature`,
+`.venv/bin/python3 -m morphology.generate_suffix`, and
+`.venv/bin/python3 -m morphology.generate_deploy` (each skips any dataset already written).
 
-## Phrase representations
+## Syntax representations
 
-`src/phrase` builds representations from BHSA's phrase- and subphrase-level syntactic
-annotations, independent of word-level morphology. Datasets live under `data/type=phrase/`, all
+`src/syntax` builds representations from BHSA's phrase- and subphrase-level syntactic
+annotations, independent of word-level morphology. Datasets live under `data/domain=syntax/`, all
 dense (the largest signature-trigram family is dim 14,424, safely below the sparse threshold used
 for morphology's 75,894-dim trigram family).
 
-* **Phrase type and function** (`unit=phrase_typ`/`phrase_function`, `phrase.typ_ngram`/
+* **Phrase type and function** (`unit=phrase_typ`/`phrase_function`, `syntax.typ_ngram`/
   `function_ngram`): unigram/bigram/trigram histograms over the closed `TYP_VOCABULARY` (13
-  values) and `FUNCTION_VOCABULARY` (29 values), reusing `morphological.ngram`'s vocabulary-agnostic
+  values) and `FUNCTION_VOCABULARY` (29 values), reusing `morphology.ngram`'s vocabulary-agnostic
   histogram/pooling functions directly.
-* **Marginal baseline** (`unit=phrase_marginal`, `phrase.marginal`): `[phrase_typ; phrase_function]`
+* **Marginal baseline** (`unit=phrase_marginal`, `syntax.marginal`): `[phrase_typ; phrase_function]`
   independent-marginals concatenation, the baseline H5.5 asks whether a joint type-function
   signature beats.
-* **Phrase signatures** (`unit=phrase_signature`, `phrase.signature`/`signature_vectorize`): a
+* **Phrase signatures** (`unit=phrase_signature`, `syntax.signature`/`signature_vectorize`): a
   per-atom `typ:function` signature, e.g. `NP:Subj`. Rare signatures (whole-Bible count outside
-  Psalms below `MIN_EXTERNAL_SUPPORT_K=1000`, frozen in `phrase.signature_support` before any
-  benchmark run, from `data/config/phrase_signature_external_support.csv`'s 105-value curve)
+  Psalms below `MIN_EXTERNAL_SUPPORT_K=1000`, frozen in `syntax.signature_support` before any
+  benchmark run, from `config/phrase_signature_external_support.csv`'s 105-value curve)
   collapse to `<RARE>` before n-grams are formed, leaving a 24-value vocabulary.
   `construction=inventory` is the unigram histogram, `1_2gram`/`1_2_3gram` add cumulative
   bigram/trigram blocks.
-* **Determination and full signature** (`unit=phrase_det`, `phrase.det_vectorize`; `unit=
-  phrase_full_signature`, `phrase.full_signature_vectorize`): `det`'s own independent 3-value
+* **Determination and full signature** (`unit=phrase_det`, `syntax.det_vectorize`; `unit=
+  phrase_full_signature`, `syntax.full_signature_vectorize`): `det`'s own independent 3-value
   histogram (`DET_VOCABULARY`), and a `typ:function:det` full-signature inventory (135 distinct
   whole-Bible values, `MIN_EXTERNAL_SUPPORT_K_FULL=1000` collapsing to a 29-value vocabulary,
-  frozen from `data/config/phrase_full_signature_external_support.csv`), tested only conditionally
+  frozen from `config/phrase_full_signature_external_support.csv`), tested only conditionally
   against the plain `phrase_signature` inventory.
-* **Structural complexity** (`unit=phrase_complexity`, `phrase.complexity`): conventional per-colon
+* **Structural complexity** (`unit=phrase_complexity`, `syntax.complexity`): conventional per-colon
   counts, not new inferential machinery: `[n_atoms, n_phrases, mean_words_per_atom,
   proportion_multi_atom_phrases]`.
-* **Phrase-atom relations** (`unit=phrase_rela`, `phrase.rela`/`rela_vectorize`): a unigram
+* **Phrase-atom relations** (`unit=phrase_rela`, `syntax.rela`/`rela_vectorize`): a unigram
   histogram over `SAFE_RELA_VOCABULARY` (`NA, Appo, Link, Sfxs, Spec`), with `rela=Para`
   (phrase-atom parallelism marker) masked to `NA` before histogramming and permanently excluded
   from the vocabulary, since it would otherwise leak the parallelism benchmark's own target
   variable into a representation scored against it.
-* **Subphrase relations** (`unit=phrase_subphrase_rela`, `phrase.subphrase`/
+* **Subphrase relations** (`unit=phrase_subphrase_rela`, `syntax.subphrase`/
   `subphrase_vectorize`): the same quarantine pattern for subphrase `rela=par` (BHSA's
   subphrase-level parallelism marker, distinct from and far more common than phrase-atom `Para`),
   over `SAFE_SUBPHRASE_RELA_VOCABULARY` (`NA, adj, atr, dem, mod, rec`). 61% of colons have no
@@ -338,25 +337,25 @@ for morphology's 75,894-dim trigram family).
   than assume every representation clears the usual minimum.
 * **Colon-level vs. psalm-broadcast**: every construction above ships both a colon-level file
   (correct for parallelism) and a `_psalm`-suffixed psalm-broadcast file (correct for genre), the
-  same convention established in the lexical and morphological families above.
-* **Psalm-scale deployment** (`unit=phrase_signature`/`construction=posmean`, `phrase.deploy`):
-  `[b; m]` over the (RARE-collapsed) signature vocabulary, reusing morphological's deployment
+  same convention established in the lexical and morphology families above.
+* **Psalm-scale deployment** (`unit=phrase_signature`/`construction=posmean`, `syntax.deploy`):
+  `[b; m]` over the (RARE-collapsed) signature vocabulary, reusing morphology's deployment
   formula and `lexical.shuffle_control.shuffled_order_by_psalm` for its shuffle-null.
 * **Shuffle-null order control**: within-colon atom-order shuffles
-  (`phrase.shuffle_control.shuffled_within_colon_order`) for the type/function/signature n-gram
+  (`syntax.shuffle_control.shuffled_within_colon_order`) for the type/function/signature n-gram
   families, `construction=*_shuffleNN`, 30 seeds, scored the same way as the lexical and
-  morphological families' shuffle controls.
+  morphology families' shuffle controls.
 
-Generate with `.venv/bin/python3 -m phrase.generate_typ`,
-`.venv/bin/python3 -m phrase.generate_function`,
-`.venv/bin/python3 -m phrase.generate_marginal`,
-`.venv/bin/python3 -m phrase.generate_signature`,
-`.venv/bin/python3 -m phrase.generate_det`,
-`.venv/bin/python3 -m phrase.generate_full_signature`,
-`.venv/bin/python3 -m phrase.generate_complexity`,
-`.venv/bin/python3 -m phrase.generate_rela`,
-`.venv/bin/python3 -m phrase.generate_subphrase`, and
-`.venv/bin/python3 -m phrase.generate_deploy` (each skips any dataset already written).
+Generate with `.venv/bin/python3 -m syntax.generate_typ`,
+`.venv/bin/python3 -m syntax.generate_function`,
+`.venv/bin/python3 -m syntax.generate_marginal`,
+`.venv/bin/python3 -m syntax.generate_signature`,
+`.venv/bin/python3 -m syntax.generate_det`,
+`.venv/bin/python3 -m syntax.generate_full_signature`,
+`.venv/bin/python3 -m syntax.generate_complexity`,
+`.venv/bin/python3 -m syntax.generate_rela`,
+`.venv/bin/python3 -m syntax.generate_subphrase`, and
+`.venv/bin/python3 -m syntax.generate_deploy` (each skips any dataset already written).
 
 ## Family
 

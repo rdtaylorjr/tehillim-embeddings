@@ -63,33 +63,37 @@ class TestGenerate:
             f"lexeme_{w}" for w in _FULL_WEIGHTS
         }
         for weight in _FULL_WEIGHTS:
-            assert dataset_path(tmp_path, "homograph", weight).exists()
-            assert dataset_path(tmp_path, "lexeme", weight).exists()
+            assert dataset_path(tmp_path, "homograph", weight, unit_key="unit").exists()
+            assert dataset_path(tmp_path, "lexeme", weight, unit_key="unit").exists()
 
     def test_lag_dimension_equals_k(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
         for weight, k in (("icf_spacing2", 2), ("icf_spacing4", 4), ("icf_spacing8", 8)):
-            table = pq.read_table(dataset_path(tmp_path, "homograph", weight))
+            table = pq.read_table(dataset_path(tmp_path, "homograph", weight, unit_key="unit"))
             assert len(table["vector"].to_pylist()[0]) == k
 
     def test_lag_broadcasts_the_same_vector_to_every_colon_of_a_psalm(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_spacing4"))
+        table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_spacing4", unit_key="unit"))
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]
 
     def test_position_mean_dimension_is_twice_the_vocabulary_size(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_position_mean"))
+        table = pq.read_table(
+            dataset_path(tmp_path, "homograph", "icf_position_mean", unit_key="unit")
+        )
         assert len(table["vector"].to_pylist()[0]) == 6
 
     def test_position_mean_gives_each_colon_of_a_psalm_its_own_vector(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_position_mean"))
+        table = pq.read_table(
+            dataset_path(tmp_path, "homograph", "icf_position_mean", unit_key="unit")
+        )
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         # node 100 (A0, B0) and node 101 (A0 only) have different content, so different vectors.
         assert by_node[100] != by_node[101]
@@ -98,13 +102,13 @@ class TestGenerate:
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
         for weight, k in (("icf_position2", 2), ("icf_position4", 4), ("icf_position8", 8)):
-            table = pq.read_table(dataset_path(tmp_path, "homograph", weight))
+            table = pq.read_table(dataset_path(tmp_path, "homograph", weight, unit_key="unit"))
             assert len(table["vector"].to_pylist()[0]) == 3 * k
 
     def test_positional_gives_each_colon_of_a_psalm_its_own_vector(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_position4"))
+        table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_position4", unit_key="unit"))
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         # psalm 1 has nodes 100 and 101, with different content, so different vectors.
         assert by_node[100] != by_node[101]
@@ -112,7 +116,9 @@ class TestGenerate:
     def test_psalm_lag_broadcasts_the_same_vector_to_every_colon_of_a_psalm(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_spacing4_psalm"))
+        table = pq.read_table(
+            dataset_path(tmp_path, "homograph", "icf_spacing4_psalm", unit_key="unit")
+        )
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]
 
@@ -121,14 +127,18 @@ class TestGenerate:
     ):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_position_mean_psalm"))
+        table = pq.read_table(
+            dataset_path(tmp_path, "homograph", "icf_position_mean_psalm", unit_key="unit")
+        )
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]
 
     def test_psalm_positional_broadcasts_the_same_vector_to_every_colon_of_a_psalm(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_position4_psalm"))
+        table = pq.read_table(
+            dataset_path(tmp_path, "homograph", "icf_position4_psalm", unit_key="unit")
+        )
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]
 
@@ -144,8 +154,12 @@ class TestGenerate:
             ("icf_spacing8", "icf_spacing8_psalm"),
             ("icf_position_mean", "icf_position_mean_psalm"),
         ):
-            colon_table = pq.read_table(dataset_path(tmp_path, "homograph", colon_weight))
-            psalm_table = pq.read_table(dataset_path(tmp_path, "homograph", psalm_weight))
+            colon_table = pq.read_table(
+                dataset_path(tmp_path, "homograph", colon_weight, unit_key="unit")
+            )
+            psalm_table = pq.read_table(
+                dataset_path(tmp_path, "homograph", psalm_weight, unit_key="unit")
+            )
             assert len(colon_table["vector"].to_pylist()[0]) == len(
                 psalm_table["vector"].to_pylist()[0]
             )
@@ -160,15 +174,15 @@ class TestGenerate:
     def test_lexeme_vocabulary_dimension_matches_distinct_lex_values(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        table = pq.read_table(dataset_path(tmp_path, "lexeme", "binary"))
+        table = pq.read_table(dataset_path(tmp_path, "lexeme", "binary", unit_key="unit"))
         # distinct lex values across fixtures: A, B, C
         assert len(table["vector"].to_pylist()[0]) == 3
 
     def test_lexeme_icf_uses_its_own_frequency_table_not_homographs(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        homograph_table = pq.read_table(dataset_path(tmp_path, "homograph", "icf"))
-        lexeme_table = pq.read_table(dataset_path(tmp_path, "lexeme", "icf"))
+        homograph_table = pq.read_table(dataset_path(tmp_path, "homograph", "icf", unit_key="unit"))
+        lexeme_table = pq.read_table(dataset_path(tmp_path, "lexeme", "icf", unit_key="unit"))
         homograph_vec = dict(
             zip(
                 homograph_table["node_id"].to_pylist(),
@@ -187,15 +201,15 @@ class TestGenerate:
     def test_homograph_vocabulary_dimension_matches_distinct_lex0_values(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        table = pq.read_table(dataset_path(tmp_path, "homograph", "binary"))
+        table = pq.read_table(dataset_path(tmp_path, "homograph", "binary", unit_key="unit"))
         # distinct lex0 values across fixtures: A0, B0, C0
         assert len(table["vector"].to_pylist()[0]) == 3
 
     def test_homograph_count_and_binary_differ_for_a_repeated_lexeme(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        binary_table = pq.read_table(dataset_path(tmp_path, "homograph", "binary"))
-        count_table = pq.read_table(dataset_path(tmp_path, "homograph", "count"))
+        binary_table = pq.read_table(dataset_path(tmp_path, "homograph", "binary", unit_key="unit"))
+        count_table = pq.read_table(dataset_path(tmp_path, "homograph", "count", unit_key="unit"))
         binary_ids = binary_table["node_id"].to_pylist()
         binary_vecs = binary_table["vector"].to_pylist()
         binary_by_node = dict(zip(binary_ids, binary_vecs, strict=True))

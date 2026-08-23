@@ -15,15 +15,20 @@ def dataset_path(
     output_root: Path,
     vocab: str,
     weight: str,
+    *,
+    unit_key: str,
+    level: str | None = None,
     text: str | None = None,
-    dataset_type: str = "lexical",
+    domain: str = "lexical",
 ) -> Path:
-    """Hive-partitioned `.parquet` path for a unit/construction, with an optional text tier."""
+    """Hive-partitioned `.parquet` path for a unit/construction, with optional level/text tiers."""
+    level_segment = (f"level={level}",) if level is not None else ()
     text_segment = (f"text={text}",) if text is not None else ()
     return (
         output_root.joinpath(
-            f"type={dataset_type}",
-            f"unit={vocab}",
+            f"domain={domain}",
+            *level_segment,
+            f"{unit_key}={vocab}",
             *text_segment,
             f"construction={weight}",
         )
@@ -37,11 +42,22 @@ def write_dataset(
     weight: str,
     vectors: dict[int, np.ndarray],
     description: str,
+    *,
+    unit_key: str,
+    level: str | None = None,
     text: str | None = None,
-    dataset_type: str = "lexical",
+    domain: str = "lexical",
 ) -> None:
     """Writes one Parquet file: columns node_id (int32) and vector (float32 list)."""
-    path = dataset_path(output_root, vocab, weight, text=text, dataset_type=dataset_type)
+    path = dataset_path(
+        output_root,
+        vocab,
+        weight,
+        unit_key=unit_key,
+        level=level,
+        text=text,
+        domain=domain,
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     node_ids = sorted(vectors)
     dim = len(vectors[node_ids[0]])
@@ -65,11 +81,22 @@ def write_sparse_dataset(
     sparse_vectors: dict[int, tuple[np.ndarray, np.ndarray]],
     dim: int,
     description: str,
+    *,
+    unit_key: str,
+    level: str | None = None,
     text: str | None = None,
-    dataset_type: str = "lexical",
+    domain: str = "lexical",
 ) -> None:
     """Writes one sparse Parquet file: node_id, indices (list<int32>), values (list<float32>)."""
-    path = dataset_path(output_root, vocab, weight, text=text, dataset_type=dataset_type)
+    path = dataset_path(
+        output_root,
+        vocab,
+        weight,
+        unit_key=unit_key,
+        level=level,
+        text=text,
+        domain=domain,
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     node_ids = sorted(sparse_vectors)
     indices_col = [sparse_vectors[n][0].astype("<i4").tolist() for n in node_ids]

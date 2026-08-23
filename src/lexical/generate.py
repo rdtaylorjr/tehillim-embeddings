@@ -105,7 +105,7 @@ def generate(
     written: list[str] = []
     for key, weight in plan:
         vocab_name = _VOCAB_NAMES[key]
-        if dataset_path(output_root, vocab_name, weight).exists():
+        if dataset_path(output_root, vocab_name, weight, unit_key="unit").exists():
             continue
         print(f"computing lexical unit={vocab_name} construction={weight}...", file=sys.stderr)
         vocabulary = build_vocabulary(psalms, key=key)
@@ -114,7 +114,7 @@ def generate(
             f"Lexical vectors over the {vocab_name} unit (BHSA {key} feature), "
             f"construction={weight}, dimension {len(vocabulary)}."
         )
-        write_dataset(output_root, vocab_name, weight, vectors, description)
+        write_dataset(output_root, vocab_name, weight, vectors, description, unit_key="unit")
         written.append(f"{vocab_name}_{weight}")
     return written
 

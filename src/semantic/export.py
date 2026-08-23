@@ -17,7 +17,9 @@ DATASET_VERSION = "1.0"
 
 def dataset_path(output_root: Path, model: str, variation: str) -> Path:
     """Returns the Hive-partitioned `.parquet` file path for a model and variation."""
-    return output_root / "type=semantic" / f"model={model}" / f"text={variation}" / "part-0.parquet"
+    return (
+        output_root / "domain=semantic" / f"model={model}" / f"text={variation}" / "part-0.parquet"
+    )
 
 
 def node_vectors(embeddings: dict[int, np.ndarray], psalms: list[Psalm]) -> dict[int, np.ndarray]:

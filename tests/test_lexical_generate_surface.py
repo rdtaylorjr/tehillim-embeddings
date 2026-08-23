@@ -62,26 +62,30 @@ class TestGenerateSurface:
         }
         for tier in _TIERS:
             for weight in _FULL_WEIGHTS:
-                assert dataset_path(tmp_path, "word", weight, text=tier).exists()
+                assert dataset_path(tmp_path, "word", weight, text=tier, unit_key="unit").exists()
 
     def test_vocabulary_dimension_matches_distinct_forms(self, tmp_path):
         generate_surface(_psalms(), tmp_path, _icf_weights_by_tier())
 
-        table = pq.read_table(dataset_path(tmp_path, "word", "binary", text="consonantal"))
+        table = pq.read_table(
+            dataset_path(tmp_path, "word", "binary", text="consonantal", unit_key="unit")
+        )
         # distinct forms across fixtures: א, ב, ג
         assert len(table["vector"].to_pylist()[0]) == 3
 
     def test_positional_dimension_is_k_times_vocabulary_size(self, tmp_path):
         generate_surface(_psalms(), tmp_path, _icf_weights_by_tier())
 
-        table = pq.read_table(dataset_path(tmp_path, "word", "icf_position4", text="consonantal"))
+        table = pq.read_table(
+            dataset_path(tmp_path, "word", "icf_position4", text="consonantal", unit_key="unit")
+        )
         assert len(table["vector"].to_pylist()[0]) == 3 * 4
 
     def test_position_mean_dimension_is_twice_the_vocabulary_size(self, tmp_path):
         generate_surface(_psalms(), tmp_path, _icf_weights_by_tier())
 
         table = pq.read_table(
-            dataset_path(tmp_path, "word", "icf_position_mean", text="consonantal")
+            dataset_path(tmp_path, "word", "icf_position_mean", text="consonantal", unit_key="unit")
         )
         assert len(table["vector"].to_pylist()[0]) == 6
 
@@ -89,7 +93,9 @@ class TestGenerateSurface:
         generate_surface(_psalms(), tmp_path, _icf_weights_by_tier())
 
         table = pq.read_table(
-            dataset_path(tmp_path, "word", "icf_position4_psalm", text="consonantal")
+            dataset_path(
+                tmp_path, "word", "icf_position4_psalm", text="consonantal", unit_key="unit"
+            )
         )
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]

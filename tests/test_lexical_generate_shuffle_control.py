@@ -41,13 +41,15 @@ class TestGenerateShuffleControl:
             "icf_position_mean_psalm_shuffle03",
         ]
         for weight in written:
-            assert dataset_path(tmp_path, "homograph", weight).exists()
+            assert dataset_path(tmp_path, "homograph", weight, unit_key="unit").exists()
 
     def test_each_shuffle_broadcasts_the_same_vector_to_every_colon(self, tmp_path):
         generate_shuffle_control(_psalms(), tmp_path, _icf_weights(), n_shuffles=1)
 
         table = pq.read_table(
-            dataset_path(tmp_path, "homograph", "icf_position_mean_psalm_shuffle01")
+            dataset_path(
+                tmp_path, "homograph", "icf_position_mean_psalm_shuffle01", unit_key="unit"
+            )
         )
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101] == by_node[102]
@@ -56,10 +58,14 @@ class TestGenerateShuffleControl:
         generate_shuffle_control(_psalms(), tmp_path, _icf_weights(), n_shuffles=2)
 
         table1 = pq.read_table(
-            dataset_path(tmp_path, "homograph", "icf_position_mean_psalm_shuffle01")
+            dataset_path(
+                tmp_path, "homograph", "icf_position_mean_psalm_shuffle01", unit_key="unit"
+            )
         )
         table2 = pq.read_table(
-            dataset_path(tmp_path, "homograph", "icf_position_mean_psalm_shuffle02")
+            dataset_path(
+                tmp_path, "homograph", "icf_position_mean_psalm_shuffle02", unit_key="unit"
+            )
         )
         vec1 = table1["vector"].to_pylist()[0]
         vec2 = table2["vector"].to_pylist()[0]
