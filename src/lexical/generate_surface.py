@@ -108,7 +108,7 @@ def generate_surface(
     for tier in _TIERS:
         vocabulary = build_surface_vocabulary(psalms, tier=tier)
         for weight in _FULL_WEIGHTS:
-            if dataset_path(output_root, "word", weight, text=tier).exists():
+            if dataset_path(output_root, "word", weight, text=tier, unit_key="unit").exists():
                 continue
             print(
                 f"computing surface unit=word text={tier} construction={weight}...",
@@ -121,7 +121,9 @@ def generate_surface(
                 f"Surface word-form vectors, {tier} text, construction={weight}, "
                 f"dimension {len(vocabulary)}."
             )
-            write_dataset(output_root, "word", weight, vectors, description, text=tier)
+            write_dataset(
+                output_root, "word", weight, vectors, description, text=tier, unit_key="unit"
+            )
             written.append(f"word_{tier}_{weight}")
     return written
 

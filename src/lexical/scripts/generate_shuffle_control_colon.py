@@ -29,7 +29,7 @@ def generate_shuffle_control_colon(
         )
         weight = f"icf_position4_shuffle{seed:02d}"
         description = f"Shuffle-null order-effect control for icf_position4, seed {seed}."
-        write_dataset(output_root, "homograph", weight, vectors, description)
+        write_dataset(output_root, "homograph", weight, vectors, description, unit_key="unit")
         written.append(weight)
     return written
 

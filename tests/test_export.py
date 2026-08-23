@@ -15,7 +15,9 @@ def _psalm(*, number: int, half_verses, half_verse_nodes):
 class TestDatasetPath:
     def test_points_at_the_hive_partitioned_parquet_file(self, tmp_path):
         path = dataset_path(tmp_path, "bge_m3", "vocalized")
-        expected = tmp_path / "type=semantic" / "model=bge_m3" / "text=vocalized" / "part-0.parquet"
+        expected = (
+            tmp_path / "domain=semantic" / "model=bge_m3" / "text=vocalized" / "part-0.parquet"
+        )
         assert path == expected
 
 

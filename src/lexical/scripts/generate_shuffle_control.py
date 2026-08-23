@@ -27,7 +27,7 @@ def generate_shuffle_control(
         )
         weight = f"icf_position_mean_psalm_shuffle{seed:02d}"
         description = f"Shuffle-null order-effect control for icf_position_mean_psalm, seed {seed}."
-        write_dataset(output_root, "homograph", weight, vectors, description)
+        write_dataset(output_root, "homograph", weight, vectors, description, unit_key="unit")
         written.append(weight)
     return written
 
