@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import csv
 import sys
 from pathlib import Path
@@ -28,10 +29,13 @@ def build_external_signature_counts(api: Any) -> dict[str, int]:
 
 
 def main() -> None:
-    """Writes `data/config/phrase_signature_external_support.csv`."""
-    parser_output = Path(__file__).resolve().parents[3] / "data" / "config"
-    parser_output.mkdir(parents=True, exist_ok=True)
-    output_path = parser_output / "phrase_signature_external_support.csv"
+    """Writes `config/phrase_signature_external_support.csv` under the given output root."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-root", type=Path, required=True)
+    output_root = parser.parse_args().output_root
+    config_dir = output_root / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    output_path = config_dir / "phrase_signature_external_support.csv"
 
     corpus = Corpus.load()
     counts = build_external_signature_counts(corpus.api)

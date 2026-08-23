@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -23,10 +24,6 @@ from morphological.suffix import (
 )
 
 _DATASET_TYPE = "morphological"
-
-_DEFAULT_SUPPORT_PATH = (
-    Path(__file__).resolve().parents[2] / "data" / "config" / "morph_signature_external_support.csv"
-)
 
 
 def generate(
@@ -75,10 +72,13 @@ def generate(
 
 def main() -> None:
     """Generates every missing morph_suffix dataset."""
-    output_root = Path(__file__).resolve().parents[2]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-root", type=Path, required=True)
+    output_root = parser.parse_args().output_root
     corpus = Corpus.load()
     psalms = corpus.psalms()
-    external_counts = load_external_signature_counts(_DEFAULT_SUPPORT_PATH)
+    support_path = output_root / "config" / "morph_signature_external_support.csv"
+    external_counts = load_external_signature_counts(support_path)
     written = generate(psalms, output_root, external_counts, MIN_EXTERNAL_SUPPORT_K)
     print(f"wrote {len(written)} dataset files", file=sys.stderr)
 

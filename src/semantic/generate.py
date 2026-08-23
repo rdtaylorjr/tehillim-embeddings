@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 from collections.abc import Callable
@@ -118,7 +119,9 @@ def main() -> None:
     """Generates every missing dataset for every registered model."""
     from semantic.corpus import Corpus
 
-    output_root = Path(__file__).resolve().parents[2]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-root", type=Path, required=True)
+    output_root = parser.parse_args().output_root
     psalms = Corpus.load().psalms()
 
     written: list[str] = []

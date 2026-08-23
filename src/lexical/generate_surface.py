@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -127,7 +128,9 @@ def generate_surface(
 
 def main() -> None:
     """Generates every missing surface-form dataset: 19 weightings, each of three text tiers."""
-    output_root = Path(__file__).resolve().parents[2]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-root", type=Path, required=True)
+    output_root = parser.parse_args().output_root
     corpus = SurfaceCorpus.load()
     psalms = corpus.psalms()
     total_tokens = total_token_count(corpus.api)

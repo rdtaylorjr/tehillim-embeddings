@@ -10,12 +10,7 @@ class TestDatasetPath:
     def test_points_at_the_hive_partitioned_parquet_file(self, tmp_path):
         path = dataset_path(tmp_path, "homograph", "binary")
         expected = (
-            tmp_path
-            / "data"
-            / "type=lexical"
-            / "unit=homograph"
-            / "construction=binary"
-            / "part-0.parquet"
+            tmp_path / "type=lexical" / "unit=homograph" / "construction=binary" / "part-0.parquet"
         )
         assert path == expected
 
@@ -23,7 +18,6 @@ class TestDatasetPath:
         path = dataset_path(tmp_path, "word", "binary", text="consonantal")
         expected = (
             tmp_path
-            / "data"
             / "type=lexical"
             / "unit=word"
             / "text=consonantal"
@@ -36,7 +30,6 @@ class TestDatasetPath:
         path = dataset_path(tmp_path, "sp", "sp_unigram", dataset_type="morphological")
         expected = (
             tmp_path
-            / "data"
             / "type=morphological"
             / "unit=sp"
             / "construction=sp_unigram"

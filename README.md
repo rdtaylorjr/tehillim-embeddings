@@ -1,4 +1,4 @@
-# Tehillim Representations
+# Tehillim Embeddings
 
 A Parquet dataset of pre-computed feature representations for every
 half-verse of the Hebrew psalms: semantic embedding vectors from 17
@@ -134,7 +134,7 @@ loaded via `use()`) on `node_id`.
 `src/lexical` builds representations from BHSA's lexical and surface-form features, independent of
 any learned embedding model: exact word choice and repetition, not what a semantic model infers.
 Datasets live under `data/type=lexical/`, in the same `node_id`/`vector` Parquet schema as the
-semantic datasets above, so they slot into any script that reads a `tehillim-representations`
+semantic datasets above, so they slot into any script that reads a `tehillim-embeddings`
 checkout with no code changes.
 
 * **Identity** (`lexical.vocabulary`, `lexical.surface_vocabulary`): three units, `homograph`
