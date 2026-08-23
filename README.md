@@ -232,7 +232,7 @@ checkout with no code changes.
   positional representation's benchmark score reflects genuine colon-order signal rather than a
   mechanical artifact of the binning itself. `generate_shuffle_control` writes N seeded
   `icf_position_mean_psalm_shuffleNN` psalm-broadcast datasets. `generate_shuffle_control_colon` writes N
-  seeded `icf_position4_shuffleNN` colon-level datasets. Scored in `tehillim-evaluate` via
+  seeded `icf_position4_shuffleNN` colon-level datasets. Scored in `tehillim-benchmarks` via
   `order_shuffle_result` (real score minus mean shuffled score, plus a rank-based permutation
   p-value), not a z-score against the shuffled distribution's mean/std.
 
@@ -362,6 +362,10 @@ Generate with `.venv/bin/python3 -m phrase.generate_typ`,
 
 * [tehillim](https://github.com/rdtaylorjr/tehillim): computational
   analysis of the Hebrew psalms
+* [tehillim-benchmarks](https://github.com/rdtaylorjr/tehillim-benchmarks): scores these
+  representations against parallelism and genre benchmarks
+* [tehillim-data](https://github.com/rdtaylorjr/tehillim-data): hosts the benchmark results
+* [tehillim-ui](https://github.com/rdtaylorjr/tehillim-ui): the results page
 * [bhsa](https://github.com/etcbc/bhsa): the core text and linguistic
   annotation for the Hebrew Bible
 
