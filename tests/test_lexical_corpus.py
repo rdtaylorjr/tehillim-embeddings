@@ -22,17 +22,17 @@ def test_extracts_all_150_psalms_with_lex_and_lex0_aligned_to_words():
     assert [p.number for p in psalms] == list(range(1, 151))
 
     psalm_1 = next(p for p in psalms if p.number == 1)
-    assert len(psalm_1.half_verse_nodes) == 14
-    assert len(psalm_1.half_verse_lexemes) == 14
-    assert len(psalm_1.half_verse_forms) == 14
+    assert len(psalm_1.colon_nodes) == 14
+    assert len(psalm_1.colon_lexemes) == 14
+    assert len(psalm_1.colon_forms) == 14
 
-    for lexemes, forms in zip(psalm_1.half_verse_lexemes, psalm_1.half_verse_forms, strict=True):
+    for lexemes, forms in zip(psalm_1.colon_lexemes, psalm_1.colon_forms, strict=True):
         assert len(lexemes) == len(forms)
 
-    # Psalm 1's first half-verse contains the definite article, lex "H".
-    assert "H" in psalm_1.half_verse_lexemes[0]
+    # Psalm 1's first colon contains the definite article, lex "H".
+    assert "H" in psalm_1.colon_lexemes[0]
 
-    all_nodes = [node for p in psalms for node in p.half_verse_nodes]
+    all_nodes = [node for p in psalms for node in p.colon_nodes]
     assert len(all_nodes) == len(set(all_nodes))
     assert all(isinstance(node, int) and node > 0 for node in all_nodes)
 
@@ -50,7 +50,7 @@ def test_api_property_exposes_the_whole_corpus_not_just_psalms():
     from lexical.frequency import total_token_count
 
     corpus = Corpus.load()
-    psalms_word_count = sum(len(lex) for p in corpus.psalms() for lex in p.half_verse_lexemes)
+    psalms_word_count = sum(len(lex) for p in corpus.psalms() for lex in p.colon_lexemes)
 
     whole_bible_word_count = total_token_count(corpus.api)
 

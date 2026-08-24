@@ -16,9 +16,7 @@ _FUNCTION_DIM = len(FUNCTION_VOCABULARY)
 
 
 def _psalm(*, number, nodes, typ, function):
-    return PhrasePsalm(
-        number=number, half_verse_nodes=nodes, half_verse_typ=typ, half_verse_function=function
-    )
+    return PhrasePsalm(number=number, colon_nodes=nodes, colon_typ=typ, colon_function=function)
 
 
 class TestTypFunctionMarginalVectors:

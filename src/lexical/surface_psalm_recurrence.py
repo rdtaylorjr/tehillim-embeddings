@@ -7,13 +7,13 @@ import numpy as np
 from lexical.recurrence import lag_bin_index, normalized_lag
 from lexical.surface_corpus import SurfacePsalm
 from lexical.surface_vectorize import surface_icf_vector
-from lexical.surface_vocabulary import SurfaceTier, half_verses_for_tier
+from lexical.surface_vocabulary import SurfaceTier, cola_for_tier
 
 
 def _colon_vector(
-    half_verse: tuple[str, ...], index_of: dict[str, int], weights: np.ndarray, dim: int
+    colon: tuple[str, ...], index_of: dict[str, int], weights: np.ndarray, dim: int
 ) -> np.ndarray:
-    indices = np.fromiter((index_of[v] for v in set(half_verse) if v in index_of), dtype=np.int64)
+    indices = np.fromiter((index_of[v] for v in set(colon) if v in index_of), dtype=np.int64)
     vector = np.zeros(dim, dtype=np.float32)
     vector[indices] = weights[indices]
     return vector
@@ -44,10 +44,10 @@ def surface_psalm_spacing_profile_vectors(
 
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = half_verses_for_tier(psalm, tier)
-        n = len(half_verses)
+        cola = cola_for_tier(psalm, tier)
+        n = len(cola)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
-        ordered = [half_verses[i] for i in order]
+        ordered = [cola[i] for i in order]
 
         profile = np.zeros(k, dtype=np.float32)
         if n >= 2:
@@ -62,6 +62,6 @@ def surface_psalm_spacing_profile_vectors(
             profile[nonzero] = sums[nonzero] / counts[nonzero]
             profile = profile.astype(np.float32)
 
-        for node in psalm.half_verse_nodes:
+        for node in psalm.colon_nodes:
             vectors[node] = profile
     return vectors

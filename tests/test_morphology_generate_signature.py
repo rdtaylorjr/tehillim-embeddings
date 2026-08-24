@@ -14,8 +14,8 @@ def dataset_path(output_root, vocab, weight):
 def _psalm(*, number, nodes, **feature_columns):
     return MorphologicalPsalm(
         number=number,
-        half_verse_nodes=nodes,
-        **{f"half_verse_{feature}": values for feature, values in feature_columns.items()},
+        colon_nodes=nodes,
+        **{f"colon_{feature}": values for feature, values in feature_columns.items()},
     )
 
 

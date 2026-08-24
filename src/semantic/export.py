@@ -1,4 +1,4 @@
-"""Writes one embedding matrix as a Parquet file, keyed by BHSA half-verse node id."""
+"""Writes one embedding matrix as a Parquet file, keyed by BHSA colon node id."""
 
 from __future__ import annotations
 
@@ -23,13 +23,13 @@ def dataset_path(output_root: Path, model: str, variation: str) -> Path:
 
 
 def node_vectors(embeddings: dict[int, np.ndarray], psalms: list[Psalm]) -> dict[int, np.ndarray]:
-    """Maps each psalm's embedding vectors to its BHSA half-verse node ids."""
+    """Maps each psalm's embedding vectors to its BHSA colon node ids."""
     values: dict[int, np.ndarray] = {}
     for psalm in psalms:
         vectors = embeddings.get(psalm.number)
         if vectors is None:
             continue
-        for node, vector in zip(psalm.half_verse_nodes, vectors, strict=True):
+        for node, vector in zip(psalm.colon_nodes, vectors, strict=True):
             values[node] = vector
     return values
 

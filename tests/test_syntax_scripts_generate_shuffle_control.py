@@ -21,9 +21,9 @@ def dataset_path(output_root, vocab, weight):
 def _psalm(*, number, phrase_typ_by_colon, nodes, phrase_function_by_colon=None):
     return PhrasePsalm(
         number=number,
-        half_verse_nodes=nodes,
-        half_verse_typ=phrase_typ_by_colon,
-        half_verse_function=phrase_function_by_colon
+        colon_nodes=nodes,
+        colon_typ=phrase_typ_by_colon,
+        colon_function=phrase_function_by_colon
         or tuple(("Pred",) * len(c) for c in phrase_typ_by_colon),
     )
 

@@ -34,7 +34,7 @@ def phrase_signature_vectors(
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         collapsed = _collapsed_signatures(psalm, external_counts, k)
-        for node, colon_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+        for node, colon_sigs in zip(psalm.colon_nodes, collapsed, strict=True):
             vectors[node] = unigram_histogram(colon_sigs, index_of, dim)
     return vectors
 
@@ -46,8 +46,7 @@ def phrase_signature_psalm_vectors(
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
     columns = [
-        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
-        for psalm in psalms
+        (psalm.colon_nodes, _collapsed_signatures(psalm, external_counts, k)) for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1,), index_of, dim, order_by_node=None)
 
@@ -65,7 +64,7 @@ def phrase_signature_1_2gram_vectors(
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         collapsed = _collapsed_signatures(psalm, external_counts, k)
-        for node, colon_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+        for node, colon_sigs in zip(psalm.colon_nodes, collapsed, strict=True):
             ordered = reorder(colon_sigs, node, order_by_node)
             vectors[node] = np.concatenate(
                 [
@@ -89,7 +88,7 @@ def phrase_signature_1_2_3gram_vectors(
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         collapsed = _collapsed_signatures(psalm, external_counts, k)
-        for node, colon_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+        for node, colon_sigs in zip(psalm.colon_nodes, collapsed, strict=True):
             ordered = reorder(colon_sigs, node, order_by_node)
             vectors[node] = np.concatenate(
                 [
@@ -112,8 +111,7 @@ def phrase_signature_1_2gram_psalm_vectors(
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
     columns = [
-        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
-        for psalm in psalms
+        (psalm.colon_nodes, _collapsed_signatures(psalm, external_counts, k)) for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1, 2), index_of, dim, order_by_node)
 
@@ -129,7 +127,6 @@ def phrase_signature_1_2_3gram_psalm_vectors(
     index_of = {value: i for i, value in enumerate(vocabulary)}
     dim = len(vocabulary)
     columns = [
-        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
-        for psalm in psalms
+        (psalm.colon_nodes, _collapsed_signatures(psalm, external_counts, k)) for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1, 2, 3), index_of, dim, order_by_node)

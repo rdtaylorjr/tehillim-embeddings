@@ -19,7 +19,7 @@ def typ_function_marginal_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.nda
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         for node, colon_typ, colon_function in zip(
-            psalm.half_verse_nodes, psalm.half_verse_typ, psalm.half_verse_function, strict=True
+            psalm.colon_nodes, psalm.colon_typ, psalm.colon_function, strict=True
         ):
             vectors[node] = np.concatenate(
                 [
@@ -32,8 +32,8 @@ def typ_function_marginal_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.nda
 
 def typ_function_marginal_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `typ_function_marginal_vectors`."""
-    typ_columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
-    function_columns = [(p.half_verse_nodes, p.half_verse_function) for p in psalms]
+    typ_columns = [(p.colon_nodes, p.colon_typ) for p in psalms]
+    function_columns = [(p.colon_nodes, p.colon_function) for p in psalms]
     typ_vectors = pooled_ngram_psalm_vectors(
         typ_columns, (1,), _TYP_INDEX_OF, _TYP_DIM, order_by_node=None
     )

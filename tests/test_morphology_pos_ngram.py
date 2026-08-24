@@ -21,7 +21,7 @@ _DIM = len(SP_VOCABULARY)
 
 def _psalm(*, number, sp_by_colon, nodes=None):
     nodes = nodes if nodes is not None else tuple(range(100, 100 + len(sp_by_colon)))
-    return MorphologicalPsalm(number=number, half_verse_nodes=nodes, half_verse_sp=sp_by_colon)
+    return MorphologicalPsalm(number=number, colon_nodes=nodes, colon_sp=sp_by_colon)
 
 
 class TestPosUnigramHistogram:

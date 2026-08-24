@@ -7,10 +7,10 @@ from lexical.surface_vocabulary import build_surface_vocabulary
 def _psalm(*, number, consonantal, vocalized=None, cantillation=None):
     return SurfacePsalm(
         number=number,
-        half_verse_consonantal=consonantal,
-        half_verse_vocalized=vocalized or consonantal,
-        half_verse_cantillation=cantillation or consonantal,
-        half_verse_nodes=tuple(range(len(consonantal))),
+        colon_consonantal=consonantal,
+        colon_vocalized=vocalized or consonantal,
+        colon_cantillation=cantillation or consonantal,
+        colon_nodes=tuple(range(len(consonantal))),
     )
 
 
@@ -37,7 +37,7 @@ class TestBuildSurfaceVocabulary:
         assert build_surface_vocabulary(psalms, tier="consonantal") == ("בר",)
         assert build_surface_vocabulary(psalms, tier="vocalized") == ("בָר",)
 
-    def test_repeated_forms_within_and_across_half_verses_count_once(self):
+    def test_repeated_forms_within_and_across_cola_count_once(self):
         psalms = [
             _psalm(number=1, consonantal=(("בר", "בר"), ("בר",))),
         ]

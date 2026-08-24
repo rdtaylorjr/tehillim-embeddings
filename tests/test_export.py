@@ -6,10 +6,10 @@ import pyarrow.parquet as pq
 from semantic.export import dataset_path, node_vectors, write_dataset
 
 
-def _psalm(*, number: int, half_verses, half_verse_nodes):
+def _psalm(*, number: int, cola, colon_nodes):
     from semantic.corpus import Psalm
 
-    return Psalm(number=number, half_verses=half_verses, half_verse_nodes=half_verse_nodes)
+    return Psalm(number=number, cola=cola, colon_nodes=colon_nodes)
 
 
 class TestDatasetPath:
@@ -22,8 +22,8 @@ class TestDatasetPath:
 
 
 class TestNodeVectors:
-    def test_maps_each_half_verse_node_to_its_vector(self):
-        psalms = [_psalm(number=1, half_verses=("A", "B"), half_verse_nodes=(100, 101))]
+    def test_maps_each_colon_node_to_its_vector(self):
+        psalms = [_psalm(number=1, cola=("A", "B"), colon_nodes=(100, 101))]
         embeddings = {1: np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)}
 
         values = node_vectors(embeddings, psalms)
@@ -33,7 +33,7 @@ class TestNodeVectors:
         assert np.array_equal(values[101], [3.0, 4.0])
 
     def test_skips_a_psalm_missing_from_the_embeddings_dict(self):
-        psalms = [_psalm(number=1, half_verses=("A",), half_verse_nodes=(100,))]
+        psalms = [_psalm(number=1, cola=("A",), colon_nodes=(100,))]
 
         values = node_vectors({}, psalms)
 

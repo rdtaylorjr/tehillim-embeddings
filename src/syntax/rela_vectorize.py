@@ -21,7 +21,7 @@ def phrase_rela_1gram_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray
     """One `phrase_rela_1gram` histogram per colon node."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_rela in zip(psalm.half_verse_nodes, psalm.half_verse_rela, strict=True):
+        for node, colon_rela in zip(psalm.colon_nodes, psalm.colon_rela, strict=True):
             vectors[node] = phrase_rela_unigram_histogram(colon_rela)
     return vectors
 
@@ -29,7 +29,6 @@ def phrase_rela_1gram_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray
 def phrase_rela_1gram_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `phrase_rela_1gram`: atom-count-weighted pooling, `Para` masked first."""
     columns = [
-        (psalm.half_verse_nodes, tuple(colon_safe_rela(c) for c in psalm.half_verse_rela))
-        for psalm in psalms
+        (psalm.colon_nodes, tuple(colon_safe_rela(c) for c in psalm.colon_rela)) for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1,), _INDEX_OF, _DIM, order_by_node=None)

@@ -1,7 +1,7 @@
 # Tehillim Embeddings
 
 A Parquet dataset of pre-computed feature representations for every
-half-verse of the Hebrew psalms: semantic embedding vectors from 17
+colon of the Hebrew psalms: semantic embedding vectors from 17
 different Hebrew and multilingual embedding models (4 Hebrew
 BERT-family models, 9 open-weight multilingual encoders, and 4
 embedding APIs: Gemini, OpenAI, Cohere, Voyage), lexical
@@ -187,7 +187,7 @@ checkout with no code changes.
 * **Position and recurrence, colon-level vs. psalm-level** (`lexical.positional`, `lexical.zoning`,
   `lexical.recurrence` for colon-level, `lexical.psalm_position`, `lexical.psalm_zoning`,
   `lexical.psalm_recurrence` for psalm-level, with a `lexical.surface_*` counterpart of each for
-  `word`): each half-verse's colon-level vector is nonzero only in that colon's region of the psalm, so
+  `word`): each colon-level vector is nonzero only in that colon's region of the psalm, so
   two colons in the same psalm get different vectors, the correct construction for parallelism
   (comparing one colon against another). Each psalm-level vector broadcasts one whole-psalm summary
   to every colon in that psalm, the correct construction for genre (which pools colons into a psalm

@@ -12,10 +12,10 @@ from syntax.full_signature_vectorize import (
 def _psalm(*, number, nodes, typ, function, det):
     return PhrasePsalm(
         number=number,
-        half_verse_nodes=nodes,
-        half_verse_typ=typ,
-        half_verse_function=function,
-        half_verse_det=det,
+        colon_nodes=nodes,
+        colon_typ=typ,
+        colon_function=function,
+        colon_det=det,
     )
 
 

@@ -14,8 +14,8 @@ def _psalm(*, number, atoms_per_colon, nodes=None):
     )
     return PhrasePsalm(
         number=number,
-        half_verse_nodes=nodes,
-        half_verse_typ=tuple(tuple(f"typ{i}" for i in range(n)) for n in atoms_per_colon),
+        colon_nodes=nodes,
+        colon_typ=tuple(tuple(f"typ{i}" for i in range(n)) for n in atoms_per_colon),
     )
 
 
@@ -60,7 +60,7 @@ class TestShuffledWithinColonOrder:
 
     def test_preserves_the_multiset_of_phrase_types_when_applied(self):
         psalms = [_psalm(number=1, atoms_per_colon=(4,), nodes=(600,))]
-        colon_typ = psalms[0].half_verse_typ[0]
+        colon_typ = psalms[0].colon_typ[0]
 
         order = shuffled_within_colon_order(psalms, seed=3)
         reordered = tuple(colon_typ[i] for i in order[600])

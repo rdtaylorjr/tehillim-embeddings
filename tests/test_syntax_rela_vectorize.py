@@ -15,7 +15,7 @@ _DIM = len(SAFE_RELA_VOCABULARY)
 
 def _psalm(*, number, phrase_rela_by_colon, nodes=None):
     nodes = nodes if nodes is not None else tuple(range(100, 100 + len(phrase_rela_by_colon)))
-    return PhrasePsalm(number=number, half_verse_nodes=nodes, half_verse_rela=phrase_rela_by_colon)
+    return PhrasePsalm(number=number, colon_nodes=nodes, colon_rela=phrase_rela_by_colon)
 
 
 class TestPhraseRelaUnigramHistogram:

@@ -7,7 +7,7 @@ import numpy as np
 from lexical.positional import colon_positions
 from lexical.surface_corpus import SurfacePsalm
 from lexical.surface_vectorize import surface_icf_vector
-from lexical.surface_vocabulary import SurfaceTier, half_verses_for_tier
+from lexical.surface_vocabulary import SurfaceTier, cola_for_tier
 
 
 def surface_psalm_position_mean_vectors(
@@ -24,17 +24,17 @@ def surface_psalm_position_mean_vectors(
 
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = half_verses_for_tier(psalm, tier)
-        n = len(half_verses)
+        cola = cola_for_tier(psalm, tier)
+        n = len(cola)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
-        ordered = [half_verses[i] for i in order]
+        ordered = [cola[i] for i in order]
         t = colon_positions(n)
 
         flat_index_parts = []
         flat_t_parts = []
-        for position, half_verse in enumerate(ordered):
+        for position, colon in enumerate(ordered):
             indices = np.fromiter(
-                (index_of[v] for v in set(half_verse) if v in index_of), dtype=np.int64
+                (index_of[v] for v in set(colon) if v in index_of), dtype=np.int64
             )
             flat_index_parts.append(indices)
             flat_t_parts.append(np.full(len(indices), t[position]))
@@ -50,6 +50,6 @@ def surface_psalm_position_mean_vectors(
         m = weights * present * (2 * mean_position - 1)
 
         psalm_vector = np.concatenate([b, m]).astype(np.float32)
-        for node in psalm.half_verse_nodes:
+        for node in psalm.colon_nodes:
             vectors[node] = psalm_vector
     return vectors
