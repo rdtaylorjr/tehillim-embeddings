@@ -8,7 +8,7 @@ license = { text = "MIT" }
 dependencies = [
     "text-fabric>=13.1.0",
     "numpy>=1.26",
-    "pyarrow>=17.0",
+    "pyarrow>=25.0.1",
     "sentence-transformers>=3.0",
     "openai>=1.0",
     "cohere>=5.0",
