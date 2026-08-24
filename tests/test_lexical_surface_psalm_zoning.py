@@ -9,10 +9,10 @@ from lexical.surface_psalm_zoning import surface_psalm_position_mean_vectors
 def _psalm(*, number, consonantal, nodes):
     return SurfacePsalm(
         number=number,
-        half_verse_consonantal=consonantal,
-        half_verse_vocalized=consonantal,
-        half_verse_cantillation=consonantal,
-        half_verse_nodes=nodes,
+        colon_consonantal=consonantal,
+        colon_vocalized=consonantal,
+        colon_cantillation=consonantal,
+        colon_nodes=nodes,
     )
 
 

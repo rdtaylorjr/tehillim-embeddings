@@ -37,22 +37,22 @@ def test_extracts_all_150_psalms_with_three_text_variants_and_real_node_ids():
     assert [p.number for p in psalms] == list(range(1, 151))
 
     psalm_1 = next(p for p in psalms if p.number == 1)
-    assert len(psalm_1.half_verses) == 14
-    assert len(psalm_1.half_verses_unvocalized) == 14
-    assert len(psalm_1.half_verses_niqqud_only) == 14
-    assert len(psalm_1.half_verse_nodes) == 14
+    assert len(psalm_1.cola) == 14
+    assert len(psalm_1.cola_unvocalized) == 14
+    assert len(psalm_1.cola_niqqud_only) == 14
+    assert len(psalm_1.colon_nodes) == 14
 
     # Vocalized text has niqqud. Unvocalized text (BHSA's g_cons_utf8) has none.
-    assert any("ָ" in hv for hv in psalm_1.half_verses)
-    assert not any("ָ" in hv for hv in psalm_1.half_verses_unvocalized)
+    assert any("ָ" in hv for hv in psalm_1.cola)
+    assert not any("ָ" in hv for hv in psalm_1.cola_unvocalized)
 
     # Niqqud-only text keeps niqqud but drops cantillation marks present in
     # the fully vocalized text.
-    assert any("ָ" in hv for hv in psalm_1.half_verses_niqqud_only)
-    assert any("֑" in hv for hv in psalm_1.half_verses)
-    assert not any(any("֑" <= ch <= "֯" for ch in hv) for hv in psalm_1.half_verses_niqqud_only)
+    assert any("ָ" in hv for hv in psalm_1.cola_niqqud_only)
+    assert any("֑" in hv for hv in psalm_1.cola)
+    assert not any(any("֑" <= ch <= "֯" for ch in hv) for hv in psalm_1.cola_niqqud_only)
 
-    all_nodes = [node for p in psalms for node in p.half_verse_nodes]
+    all_nodes = [node for p in psalms for node in p.colon_nodes]
     assert len(all_nodes) == len(set(all_nodes))
     assert all(isinstance(node, int) and node > 0 for node in all_nodes)
 

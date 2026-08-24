@@ -1,4 +1,4 @@
-"""Loads Hebrew Psalms half-verse text and BHSA node ids via Text-Fabric."""
+"""Loads Hebrew Psalms colon text and BHSA node ids via Text-Fabric."""
 
 from __future__ import annotations
 
@@ -30,17 +30,17 @@ def _strip_accents(text: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class Psalm:
-    """One psalm's half-verse texts, in three variants, and their BHSA node ids."""
+    """One psalm's colon texts, in three variants, and their BHSA node ids."""
 
     number: int
-    half_verses: tuple[str, ...] = ()
-    half_verses_unvocalized: tuple[str, ...] = ()
-    half_verses_niqqud_only: tuple[str, ...] = ()
-    half_verse_nodes: tuple[int, ...] = ()
+    cola: tuple[str, ...] = ()
+    cola_unvocalized: tuple[str, ...] = ()
+    cola_niqqud_only: tuple[str, ...] = ()
+    colon_nodes: tuple[int, ...] = ()
 
 
 class Corpus:
-    """A loaded BHSA Text-Fabric corpus, scoped to half-verse extraction."""
+    """A loaded BHSA Text-Fabric corpus, scoped to colon extraction."""
 
     def __init__(self, api: Any) -> None:
         self._api = api
@@ -71,21 +71,20 @@ class Corpus:
         psalms: list[Psalm] = []
         for chapter_node in L.d(book_nodes[0], otype="chapter"):
             _, psalm_number = T.sectionFromNode(chapter_node)
-            half_verse_nodes = L.d(chapter_node, otype="half_verse")
-            half_verses = tuple(T.text(L.d(hv, otype="word")).strip() for hv in half_verse_nodes)
-            half_verses_unvocalized = tuple(
-                T.text(L.d(hv, otype="word"), fmt=_UNVOCALIZED_FORMAT).strip()
-                for hv in half_verse_nodes
+            colon_nodes = L.d(chapter_node, otype="half_verse")
+            cola = tuple(T.text(L.d(hv, otype="word")).strip() for hv in colon_nodes)
+            cola_unvocalized = tuple(
+                T.text(L.d(hv, otype="word"), fmt=_UNVOCALIZED_FORMAT).strip() for hv in colon_nodes
             )
-            half_verses_niqqud_only = tuple(_strip_accents(hv) for hv in half_verses)
+            cola_niqqud_only = tuple(_strip_accents(hv) for hv in cola)
 
             psalms.append(
                 Psalm(
                     number=psalm_number,
-                    half_verses=half_verses,
-                    half_verses_unvocalized=half_verses_unvocalized,
-                    half_verses_niqqud_only=half_verses_niqqud_only,
-                    half_verse_nodes=tuple(half_verse_nodes),
+                    cola=cola,
+                    cola_unvocalized=cola_unvocalized,
+                    cola_niqqud_only=cola_niqqud_only,
+                    colon_nodes=tuple(colon_nodes),
                 )
             )
 

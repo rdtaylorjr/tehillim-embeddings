@@ -1,4 +1,4 @@
-"""Loads BHSA lexical features (lex, lex0) per half-verse for the Hebrew Psalms via Text-Fabric."""
+"""Loads BHSA lexical features (lex, lex0) per colon for the Hebrew Psalms via Text-Fabric."""
 
 from __future__ import annotations
 
@@ -17,16 +17,16 @@ _PSALMS_BOOK_NAME = "Psalmi"
 
 @dataclass(frozen=True, slots=True)
 class LexicalPsalm:
-    """One psalm's half-verse lex and lex0 sequences, aligned word-for-word, and their node ids."""
+    """One psalm's colon lex and lex0 sequences, aligned word-for-word, and their node ids."""
 
     number: int
-    half_verse_lexemes: tuple[tuple[str, ...], ...] = ()
-    half_verse_forms: tuple[tuple[str, ...], ...] = ()
-    half_verse_nodes: tuple[int, ...] = ()
+    colon_lexemes: tuple[tuple[str, ...], ...] = ()
+    colon_forms: tuple[tuple[str, ...], ...] = ()
+    colon_nodes: tuple[int, ...] = ()
 
 
 class Corpus:
-    """A loaded BHSA Text-Fabric corpus, scoped to half-verse lexical feature extraction."""
+    """A loaded BHSA Text-Fabric corpus, scoped to colon lexical feature extraction."""
 
     def __init__(self, api: Any) -> None:
         self._api = api
@@ -52,7 +52,7 @@ class Corpus:
         return cls(api)
 
     def psalms(self) -> list[LexicalPsalm]:
-        """Extracts all 150 psalms' half-verse lex/lex0 sequences, in canonical order."""
+        """Extracts all 150 psalms' colon lex/lex0 sequences, in canonical order."""
         F, L, T = self._api.F, self._api.L, self._api.T  # noqa: N806
 
         book_nodes = [b for b in F.otype.s("book") if F.book.v(b) == _PSALMS_BOOK_NAME]
@@ -62,20 +62,20 @@ class Corpus:
         psalms: list[LexicalPsalm] = []
         for chapter_node in L.d(book_nodes[0], otype="chapter"):
             _, psalm_number = T.sectionFromNode(chapter_node)
-            half_verse_nodes = L.d(chapter_node, otype="half_verse")
-            half_verse_lexemes = tuple(
-                tuple(F.lex.v(w) for w in L.d(hv, otype="word")) for hv in half_verse_nodes
+            colon_nodes = L.d(chapter_node, otype="half_verse")
+            colon_lexemes = tuple(
+                tuple(F.lex.v(w) for w in L.d(hv, otype="word")) for hv in colon_nodes
             )
-            half_verse_forms = tuple(
-                tuple(F.lex0.v(w) for w in L.d(hv, otype="word")) for hv in half_verse_nodes
+            colon_forms = tuple(
+                tuple(F.lex0.v(w) for w in L.d(hv, otype="word")) for hv in colon_nodes
             )
 
             psalms.append(
                 LexicalPsalm(
                     number=psalm_number,
-                    half_verse_lexemes=half_verse_lexemes,
-                    half_verse_forms=half_verse_forms,
-                    half_verse_nodes=tuple(half_verse_nodes),
+                    colon_lexemes=colon_lexemes,
+                    colon_forms=colon_forms,
+                    colon_nodes=tuple(colon_nodes),
                 )
             )
 

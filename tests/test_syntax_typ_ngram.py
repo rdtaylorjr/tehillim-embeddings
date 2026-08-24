@@ -21,7 +21,7 @@ _DIM = len(TYP_VOCABULARY)
 
 def _psalm(*, number, phrase_typ_by_colon, nodes=None):
     nodes = nodes if nodes is not None else tuple(range(100, 100 + len(phrase_typ_by_colon)))
-    return PhrasePsalm(number=number, half_verse_nodes=nodes, half_verse_typ=phrase_typ_by_colon)
+    return PhrasePsalm(number=number, colon_nodes=nodes, colon_typ=phrase_typ_by_colon)
 
 
 class TestPhraseTypUnigramHistogram:

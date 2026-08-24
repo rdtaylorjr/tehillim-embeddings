@@ -1,4 +1,4 @@
-"""Writes one lexical vector matrix as a Parquet file, keyed by BHSA half-verse node id."""
+"""Writes one lexical vector matrix as a Parquet file, keyed by BHSA colon node id."""
 
 from __future__ import annotations
 

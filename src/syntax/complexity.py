@@ -34,10 +34,10 @@ def phrase_complexity_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         for node, n_words, phrase_id, phrase_atom_count in zip(
-            psalm.half_verse_nodes,
-            psalm.half_verse_n_words,
-            psalm.half_verse_phrase_id,
-            psalm.half_verse_phrase_atom_count,
+            psalm.colon_nodes,
+            psalm.colon_n_words,
+            psalm.colon_phrase_id,
+            psalm.colon_phrase_atom_count,
             strict=True,
         ):
             vectors[node] = colon_complexity_features(n_words, phrase_id, phrase_atom_count)
@@ -51,9 +51,9 @@ def phrase_complexity_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.n
         colon_features = [
             colon_complexity_features(n_words, phrase_id, phrase_atom_count)
             for n_words, phrase_id, phrase_atom_count in zip(
-                psalm.half_verse_n_words,
-                psalm.half_verse_phrase_id,
-                psalm.half_verse_phrase_atom_count,
+                psalm.colon_n_words,
+                psalm.colon_phrase_id,
+                psalm.colon_phrase_atom_count,
                 strict=True,
             )
         ]
@@ -62,6 +62,6 @@ def phrase_complexity_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.n
             if colon_features
             else np.zeros(_N_FEATURES, dtype=np.float32)
         )
-        for node in psalm.half_verse_nodes:
+        for node in psalm.colon_nodes:
             vectors[node] = psalm_vector.astype(np.float32)
     return vectors

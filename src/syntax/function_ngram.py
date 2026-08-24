@@ -37,9 +37,7 @@ def phrase_function_1gram_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.nda
     """One `phrase_function_1gram` histogram per colon node."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_function in zip(
-            psalm.half_verse_nodes, psalm.half_verse_function, strict=True
-        ):
+        for node, colon_function in zip(psalm.colon_nodes, psalm.colon_function, strict=True):
             vectors[node] = phrase_function_unigram_histogram(colon_function)
     return vectors
 
@@ -50,9 +48,7 @@ def phrase_function_1_2gram_vectors(
     """`[phrase_function_1gram; phrase_function_bigram]` per colon node."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_function in zip(
-            psalm.half_verse_nodes, psalm.half_verse_function, strict=True
-        ):
+        for node, colon_function in zip(psalm.colon_nodes, psalm.colon_function, strict=True):
             ordered = reorder(colon_function, node, order_by_node)
             vectors[node] = np.concatenate(
                 [
@@ -69,9 +65,7 @@ def phrase_function_1_2_3gram_vectors(
     """`[phrase_function_1gram; bigram; trigram]` per colon node."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_function in zip(
-            psalm.half_verse_nodes, psalm.half_verse_function, strict=True
-        ):
+        for node, colon_function in zip(psalm.colon_nodes, psalm.colon_function, strict=True):
             ordered = reorder(colon_function, node, order_by_node)
             vectors[node] = np.concatenate(
                 [
@@ -85,7 +79,7 @@ def phrase_function_1_2_3gram_vectors(
 
 def phrase_function_1gram_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `phrase_function_1gram`: atom-count-weighted pooling across every colon."""
-    columns = [(p.half_verse_nodes, p.half_verse_function) for p in psalms]
+    columns = [(p.colon_nodes, p.colon_function) for p in psalms]
     return pooled_ngram_psalm_vectors(columns, (1,), _INDEX_OF, _DIM, order_by_node=None)
 
 
@@ -93,7 +87,7 @@ def phrase_function_1_2gram_psalm_vectors(
     psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast `[phrase_function_1gram; bigram]`, atom-count-weighted pooling."""
-    columns = [(p.half_verse_nodes, p.half_verse_function) for p in psalms]
+    columns = [(p.colon_nodes, p.colon_function) for p in psalms]
     return pooled_ngram_psalm_vectors(columns, (1, 2), _INDEX_OF, _DIM, order_by_node)
 
 
@@ -101,5 +95,5 @@ def phrase_function_1_2_3gram_psalm_vectors(
     psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast `[phrase_function_1gram; bigram; trigram]`, atom-count-weighted pooling."""
-    columns = [(p.half_verse_nodes, p.half_verse_function) for p in psalms]
+    columns = [(p.colon_nodes, p.colon_function) for p in psalms]
     return pooled_ngram_psalm_vectors(columns, (1, 2, 3), _INDEX_OF, _DIM, order_by_node)

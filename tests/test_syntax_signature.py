@@ -32,9 +32,9 @@ class TestPsalmSignatures:
     def test_builds_one_signature_sequence_per_colon(self):
         psalm = PhrasePsalm(
             number=1,
-            half_verse_nodes=(100, 101),
-            half_verse_typ=(("NP", "VP"), ("PP",)),
-            half_verse_function=(("Subj", "Pred"), ("Cmpl",)),
+            colon_nodes=(100, 101),
+            colon_typ=(("NP", "VP"), ("PP",)),
+            colon_function=(("Subj", "Pred"), ("Cmpl",)),
         )
         signatures = psalm_signatures(psalm)
         assert signatures == (("NP:Subj", "VP:Pred"), ("PP:Cmpl",))
@@ -61,10 +61,10 @@ class TestPsalmFullSignatures:
     def test_builds_one_signature_sequence_per_colon(self):
         psalm = PhrasePsalm(
             number=1,
-            half_verse_nodes=(100, 101),
-            half_verse_typ=(("NP", "VP"), ("PP",)),
-            half_verse_function=(("Subj", "Pred"), ("Cmpl",)),
-            half_verse_det=(("det", "NA"), ("und",)),
+            colon_nodes=(100, 101),
+            colon_typ=(("NP", "VP"), ("PP",)),
+            colon_function=(("Subj", "Pred"), ("Cmpl",)),
+            colon_det=(("det", "NA"), ("und",)),
         )
         signatures = psalm_full_signatures(psalm)
         assert signatures == (("NP:Subj:det", "VP:Pred"), ("PP:Cmpl:und",))

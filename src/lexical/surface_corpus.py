@@ -1,4 +1,4 @@
-"""Loads BHSA surface word-form features per half-verse, in three text tiers, via Text-Fabric."""
+"""Loads BHSA surface word-form features per colon, in three text tiers, via Text-Fabric."""
 
 from __future__ import annotations
 
@@ -25,17 +25,17 @@ def _strip_accents(text: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class SurfacePsalm:
-    """One psalm's half-verse surface word-form sequences, in three text tiers, aligned words."""
+    """One psalm's colon surface word-form sequences, in three text tiers, aligned words."""
 
     number: int
-    half_verse_consonantal: tuple[tuple[str, ...], ...] = ()
-    half_verse_vocalized: tuple[tuple[str, ...], ...] = ()
-    half_verse_cantillation: tuple[tuple[str, ...], ...] = ()
-    half_verse_nodes: tuple[int, ...] = ()
+    colon_consonantal: tuple[tuple[str, ...], ...] = ()
+    colon_vocalized: tuple[tuple[str, ...], ...] = ()
+    colon_cantillation: tuple[tuple[str, ...], ...] = ()
+    colon_nodes: tuple[int, ...] = ()
 
 
 class SurfaceCorpus:
-    """A loaded BHSA Text-Fabric corpus, scoped to half-verse surface word-form extraction."""
+    """A loaded BHSA Text-Fabric corpus, scoped to colon surface word-form extraction."""
 
     def __init__(self, api: Any) -> None:
         self._api = api
@@ -61,7 +61,7 @@ class SurfaceCorpus:
         return cls(api)
 
     def psalms(self) -> list[SurfacePsalm]:
-        """Extracts all 150 psalms' half-verse surface-form sequences, in canonical order."""
+        """Extracts all 150 psalms' colon surface-form sequences, in canonical order."""
         F, L, T = self._api.F, self._api.L, self._api.T  # noqa: N806
 
         book_nodes = [b for b in F.otype.s("book") if F.book.v(b) == _PSALMS_BOOK_NAME]
@@ -71,25 +71,25 @@ class SurfaceCorpus:
         psalms: list[SurfacePsalm] = []
         for chapter_node in L.d(book_nodes[0], otype="chapter"):
             _, psalm_number = T.sectionFromNode(chapter_node)
-            half_verse_nodes = L.d(chapter_node, otype="half_verse")
-            half_verse_consonantal = tuple(
-                tuple(F.g_cons_utf8.v(w) for w in L.d(hv, otype="word")) for hv in half_verse_nodes
+            colon_nodes = L.d(chapter_node, otype="half_verse")
+            colon_consonantal = tuple(
+                tuple(F.g_cons_utf8.v(w) for w in L.d(hv, otype="word")) for hv in colon_nodes
             )
-            half_verse_cantillation = tuple(
-                tuple(F.g_word_utf8.v(w) for w in L.d(hv, otype="word")) for hv in half_verse_nodes
+            colon_cantillation = tuple(
+                tuple(F.g_word_utf8.v(w) for w in L.d(hv, otype="word")) for hv in colon_nodes
             )
-            half_verse_vocalized = tuple(
+            colon_vocalized = tuple(
                 tuple(_strip_accents(F.g_word_utf8.v(w)) for w in L.d(hv, otype="word"))
-                for hv in half_verse_nodes
+                for hv in colon_nodes
             )
 
             psalms.append(
                 SurfacePsalm(
                     number=psalm_number,
-                    half_verse_consonantal=half_verse_consonantal,
-                    half_verse_vocalized=half_verse_vocalized,
-                    half_verse_cantillation=half_verse_cantillation,
-                    half_verse_nodes=tuple(half_verse_nodes),
+                    colon_consonantal=colon_consonantal,
+                    colon_vocalized=colon_vocalized,
+                    colon_cantillation=colon_cantillation,
+                    colon_nodes=tuple(colon_nodes),
                 )
             )
 

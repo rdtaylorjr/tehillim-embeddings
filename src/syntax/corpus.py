@@ -1,4 +1,4 @@
-"""Loads BHSA phrase-atom type per half-verse for the Psalms via Text-Fabric."""
+"""Loads BHSA phrase-atom type per colon for the Psalms via Text-Fabric."""
 
 from __future__ import annotations
 
@@ -17,22 +17,22 @@ _PSALMS_BOOK_NAME = "Psalmi"
 
 @dataclass(frozen=True, slots=True)
 class PhrasePsalm:
-    """One psalm's half-verse phrase-atom feature sequences, aligned atom-for-atom."""
+    """One psalm's colon phrase-atom feature sequences, aligned atom-for-atom."""
 
     number: int
-    half_verse_nodes: tuple[int, ...] = ()
-    half_verse_typ: tuple[tuple[str, ...], ...] = ()
-    half_verse_function: tuple[tuple[str, ...], ...] = ()
-    half_verse_det: tuple[tuple[str, ...], ...] = ()
-    half_verse_rela: tuple[tuple[str, ...], ...] = ()
-    half_verse_n_words: tuple[tuple[int, ...], ...] = ()
-    half_verse_phrase_id: tuple[tuple[int, ...], ...] = ()
-    half_verse_phrase_atom_count: tuple[tuple[int, ...], ...] = ()
-    half_verse_subphrase_rela: tuple[tuple[str, ...], ...] = ()
+    colon_nodes: tuple[int, ...] = ()
+    colon_typ: tuple[tuple[str, ...], ...] = ()
+    colon_function: tuple[tuple[str, ...], ...] = ()
+    colon_det: tuple[tuple[str, ...], ...] = ()
+    colon_rela: tuple[tuple[str, ...], ...] = ()
+    colon_n_words: tuple[tuple[int, ...], ...] = ()
+    colon_phrase_id: tuple[tuple[int, ...], ...] = ()
+    colon_phrase_atom_count: tuple[tuple[int, ...], ...] = ()
+    colon_subphrase_rela: tuple[tuple[str, ...], ...] = ()
 
 
 class Corpus:
-    """A loaded BHSA Text-Fabric corpus, scoped to half-verse phrase-atom type extraction."""
+    """A loaded BHSA Text-Fabric corpus, scoped to colon phrase-atom type extraction."""
 
     def __init__(self, api: Any) -> None:
         self._api = api
@@ -58,7 +58,7 @@ class Corpus:
         return cls(api)
 
     def psalms(self) -> list[PhrasePsalm]:
-        """Extracts all 150 psalms' half-verse phrase-atom type sequences, in canonical order."""
+        """Extracts all 150 psalms' colon phrase-atom type sequences, in canonical order."""
         F, L, T = self._api.F, self._api.L, self._api.T  # noqa: N806
 
         book_nodes = [b for b in F.otype.s("book") if F.book.v(b) == _PSALMS_BOOK_NAME]
@@ -68,40 +68,40 @@ class Corpus:
         psalms: list[PhrasePsalm] = []
         for chapter_node in L.d(book_nodes[0], otype="chapter"):
             _, psalm_number = T.sectionFromNode(chapter_node)
-            half_verse_nodes = L.d(chapter_node, otype="half_verse")
-            atoms_by_hv = [L.d(hv, otype="phrase_atom") for hv in half_verse_nodes]
+            colon_nodes = L.d(chapter_node, otype="half_verse")
+            atoms_by_hv = [L.d(hv, otype="phrase_atom") for hv in colon_nodes]
             mothers_by_hv = [[L.u(pa, otype="phrase")[0] for pa in atoms] for atoms in atoms_by_hv]
 
-            half_verse_typ = tuple(tuple(F.typ.v(pa) for pa in atoms) for atoms in atoms_by_hv)
-            half_verse_det = tuple(tuple(F.det.v(pa) for pa in atoms) for atoms in atoms_by_hv)
-            half_verse_rela = tuple(tuple(F.rela.v(pa) for pa in atoms) for atoms in atoms_by_hv)
-            half_verse_function = tuple(
+            colon_typ = tuple(tuple(F.typ.v(pa) for pa in atoms) for atoms in atoms_by_hv)
+            colon_det = tuple(tuple(F.det.v(pa) for pa in atoms) for atoms in atoms_by_hv)
+            colon_rela = tuple(tuple(F.rela.v(pa) for pa in atoms) for atoms in atoms_by_hv)
+            colon_function = tuple(
                 tuple(F.function.v(mother) for mother in mothers) for mothers in mothers_by_hv
             )
-            half_verse_n_words = tuple(
+            colon_n_words = tuple(
                 tuple(len(L.d(pa, otype="word")) for pa in atoms) for atoms in atoms_by_hv
             )
-            half_verse_phrase_id = tuple(tuple(mothers) for mothers in mothers_by_hv)
-            half_verse_phrase_atom_count = tuple(
+            colon_phrase_id = tuple(tuple(mothers) for mothers in mothers_by_hv)
+            colon_phrase_atom_count = tuple(
                 tuple(len(L.d(mother, otype="phrase_atom")) for mother in mothers)
                 for mothers in mothers_by_hv
             )
-            half_verse_subphrase_rela = tuple(
-                tuple(F.rela.v(sp) for sp in L.d(hv, otype="subphrase")) for hv in half_verse_nodes
+            colon_subphrase_rela = tuple(
+                tuple(F.rela.v(sp) for sp in L.d(hv, otype="subphrase")) for hv in colon_nodes
             )
 
             psalms.append(
                 PhrasePsalm(
                     number=psalm_number,
-                    half_verse_nodes=tuple(half_verse_nodes),
-                    half_verse_typ=half_verse_typ,
-                    half_verse_function=half_verse_function,
-                    half_verse_det=half_verse_det,
-                    half_verse_rela=half_verse_rela,
-                    half_verse_n_words=half_verse_n_words,
-                    half_verse_phrase_id=half_verse_phrase_id,
-                    half_verse_phrase_atom_count=half_verse_phrase_atom_count,
-                    half_verse_subphrase_rela=half_verse_subphrase_rela,
+                    colon_nodes=tuple(colon_nodes),
+                    colon_typ=colon_typ,
+                    colon_function=colon_function,
+                    colon_det=colon_det,
+                    colon_rela=colon_rela,
+                    colon_n_words=colon_n_words,
+                    colon_phrase_id=colon_phrase_id,
+                    colon_phrase_atom_count=colon_phrase_atom_count,
+                    colon_subphrase_rela=colon_subphrase_rela,
                 )
             )
 

@@ -15,7 +15,7 @@ def dataset_path(output_root, vocab, weight):
 
 
 def _psalm(*, number, nodes, rela):
-    return PhrasePsalm(number=number, half_verse_nodes=nodes, half_verse_rela=rela)
+    return PhrasePsalm(number=number, colon_nodes=nodes, colon_rela=rela)
 
 
 def _psalms():

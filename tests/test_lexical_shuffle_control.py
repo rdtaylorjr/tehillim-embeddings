@@ -9,9 +9,9 @@ from lexical.shuffle_control import shuffled_order_by_psalm
 def _psalm(*, number, n_cola):
     return LexicalPsalm(
         number=number,
-        half_verse_lexemes=tuple((f"L{i}",) for i in range(n_cola)),
-        half_verse_forms=tuple((f"F{i}",) for i in range(n_cola)),
-        half_verse_nodes=tuple(range(100 * number, 100 * number + n_cola)),
+        colon_lexemes=tuple((f"L{i}",) for i in range(n_cola)),
+        colon_forms=tuple((f"F{i}",) for i in range(n_cola)),
+        colon_nodes=tuple(range(100 * number, 100 * number + n_cola)),
     )
 
 

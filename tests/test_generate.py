@@ -12,15 +12,15 @@ from semantic.export import dataset_path
 from semantic.generate import generate_api, generate_local
 
 
-def _psalm(*, number: int, half_verses, half_verses_unvocalized, half_verses_niqqud_only=()):
+def _psalm(*, number: int, cola, cola_unvocalized, cola_niqqud_only=()):
     from semantic.corpus import Psalm
 
     return Psalm(
         number=number,
-        half_verses=half_verses,
-        half_verses_unvocalized=half_verses_unvocalized,
-        half_verses_niqqud_only=half_verses_niqqud_only,
-        half_verse_nodes=tuple(range(number * 100, number * 100 + len(half_verses))),
+        cola=cola,
+        cola_unvocalized=cola_unvocalized,
+        cola_niqqud_only=cola_niqqud_only,
+        colon_nodes=tuple(range(number * 100, number * 100 + len(cola))),
     )
 
 
@@ -30,9 +30,9 @@ class TestGenerateLocal:
 
         def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
             calls.append((model_name, vocalized, niqqud_only))
-            return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
+            return {p.number: np.zeros((len(p.cola), 2)) for p in psalms}
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        psalms = [_psalm(number=1, cola=("A",), cola_unvocalized=("a",))]
 
         written = generate_local(psalms, tmp_path, "bge-m3", compute=_fake_compute)
 
@@ -50,9 +50,9 @@ class TestGenerateLocal:
 
         def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
             calls.append((model_name, vocalized, niqqud_only))
-            return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
+            return {p.number: np.zeros((len(p.cola), 2)) for p in psalms}
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        psalms = [_psalm(number=1, cola=("A",), cola_unvocalized=("a",))]
 
         written = generate_local(psalms, tmp_path, "miqrabert", compute=_fake_compute)
 
@@ -64,9 +64,9 @@ class TestGenerateLocal:
 
         def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
             calls.append((vocalized, niqqud_only))
-            return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
+            return {p.number: np.zeros((len(p.cola), 2)) for p in psalms}
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        psalms = [_psalm(number=1, cola=("A",), cola_unvocalized=("a",))]
 
         written = generate_local(
             psalms, tmp_path, "bge-m3", variation="vocalized", compute=_fake_compute
@@ -79,7 +79,7 @@ class TestGenerateLocal:
         def _must_not_be_called(*args, **kwargs):
             raise AssertionError("compute must not be called for an unavailable variation")
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        psalms = [_psalm(number=1, cola=("A",), cola_unvocalized=("a",))]
 
         written = generate_local(
             psalms, tmp_path, "miqrabert", variation="vocalized", compute=_must_not_be_called
@@ -90,7 +90,7 @@ class TestGenerateLocal:
     def test_skips_a_variation_whose_tf_file_already_exists(self, tmp_path):
         from semantic.export import node_vectors, write_dataset
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        psalms = [_psalm(number=1, cola=("A",), cola_unvocalized=("a",))]
         write_dataset(
             tmp_path,
             "miqrabert",
@@ -111,9 +111,9 @@ class TestGenerateLocal:
 
         def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
             calls.append((device, torch_dtype))
-            return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
+            return {p.number: np.zeros((len(p.cola), 2)) for p in psalms}
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        psalms = [_psalm(number=1, cola=("A",), cola_unvocalized=("a",))]
 
         generate_local(
             psalms,
@@ -128,7 +128,7 @@ class TestGenerateLocal:
 
 
 class TestGenerateApi:
-    def test_cache_miss_calls_fetch_once_per_variation_with_flattened_half_verses(self, tmp_path):
+    def test_cache_miss_calls_fetch_once_per_variation_with_flattened_cola(self, tmp_path):
         calls = []
 
         def _fake_fetch(texts, *, api_key):
@@ -138,9 +138,9 @@ class TestGenerateApi:
         psalms = [
             _psalm(
                 number=1,
-                half_verses=("a1", "a2"),
-                half_verses_unvocalized=("u1", "u2"),
-                half_verses_niqqud_only=("n1", "n2"),
+                cola=("a1", "a2"),
+                cola_unvocalized=("u1", "u2"),
+                cola_niqqud_only=("n1", "n2"),
             )
         ]
 
@@ -167,7 +167,7 @@ class TestGenerateApi:
     def test_cache_hit_never_calls_fetch(self, tmp_path):
         from semantic.export import node_vectors, write_dataset
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        psalms = [_psalm(number=1, cola=("A",), cola_unvocalized=("a",))]
         for variation in ("consonantal", "vocalized", "cantillation"):
             write_dataset(
                 tmp_path,
@@ -185,7 +185,7 @@ class TestGenerateApi:
         assert written == []
 
     def test_missing_api_key_raises_naming_the_exact_env_var(self, tmp_path):
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        psalms = [_psalm(number=1, cola=("A",), cola_unvocalized=("a",))]
 
         def _fake_fetch(texts, *, api_key):
             return np.zeros((1, 1))
@@ -196,7 +196,7 @@ class TestGenerateApi:
     def test_missing_api_key_is_not_read_when_every_variation_is_already_cached(self, tmp_path):
         from semantic.export import node_vectors, write_dataset
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        psalms = [_psalm(number=1, cola=("A",), cola_unvocalized=("a",))]
         for variation in ("consonantal", "vocalized", "cantillation"):
             write_dataset(
                 tmp_path,
@@ -223,9 +223,9 @@ class TestGenerateApi:
         psalms = [
             _psalm(
                 number=1,
-                half_verses=("A",),
-                half_verses_unvocalized=("a",),
-                half_verses_niqqud_only=("n",),
+                cola=("A",),
+                cola_unvocalized=("a",),
+                cola_niqqud_only=("n",),
             )
         ]
 

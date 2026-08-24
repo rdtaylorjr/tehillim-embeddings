@@ -14,9 +14,7 @@ from syntax.signature_vectorize import (
 
 
 def _psalm(*, number, nodes, typ, function):
-    return PhrasePsalm(
-        number=number, half_verse_nodes=nodes, half_verse_typ=typ, half_verse_function=function
-    )
+    return PhrasePsalm(number=number, colon_nodes=nodes, colon_typ=typ, colon_function=function)
 
 
 def _one_atom_psalm(number, node):
