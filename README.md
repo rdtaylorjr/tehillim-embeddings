@@ -381,7 +381,7 @@ Generate with `.venv/bin/python3 -m syntax.generate_typ`,
 * [tehillim-benchmarks](https://github.com/rdtaylorjr/tehillim-benchmarks): scores these
   representations against parallelism and genre benchmarks
 * [tehillim-data](https://github.com/rdtaylorjr/tehillim-data): hosts the benchmark results
-* [tehillim-ui](https://github.com/rdtaylorjr/tehillim-ui): the results page
+* [tehillim](https://github.com/rdtaylorjr/tehillim): the results page
 * [bhsa](https://github.com/etcbc/bhsa): the core text and linguistic
   annotation for the Hebrew Bible
 
