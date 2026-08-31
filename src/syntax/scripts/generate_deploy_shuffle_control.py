@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from lexical.export import write_dataset
-from lexical.shuffle_control import shuffled_order_by_psalm
+from lexical.shuffle_control import DEFAULT_N_SHUFFLES, shuffled_order_by_psalm
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.deploy import signature_deploy_vectors
 from syntax.signature_support import (
@@ -58,7 +58,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--config-root", type=Path, required=True)
-    parser.add_argument("--n-shuffles", type=int, default=30)
+    parser.add_argument("--n-shuffles", type=int, default=DEFAULT_N_SHUFFLES)
     args = parser.parse_args()
 
     corpus = Corpus.load()

@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from lexical.export import write_dataset
+from lexical.shuffle_control import DEFAULT_N_SHUFFLES
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.function_ngram import (
     phrase_function_1_2_3gram_psalm_vectors,
@@ -138,7 +139,7 @@ def main() -> None:
     parser.add_argument("--representation", required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--config-root", type=Path, required=True)
-    parser.add_argument("--n-shuffles", type=int, default=30)
+    parser.add_argument("--n-shuffles", type=int, default=DEFAULT_N_SHUFFLES)
     args = parser.parse_args()
 
     corpus = Corpus.load()

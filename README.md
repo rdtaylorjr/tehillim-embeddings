@@ -248,9 +248,11 @@ checkout with no code changes.
   positional representation's benchmark score reflects genuine colon-order signal rather than a
   mechanical artifact of the binning itself. `generate_shuffle_control` writes N seeded
   `icf_position_mean_psalm_shuffleNN` psalm-broadcast datasets. `generate_shuffle_control_colon` writes N
-  seeded `icf_position4_shuffleNN` colon-level datasets. Scored in `tehillim-benchmarks` via
-  `order_shuffle_result` (real score minus mean shuffled score, plus a rank-based permutation
-  p-value), not a z-score against the shuffled distribution's mean/std.
+  seeded `icf_position4_shuffleNN` colon-level datasets. N defaults to
+  `lexical.shuffle_control.DEFAULT_N_SHUFFLES` = 1000, which puts the permutation p-value floor at
+  1/1001, under the 0.05/7 a BH-corrected result across the 7 genres needs. Scored in
+  `tehillim-benchmarks` via `order_shuffle_result` (real score minus mean shuffled score, plus a
+  rank-based permutation p-value), not a z-score against the shuffled distribution's mean/std.
 
 Generate with `.venv/bin/python3 -m lexical.generate` (skips any dataset already written).
 

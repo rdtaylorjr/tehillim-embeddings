@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from lexical.export import write_dataset, write_sparse_dataset
+from lexical.shuffle_control import DEFAULT_N_SHUFFLES
 from morphology.corpus import Corpus, MorphologicalPsalm
 from morphology.pos_ngram import (
     sp_1_2_3gram_psalm_vectors,
@@ -144,7 +145,7 @@ def main() -> None:
     parser.add_argument("--representation", required=True, choices=sorted(_POS_BUILDERS))
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--config-root", type=Path, required=True)
-    parser.add_argument("--n-shuffles", type=int, default=30)
+    parser.add_argument("--n-shuffles", type=int, default=DEFAULT_N_SHUFFLES)
     args = parser.parse_args()
 
     corpus = Corpus.load()

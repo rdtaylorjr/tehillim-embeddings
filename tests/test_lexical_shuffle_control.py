@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from lexical.corpus import LexicalPsalm
-from lexical.shuffle_control import shuffled_order_by_psalm
+from lexical.shuffle_control import DEFAULT_N_SHUFFLES, shuffled_order_by_psalm
 
 
 def _psalm(*, number, n_cola):
@@ -53,3 +53,11 @@ class TestShuffledOrderByPsalm:
         order = shuffled_order_by_psalm(psalms, seed=1)
 
         assert order[1].tolist() == [0]
+
+
+class TestDefaultNShuffles:
+    def test_the_p_value_floor_clears_bh_correction_across_the_seven_genres(self):
+        assert 1 / (DEFAULT_N_SHUFFLES + 1) <= 0.05 / 7
+
+    def test_thirty_shuffles_would_not_have_cleared_it(self):
+        assert 1 / (30 + 1) > 0.05 / 7

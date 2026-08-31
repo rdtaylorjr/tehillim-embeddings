@@ -10,7 +10,7 @@ from lexical.export import write_dataset
 from lexical.frequency import icf_weights as compute_icf_weights
 from lexical.frequency import lex0_token_frequencies, total_token_count
 from lexical.positional import positional_icf_vectors
-from lexical.shuffle_control import shuffled_order_by_psalm
+from lexical.shuffle_control import DEFAULT_N_SHUFFLES, shuffled_order_by_psalm
 from lexical.vocabulary import build_vocabulary
 
 _K = 4
@@ -40,7 +40,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--n-shuffles", type=int, default=30)
+    parser.add_argument("--n-shuffles", type=int, default=DEFAULT_N_SHUFFLES)
     args = parser.parse_args()
 
     corpus = Corpus.load()
