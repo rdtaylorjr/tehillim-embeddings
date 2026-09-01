@@ -6,6 +6,9 @@ import numpy as np
 
 from lexical.corpus import LexicalPsalm
 
+# 1000 puts the p-value floor at 1/1001, under the 0.05/7 needed for BH across genres.
+DEFAULT_N_SHUFFLES = 1000
+
 
 def shuffled_order_by_psalm(psalms: list[LexicalPsalm], seed: int) -> dict[int, np.ndarray]:
     """One fixed-seed random permutation of colon indices per psalm, independent across psalms."""

@@ -83,50 +83,67 @@ Join against BHSA (real Text-Fabric, loaded via `use()`) on `node_id`.
 
 ### Citations
 
-* Smiley, D. M. (2026). MiqraBERT: Regression-Based Sentence-BERT
-  Finetuning for Biblical Hebrew Parallel Detection. arXiv:2606.19638.
-* Seker, A., Bandel, E., Bareket, D., Brusilovsky, I., Greenfeld, R. S.,
-  & Tsarfaty, R. (2021). AlephBERT: A Hebrew Large Pre-Trained Language
-  Model to Start-off your Hebrew NLP Application With. arXiv:2104.04052.
-* Shmidman, S., Shmidman, A., & Koppel, M. (2025). NeoDictaBERT:
-  Pushing the Frontier of BERT models for Hebrew. arXiv:2510.20386.
-* Shmidman, A., Guedalia, J., Shmidman, S., Shmidman, C. S., Handel,
-  E., & Koppel, M. (2022). Introducing BEREL: BERT Embeddings for
-  Rabbinic-Encoded Language. arXiv:2208.01875.
-* Li, C. et al. (2024). Making Text Embedders Few-Shot Learners.
-  arXiv:2409.15700.
-* Zhang, Y. et al. (2025). Qwen3 Embedding: Advancing Text Embedding
-  and Reranking Through Foundation Models. arXiv:2506.05176.
-* Zhao, X. et al. (2025). KaLM-Embedding-V2: Superior Training
-  Techniques and Data Inspire A Versatile Embedding Model.
-  arXiv:2506.20923.
-* Babakhin, Y. et al. (2025). Llama-Embed-Nemotron-8B: A Universal
-  Text Embedding Model for Multilingual and Cross-Lingual Tasks.
-  arXiv:2511.07025.
-* Microsoft (2026). harrier-oss-v1: Open-Source Multilingual Text
-  Embeddings. https://huggingface.co/microsoft/harrier-oss-v1-27b
-* Zhang, Z., Liao, Z., Yu, H., Di, P., & Wang, R. (2026). F2LLM-v2:
-  Inclusive, Performant, and Efficient Embeddings for a Multilingual
-  World. arXiv:2603.19223.
-* Chen, J. et al. (2024). BGE M3-Embedding: Multi-Lingual,
-  Multi-Functionality, Multi-Granularity Text Embeddings Through
-  Self-Knowledge Distillation. arXiv:2402.03216.
-* Zhang, X. et al. (2024). mGTE: Generalized Long-Context Text
-  Representation and Reranking Models for Multilingual Text Retrieval.
-  arXiv:2407.19669.
-* Wang, L. et al. (2024). Multilingual E5 Text Embeddings: A Technical
-  Report. arXiv:2402.05672.
-* Shanbhogue, M. et al. (2026). Gemini Embedding 2: A Native
-  Multimodal Embedding Model from Gemini. arXiv:2605.27295.
-* OpenAI (2024). New embedding models and API updates.
-  https://openai.com/index/new-embedding-models-and-api-updates/
-* Cohere (2025). Embed v4.0.
-  https://docs.cohere.com/changelog/embed-multimodal-v4
-* Voyage AI (2026). The Voyage 4 model family: shared embedding space
-  with MoE architecture. https://blog.voyageai.com/2026/01/15/voyage-4/
-* Spärck Jones, K. (1972). A Statistical Interpretation of Term
-  Specificity and Its Application in Retrieval. Journal of
-  Documentation, 28(1), 11-21.
+> Smiley, David M. "MiqraBERT: Regression-Based Sentence-BERT Finetuning for Biblical Hebrew
+> Parallel Detection." arXiv, 2026. https://arxiv.org/abs/2606.19638.
+
+> Seker, Amit, Elron Bandel, Dan Bareket, Idan Brusilovsky, Refael Shaked Greenfeld, and Reut
+> Tsarfaty. "AlephBERT: A Hebrew Large Pre-Trained Language Model to Start-Off Your Hebrew NLP
+> Application With." arXiv, 2021. https://arxiv.org/abs/2104.04052.
+
+> Shmidman, Shaltiel, Avi Shmidman, and Moshe Koppel. "NeoDictaBERT: Pushing the Frontier of BERT
+> Models for Hebrew." arXiv, 2025. https://arxiv.org/abs/2510.20386.
+
+> Shmidman, Avi, Joshua Guedalia, Shaltiel Shmidman, Cheyn Shmuel Shmidman, Eli Handel, and Moshe
+> Koppel. "Introducing BEREL: BERT Embeddings for Rabbinic-Encoded Language." arXiv, 2022.
+> https://arxiv.org/abs/2208.01875.
+
+> Li, Chaofan, MingHao Qin, Shitao Xiao, Jianlyu Chen, Kun Luo, Yingxia Shao, Defu Lian, and Zheng
+> Liu. "Making Text Embedders Few-Shot Learners." arXiv, 2024. https://arxiv.org/abs/2409.15700.
+
+> Zhang, Yanzhao, Mingxin Li, Dingkun Long, Xin Zhang, Huan Lin, Baosong Yang, Pengjun Xie, et al.
+> "Qwen3 Embedding: Advancing Text Embedding and Reranking Through Foundation Models." arXiv, 2025.
+> https://arxiv.org/abs/2506.05176.
+
+> Zhao, Xinping, Xinshuo Hu, Zifei Shan, Shouzheng Huang, Yao Zhou, Xin Zhang, Zetian Sun, et al.
+> "KaLM-Embedding-V2: Superior Training Techniques and Data Inspire a Versatile Embedding Model."
+> arXiv, 2025. https://arxiv.org/abs/2506.20923.
+
+> Babakhin, Yauhen, Radek Osmulski, Ronay Ak, Gabriel Moreira, Mengyao Xu, Benedikt Schifferer, Bo
+> Liu, and Even Oldridge. "Llama-Embed-Nemotron-8B: A Universal Text Embedding Model for
+> Multilingual and Cross-Lingual Tasks." arXiv, 2025. https://arxiv.org/abs/2511.07025.
+
+> Microsoft. "harrier-oss-v1: Open-Source Multilingual Text Embeddings." Hugging Face, 2026.
+> https://huggingface.co/microsoft/harrier-oss-v1-27b.
+
+> Zhang, Ziyin, Zihan Liao, Hang Yu, Peng Di, and Rui Wang. "F2LLM-v2: Inclusive, Performant, and
+> Efficient Embeddings for a Multilingual World." arXiv, 2026. https://arxiv.org/abs/2603.19223.
+
+> Chen, Jianlv, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, and Zheng Liu. "M3-Embedding:
+> Multi-Linguality, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge
+> Distillation." arXiv, 2024. https://arxiv.org/abs/2402.03216.
+
+> Zhang, Xin, Yanzhao Zhang, Dingkun Long, Wen Xie, Ziqi Dai, Jialong Tang, Huan Lin, et al. "mGTE:
+> Generalized Long-Context Text Representation and Reranking Models for Multilingual Text
+> Retrieval." arXiv, 2024. https://arxiv.org/abs/2407.19669.
+
+> Wang, Liang, Nan Yang, Xiaolong Huang, Linjun Yang, Rangan Majumder, and Furu Wei. "Multilingual
+> E5 Text Embeddings: A Technical Report." arXiv, 2024. https://arxiv.org/abs/2402.05672.
+
+> Shanbhogue, Madhuri, Zhe Li, Shanfeng Zhang, Gustavo Hernández Ábrego, Shih-Cheng Huang, Aashi
+> Jain, Daniel Salz, et al. "Gemini Embedding 2: A Native Multimodal Embedding Model from Gemini."
+> arXiv, 2026. https://arxiv.org/abs/2605.27295.
+
+> OpenAI. "New Embedding Models and API Updates." OpenAI, 25 January 2024.
+> https://openai.com/index/new-embedding-models-and-api-updates/.
+
+> Cohere. "Embed v4.0." Cohere Documentation, 2025.
+> https://docs.cohere.com/changelog/embed-multimodal-v4.
+
+> Voyage AI. "The Voyage 4 Model Family: Shared Embedding Space with MoE Architecture." Voyage AI
+> Blog, 2026. https://blog.voyageai.com/2026/01/15/voyage-4/.
+
+> Spärck Jones, Karen. "A Statistical Interpretation of Term Specificity and Its Application in
+> Retrieval." *Journal of Documentation* 28.1 (1972): 11-21.
 
 ## Lexical representations
 
@@ -231,9 +248,11 @@ checkout with no code changes.
   positional representation's benchmark score reflects genuine colon-order signal rather than a
   mechanical artifact of the binning itself. `generate_shuffle_control` writes N seeded
   `icf_position_mean_psalm_shuffleNN` psalm-broadcast datasets. `generate_shuffle_control_colon` writes N
-  seeded `icf_position4_shuffleNN` colon-level datasets. Scored in `tehillim-benchmarks` via
-  `order_shuffle_result` (real score minus mean shuffled score, plus a rank-based permutation
-  p-value), not a z-score against the shuffled distribution's mean/std.
+  seeded `icf_position4_shuffleNN` colon-level datasets. N defaults to
+  `lexical.shuffle_control.DEFAULT_N_SHUFFLES` = 1000, which puts the permutation p-value floor at
+  1/1001, under the 0.05/7 a BH-corrected result across the 7 genres needs. Scored in
+  `tehillim-benchmarks` via `order_shuffle_result` (real score minus mean shuffled score, plus a
+  rank-based permutation p-value), not a z-score against the shuffled distribution's mean/std.
 
 Generate with `.venv/bin/python3 -m lexical.generate` (skips any dataset already written).
 
@@ -364,7 +383,7 @@ Generate with `.venv/bin/python3 -m syntax.generate_typ`,
 * [tehillim-benchmarks](https://github.com/rdtaylorjr/tehillim-benchmarks): scores these
   representations against parallelism and genre benchmarks
 * [tehillim-data](https://github.com/rdtaylorjr/tehillim-data): hosts the benchmark results
-* [tehillim-ui](https://github.com/rdtaylorjr/tehillim-ui): the results page
+* [tehillim](https://github.com/rdtaylorjr/tehillim): the results page
 * [bhsa](https://github.com/etcbc/bhsa): the core text and linguistic
   annotation for the Hebrew Bible
 

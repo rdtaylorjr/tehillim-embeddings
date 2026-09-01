@@ -16,6 +16,8 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.idea/
 .coverage
+coverage.json
 htmlcov/
 *claude*
