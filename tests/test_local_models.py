@@ -29,9 +29,9 @@ def _psalm(
     half_verses_unvocalized: tuple[str, ...],
     half_verses_niqqud_only: tuple[str, ...] = (),
 ):
-    from semantic.corpus import Psalm
+    from semantic.corpus import SemanticPsalm
 
-    return Psalm(
+    return SemanticPsalm(
         number=number,
         half_verses=half_verses,
         half_verses_unvocalized=half_verses_unvocalized,
@@ -40,22 +40,33 @@ def _psalm(
 
 
 class TestSelectHalfVerses:
-    def test_vocalized_true_selects_half_verses(self):
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-        assert select_half_verses(psalm, vocalized=True) == ("A",)
+    """One tier names the text state, so no second flag can contradict it."""
 
-    def test_vocalized_false_selects_half_verses_unvocalized(self):
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-        assert select_half_verses(psalm, vocalized=False) == ("B",)
-
-    def test_niqqud_only_overrides_vocalized_entirely(self):
-        psalm = _psalm(
-            half_verses=("A",),
-            half_verses_unvocalized=("B",),
-            half_verses_niqqud_only=("C",),
+    @staticmethod
+    def _psalm_of_three_tiers():
+        return _psalm(
+            half_verses=("cantillated",),
+            half_verses_unvocalized=("consonants",),
+            half_verses_niqqud_only=("pointed",),
         )
-        assert select_half_verses(psalm, vocalized=True, niqqud_only=True) == ("C",)
-        assert select_half_verses(psalm, vocalized=False, niqqud_only=True) == ("C",)
+
+    def test_the_cantillation_tier_keeps_the_accents(self):
+        assert select_half_verses(self._psalm_of_three_tiers(), "cantillation") == ("cantillated",)
+
+    def test_the_vocalized_tier_keeps_niqqud_without_accents(self):
+        assert select_half_verses(self._psalm_of_three_tiers(), "vocalized") == ("pointed",)
+
+    def test_the_consonantal_tier_keeps_neither(self):
+        assert select_half_verses(self._psalm_of_three_tiers(), "consonantal") == ("consonants",)
+
+    def test_every_tier_selects_a_different_text(self):
+        psalm = self._psalm_of_three_tiers()
+
+        selected = {
+            select_half_verses(psalm, tier) for tier in ("consonantal", "vocalized", "cantillation")
+        }
+
+        assert len(selected) == 3
 
 
 class TestRopeFrequencies:

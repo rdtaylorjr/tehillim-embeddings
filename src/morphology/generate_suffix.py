@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import argparse
-import sys
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
-from core.export import dataset_path, write_dataset
-from core.support import build_signature_vocabulary, load_external_signature_counts
+from core.cli import run_signature_generator
+from core.export import path_to_write, write_vectors
+from core.parallel import map_constructions
+from core.support import build_signature_vocabulary
+from morphology import DATASET_TYPE, SUFFIX_UNIT
 from morphology.corpus import Corpus, MorphologicalPsalm
 from morphology.signature_support import MIN_EXTERNAL_SUPPORT_K
 from morphology.suffix import (
@@ -20,7 +22,44 @@ from morphology.suffix import (
     suffix_inventory_vectors,
 )
 
-_DATASET_TYPE = "morphology"
+#: Keyed by construction so a worker resolves its builder by name, which a lambda cannot pickle.
+_BUILDERS = ("inventory", "inventory_psalm", "host_plus_suffix", "host_plus_suffix_psalm")
+
+
+@dataclass(frozen=True, slots=True)
+class _Context:
+    """Everything one construction needs, pickled once per worker rather than once per build."""
+
+    psalms: tuple[MorphologicalPsalm, ...]
+    output_root: Path
+    signature_vocabulary: tuple[str, ...]
+    external_counts: dict[str, int]
+    k: int
+
+
+def _build(context: _Context, construction: str) -> dict[int, np.ndarray]:
+    """One construction's vectors, resolved by name inside the worker that will write them."""
+    psalms = list(context.psalms)
+    if construction == "inventory":
+        return suffix_inventory_vectors(psalms)
+    if construction == "inventory_psalm":
+        return suffix_inventory_psalm_vectors(psalms)
+    args = (psalms, context.signature_vocabulary, context.external_counts, context.k)
+    if construction == "host_plus_suffix":
+        return host_plus_suffix_vectors(*args)
+    return host_plus_suffix_psalm_vectors(*args)
+
+
+def write_construction(context: _Context, construction: str) -> str | None:
+    """Writes one construction's dataset, or returns None when it is already written."""
+    path = path_to_write(
+        context.output_root, SUFFIX_UNIT, construction, domain=DATASET_TYPE, unit_key="feature"
+    )
+    if path is None:
+        return None
+    description = f"Pronominal-suffix representation, construction={construction}."
+    write_vectors(path, _build(context, construction), description)
+    return f"morph_suffix_{construction}"
 
 
 def generate(
@@ -28,64 +67,34 @@ def generate(
     output_root: Path,
     external_counts: dict[str, int],
     k: int,
+    *,
+    max_workers: int | None = None,
 ) -> list[str]:
     """Writes every not-yet-written morph_suffix construction, returns the names written."""
-    signature_vocabulary = build_signature_vocabulary(external_counts, k)
-
-    builders: dict[str, Callable[[], dict[int, np.ndarray]]] = {
-        "inventory": lambda: suffix_inventory_vectors(psalms),
-        "inventory_psalm": lambda: suffix_inventory_psalm_vectors(psalms),
-        "host_plus_suffix": lambda: host_plus_suffix_vectors(
-            psalms, signature_vocabulary, external_counts, k
-        ),
-        "host_plus_suffix_psalm": lambda: host_plus_suffix_psalm_vectors(
-            psalms, signature_vocabulary, external_counts, k
-        ),
-    }
-
-    written: list[str] = []
-    for construction, builder in builders.items():
-        if dataset_path(
-            output_root,
-            "morph_suffix",
-            construction,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-        ).exists():
-            continue
-        print(
-            f"computing morphology feature=morph_suffix construction={construction}...",
-            file=sys.stderr,
-        )
-        description = f"Pronominal-suffix representation, construction={construction}."
-        write_dataset(
-            output_root,
-            "morph_suffix",
-            construction,
-            builder(),
-            description,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-        )
-        written.append(f"morph_suffix_{construction}")
-
-    return written
+    context = _Context(
+        psalms=tuple(psalms),
+        output_root=output_root,
+        signature_vocabulary=build_signature_vocabulary(external_counts, k),
+        external_counts=external_counts,
+        k=k,
+    )
+    return map_constructions(write_construction, context, _BUILDERS, max_workers=max_workers)
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing morph_suffix dataset."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--config-root", type=Path, required=True)
-    args = parser.parse_args()
-    output_root = args.output_root
-    config_root = args.config_root
-    corpus = Corpus.load()
-    psalms = corpus.psalms()
-    support_path = config_root / "morph_signature_external_support.csv"
-    external_counts = load_external_signature_counts(support_path)
-    written = generate(psalms, output_root, external_counts, MIN_EXTERNAL_SUPPORT_K)
-    print(f"wrote {len(written)} dataset files", file=sys.stderr)
+    run_signature_generator(
+        __doc__,
+        generate,
+        "morph_signature_external_support.csv",
+        MIN_EXTERNAL_SUPPORT_K,
+        argv,
+        corpus_factory=corpus_factory,
+    )
 
 
 if __name__ == "__main__":

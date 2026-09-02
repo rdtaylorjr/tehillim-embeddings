@@ -20,10 +20,10 @@ class SurfacePsalm:
     """One psalm's half-verse surface word-form sequences, in three text tiers, aligned words."""
 
     number: int
+    half_verse_nodes: tuple[int, ...] = ()
     half_verse_consonantal: tuple[tuple[str, ...], ...] = ()
     half_verse_vocalized: tuple[tuple[str, ...], ...] = ()
     half_verse_cantillation: tuple[tuple[str, ...], ...] = ()
-    half_verse_nodes: tuple[int, ...] = ()
 
 
 class SurfaceCorpus(BaseCorpus[SurfacePsalm]):

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
+from core.cli import run_generator
 from syntax.complexity import phrase_complexity_psalm_vectors, phrase_complexity_vectors
-from syntax.corpus import PhrasePsalm
-from syntax.skeleton import generate_skeleton, run
+from syntax.corpus import Corpus, PhrasePsalm
+from syntax.skeleton import generate_skeleton
 
 _UNIT = "complexity"
 _DESCRIPTION = (
@@ -28,9 +30,13 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
     )
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing complexity dataset."""
-    run(__doc__, generate)
+    run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)
 
 
 if __name__ == "__main__":

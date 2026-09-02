@@ -7,9 +7,9 @@ from semantic.export import dataset_path, node_vectors, write_dataset
 
 
 def _psalm(*, number: int, half_verses, half_verse_nodes):
-    from semantic.corpus import Psalm
+    from semantic.corpus import SemanticPsalm
 
-    return Psalm(number=number, half_verses=half_verses, half_verse_nodes=half_verse_nodes)
+    return SemanticPsalm(number=number, half_verses=half_verses, half_verse_nodes=half_verse_nodes)
 
 
 class TestDatasetPath:

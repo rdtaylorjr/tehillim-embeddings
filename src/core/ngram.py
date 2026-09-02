@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
+from core.columns import PsalmColumns
+from core.vocabulary import index_map
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
 HalfVerse = tuple[str, ...]
-PsalmColumns = tuple[tuple[int, ...], tuple[HalfVerse, ...]]
 
 
 def reorder(values: HalfVerse, node: int, order_by_node: dict[int, np.ndarray] | None) -> HalfVerse:
@@ -80,6 +87,11 @@ def _sparse_order_counts(flat: np.ndarray, denom: int) -> tuple[np.ndarray, np.n
     return unique_idx, counts / denom
 
 
+def concatenated_1_2_3gram_dim(dim: int) -> int:
+    """Width of the concatenated [unigram; bigram; trigram] vector over a dim-sized vocabulary."""
+    return dim + dim * dim + dim * dim * dim
+
+
 def sparse_1_2_3gram(
     values: HalfVerse, index_of: dict[str, int], dim: int
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -109,13 +121,16 @@ def sparse_1_2_3gram(
 def pooled_ngram_psalm_vectors(
     psalm_columns: list[PsalmColumns],
     orders: tuple[int, ...],
-    index_of: dict[str, int],
-    dim: int,
+    vocabulary: Sequence[str],
     order_by_node: dict[int, np.ndarray] | None,
 ) -> dict[int, np.ndarray]:
     """Word-count-weighted psalm-wide pooling: sums raw n-gram counts, normalizes once per order."""
+    #: Derived once per dataset here, rather than by every caller keeping the two in step.
+    index_of = index_map(vocabulary)
+    dim = len(vocabulary)
     vectors: dict[int, np.ndarray] = {}
-    for nodes, half_verses in psalm_columns:
+    for columns in psalm_columns:
+        nodes, half_verses = columns.nodes, columns.half_verses
         totals = {order: np.zeros(dim**order, dtype=np.float64) for order in orders}
         denominators = dict.fromkeys(orders, 0)
         for node, half_verse_values in zip(nodes, half_verses, strict=True):
@@ -137,13 +152,16 @@ def pooled_ngram_psalm_vectors(
 
 def sparse_pooled_1_2_3gram(
     psalm_columns: list[PsalmColumns],
-    index_of: dict[str, int],
-    dim: int,
+    vocabulary: Sequence[str],
     order_by_node: dict[int, np.ndarray] | None,
 ) -> dict[int, tuple[np.ndarray, np.ndarray]]:
     """Word-count-weighted psalm-wide sparse pooling of [unigram; bigram; trigram], never dense."""
+    #: Derived once per dataset here, rather than by every caller keeping the two in step.
+    index_of = index_map(vocabulary)
+    dim = len(vocabulary)
     vectors: dict[int, tuple[np.ndarray, np.ndarray]] = {}
-    for nodes, half_verses in psalm_columns:
+    for columns in psalm_columns:
+        nodes, half_verses = columns.nodes, columns.half_verses
         uni_parts, bi_parts, tri_parts = [], [], []
         uni_denom = bi_denom = tri_denom = 0
         for node, half_verse_values in zip(nodes, half_verses, strict=True):

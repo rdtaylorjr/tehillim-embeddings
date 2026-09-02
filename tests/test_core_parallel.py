@@ -4,7 +4,7 @@ from typing import ClassVar, Self
 
 import pytest
 
-from core.parallel import map_seeds
+from core.parallel import map_items, map_seeds
 
 
 def _double(context: int, seed: int) -> int:
@@ -121,3 +121,44 @@ class TestMapSeeds:
         from core.parallel import in_worker_process
 
         assert in_worker_process() is False
+
+
+class TestMapItems:
+    def test_carries_a_non_integer_item_type_the_way_it_carries_seeds(self) -> None:
+        """Constructions are named, so the pool must map over strings as readily as over seeds."""
+        result = map_items(
+            lambda context, item: f"{context}:{item}",
+            "ctx",
+            ["a", "b"],
+            max_workers=1,
+        )
+
+        assert result == ["ctx:a", "ctx:b"]
+
+    def test_preserves_submission_order_so_a_rerun_reports_the_same_sequence(self) -> None:
+        result = map_items(lambda _c, item: item, None, ["c", "a", "b"], max_workers=1)
+
+        assert result == ["c", "a", "b"]
+
+    def test_returns_empty_for_no_items_without_starting_a_pool(self) -> None:
+        def exploding_factory(**_kwargs: object) -> object:
+            raise AssertionError("no pool should start when there is nothing to map")
+
+        assert map_items(lambda _c, i: i, None, [], executor_factory=exploding_factory) == []
+
+    def test_stays_serial_inside_a_worker_so_pools_never_nest(self) -> None:
+        """A nested pool would square the process count and exhaust memory."""
+
+        def exploding_factory(**_kwargs: object) -> object:
+            raise AssertionError("an inner call must not start its own pool")
+
+        result = map_items(
+            lambda _c, item: item,
+            None,
+            ["a", "b"],
+            max_workers=4,
+            executor_factory=exploding_factory,
+            in_worker_process=lambda: True,
+        )
+
+        assert result == ["a", "b"]

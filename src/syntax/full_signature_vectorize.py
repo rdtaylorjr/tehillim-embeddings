@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.columns import PsalmColumns
 from core.ngram import pooled_ngram_psalm_vectors, unigram_histogram
 from core.support import collapse_rare
 from core.vocabulary import index_map
@@ -39,10 +40,12 @@ def phrase_full_signature_psalm_vectors(
     psalms: list[PhrasePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast full-signature inventory histogram, atom-count-weighted pooling."""
-    index_of = index_map(vocabulary)
-    dim = len(vocabulary)
     columns = [
-        (psalm.half_verse_nodes, _collapsed_full_signatures(psalm, external_counts, k))
+        PsalmColumns(
+            psalm.number,
+            psalm.half_verse_nodes,
+            _collapsed_full_signatures(psalm, external_counts, k),
+        )
         for psalm in psalms
     ]
-    return pooled_ngram_psalm_vectors(columns, (1,), index_of, dim, order_by_node=None)
+    return pooled_ngram_psalm_vectors(columns, (1,), vocabulary, order_by_node=None)

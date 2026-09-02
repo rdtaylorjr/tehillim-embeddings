@@ -2,29 +2,24 @@
 
 from __future__ import annotations
 
-import argparse
-import sys
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
-
-from core.export import dataset_path, write_sparse_vectors, write_vectors
-from core.support import build_signature_vocabulary, load_external_signature_counts
+from core.cli import run_signature_generator
+from core.export import path_to_write, write_sparse_vectors, write_vectors
+from core.ngram import concatenated_1_2_3gram_dim
+from core.parallel import map_constructions
+from core.support import build_signature_vocabulary
+from morphology import ATOMIC_UNIT, DATASET_TYPE, SIGNATURE_UNIT
 from morphology.corpus import Corpus, MorphologicalPsalm
 from morphology.signature_support import MIN_EXTERNAL_SUPPORT_K
 from morphology.signature_vectorize import (
+    DENSE_BUILDERS,
+    SPARSE_BUILDERS,
     morph_atomic_psalm_vectors,
     morph_atomic_vectors,
-    morph_signature_1_2_3gram_psalm_sparse_vectors,
-    morph_signature_1_2_3gram_sparse_vectors,
-    morph_signature_1_2gram_psalm_vectors,
-    morph_signature_1_2gram_vectors,
-    morph_signature_psalm_vectors,
-    morph_signature_vectors,
 )
-
-_DATASET_TYPE = "morphology"
 
 
 def _signature_description(k: int, construction: str) -> str:
@@ -32,13 +27,47 @@ def _signature_description(k: int, construction: str) -> str:
     return f"Grammatical-signature histogram (RARE-collapsed, k={k}), construction={construction}."
 
 
-def _path_to_write(output_root: Path, unit: str, construction: str) -> Path | None:
-    """The path to write, or None when the dataset already exists and should be skipped."""
-    path = dataset_path(output_root, unit, construction, domain=_DATASET_TYPE, unit_key="feature")
-    if path.exists():
+#: The atomic baseline is written alongside the signatures, keyed the same way for one dispatch.
+ATOMIC_BUILDERS = {"core": morph_atomic_vectors, "core_psalm": morph_atomic_psalm_vectors}
+
+
+@dataclass(frozen=True, slots=True)
+class _Context:
+    """Everything one construction needs, pickled once per worker rather than once per build."""
+
+    psalms: tuple[MorphologicalPsalm, ...]
+    output_root: Path
+    vocabulary: tuple[str, ...]
+    external_counts: dict[str, int]
+    k: int
+
+
+def write_construction(context: _Context, construction: str) -> str | None:
+    """Writes one construction's dataset, or returns None when it is already written."""
+    psalms = list(context.psalms)
+    atomic_builder = ATOMIC_BUILDERS.get(construction)
+    unit = ATOMIC_UNIT if atomic_builder is not None else SIGNATURE_UNIT
+    path = path_to_write(
+        context.output_root, unit, construction, domain=DATASET_TYPE, unit_key="feature"
+    )
+    if path is None:
         return None
-    print(f"computing morphology feature={unit} construction={construction}...", file=sys.stderr)
-    return path
+    if atomic_builder is not None:
+        description = (
+            f"Atomic morphology baseline [sp;gn;nu;ps;st;vs;vt], construction={construction}."
+        )
+        write_vectors(path, atomic_builder(psalms), description)
+        return f"morph_atomic_{construction}"
+
+    args = (psalms, context.vocabulary, context.external_counts, context.k)
+    description = _signature_description(context.k, construction)
+    dense_builder = DENSE_BUILDERS.get(construction)
+    if dense_builder is not None:
+        write_vectors(path, dense_builder(*args), description)
+    else:
+        combined_dim = concatenated_1_2_3gram_dim(len(context.vocabulary))
+        write_sparse_vectors(path, SPARSE_BUILDERS[construction](*args), combined_dim, description)
+    return f"morph_signature_{construction}"
 
 
 def generate(
@@ -46,79 +75,35 @@ def generate(
     output_root: Path,
     external_counts: dict[str, int],
     k: int,
+    *,
+    max_workers: int | None = None,
 ) -> list[str]:
     """Writes every not-yet-written morph_atomic/morph_signature construction, returns names."""
-    written: list[str] = []
-
-    for construction, atomic_builder in (
-        ("core", morph_atomic_vectors),
-        ("core_psalm", morph_atomic_psalm_vectors),
-    ):
-        path = _path_to_write(output_root, "morph_atomic", construction)
-        if path is None:
-            continue
-        description = (
-            f"Atomic morphology baseline [sp;gn;nu;ps;st;vs;vt], construction={construction}."
-        )
-        write_vectors(path, atomic_builder(psalms), description)
-        written.append(f"morph_atomic_{construction}")
-
-    vocabulary = build_signature_vocabulary(external_counts, k)
-    dim = len(vocabulary)
-
-    dense_builders: dict[str, Callable[[], dict[int, np.ndarray]]] = {
-        "inventory": lambda: morph_signature_vectors(psalms, vocabulary, external_counts, k),
-        "inventory_psalm": lambda: morph_signature_psalm_vectors(
-            psalms, vocabulary, external_counts, k
-        ),
-        "1_2gram": lambda: morph_signature_1_2gram_vectors(psalms, vocabulary, external_counts, k),
-        "1_2gram_psalm": lambda: morph_signature_1_2gram_psalm_vectors(
-            psalms, vocabulary, external_counts, k
-        ),
-    }
-    for construction, dense_builder in dense_builders.items():
-        path = _path_to_write(output_root, "morph_signature", construction)
-        if path is None:
-            continue
-        write_vectors(path, dense_builder(), _signature_description(k, construction))
-        written.append(f"morph_signature_{construction}")
-
-    #: The 42^1+42^2+42^3 trigram block is nearly all zero per half-verse, so it is stored sparsely.
-    combined_dim = dim + dim * dim + dim * dim * dim
-    sparse_builders: dict[str, Callable[[], dict[int, tuple[np.ndarray, np.ndarray]]]] = {
-        "1_2_3gram": lambda: morph_signature_1_2_3gram_sparse_vectors(
-            psalms, vocabulary, external_counts, k
-        ),
-        "1_2_3gram_psalm": lambda: morph_signature_1_2_3gram_psalm_sparse_vectors(
-            psalms, vocabulary, external_counts, k
-        ),
-    }
-    for construction, sparse_builder in sparse_builders.items():
-        path = _path_to_write(output_root, "morph_signature", construction)
-        if path is None:
-            continue
-        write_sparse_vectors(
-            path, sparse_builder(), combined_dim, _signature_description(k, construction)
-        )
-        written.append(f"morph_signature_{construction}")
-
-    return written
+    context = _Context(
+        psalms=tuple(psalms),
+        output_root=output_root,
+        vocabulary=build_signature_vocabulary(external_counts, k),
+        external_counts=external_counts,
+        k=k,
+    )
+    constructions = (*ATOMIC_BUILDERS, *DENSE_BUILDERS, *SPARSE_BUILDERS)
+    return map_constructions(write_construction, context, constructions, max_workers=max_workers)
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing morph_atomic/morph_signature dataset."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--config-root", type=Path, required=True)
-    args = parser.parse_args()
-    output_root = args.output_root
-    config_root = args.config_root
-    corpus = Corpus.load()
-    psalms = corpus.psalms()
-    support_path = config_root / "morph_signature_external_support.csv"
-    external_counts = load_external_signature_counts(support_path)
-    written = generate(psalms, output_root, external_counts, MIN_EXTERNAL_SUPPORT_K)
-    print(f"wrote {len(written)} dataset files", file=sys.stderr)
+    run_signature_generator(
+        __doc__,
+        generate,
+        "morph_signature_external_support.csv",
+        MIN_EXTERNAL_SUPPORT_K,
+        argv,
+        corpus_factory=corpus_factory,
+    )
 
 
 if __name__ == "__main__":

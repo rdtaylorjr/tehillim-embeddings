@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-import argparse
-import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
-from core.export import dataset_path, write_sparse_vectors, write_vectors
+from core.cli import run_generator
+from core.export import path_to_write, write_sparse_vectors, write_vectors
+from core.parallel import map_constructions
+from syntax import DATASET_TYPE
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.function_ngram import (
     phrase_function_1_2_3gram_psalm_sparse_vectors,
@@ -28,8 +31,6 @@ _FULL_WEIGHTS = (
     "1_2gram_psalm",
     "1_2_3gram_psalm",
 )
-
-_DATASET_TYPE = "syntax"
 
 
 def _vectors_for_weight(psalms: list[PhrasePsalm], weight: str) -> dict[int, np.ndarray]:
@@ -57,54 +58,58 @@ _DIM = len(FUNCTION_VOCABULARY)
 _SPARSE_DIM = _DIM + _DIM * _DIM + _DIM * _DIM * _DIM
 
 
-def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
-    """Writes every not-yet-written phrase-function construction, returns the names written."""
-    written: list[str] = []
-    for weight in _FULL_WEIGHTS:
-        if dataset_path(
-            output_root,
-            "function",
-            weight,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-            level="phrase",
-        ).exists():
-            continue
-        print(f"computing syntax feature=function construction={weight}...", file=sys.stderr)
-        path = dataset_path(
-            output_root,
-            "function",
-            weight,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-            level="phrase",
+@dataclass(frozen=True, slots=True)
+class _Context:
+    """Everything one construction needs, pickled once per worker rather than once per build."""
+
+    psalms: tuple[PhrasePsalm, ...]
+    output_root: Path
+
+
+def write_construction(context: _Context, weight: str) -> str | None:
+    """Writes one construction's dataset, or returns None when it is already written."""
+    path = path_to_write(
+        context.output_root,
+        "function",
+        weight,
+        domain=DATASET_TYPE,
+        unit_key="feature",
+        level="phrase",
+    )
+    if path is None:
+        return None
+    psalms = list(context.psalms)
+    sparse_builder = _SPARSE_WEIGHTS.get(weight)
+    if sparse_builder is not None:
+        description = (
+            f"Phrase-function-only skeleton, construction={weight}, dimension {_SPARSE_DIM}."
         )
-        sparse_builder = _SPARSE_WEIGHTS.get(weight)
-        if sparse_builder is not None:
-            description = (
-                f"Phrase-function-only skeleton, construction={weight}, dimension {_SPARSE_DIM}."
-            )
-            write_sparse_vectors(path, sparse_builder(psalms), _SPARSE_DIM, description)
-        else:
-            vectors = _vectors_for_weight(psalms, weight)
-            dimension = len(next(iter(vectors.values())))
-            description = (
-                f"Phrase-function-only skeleton, construction={weight}, dimension {dimension}."
-            )
-            write_vectors(path, vectors, description)
-        written.append(f"function_{weight}")
-    return written
+        write_sparse_vectors(path, sparse_builder(psalms), _SPARSE_DIM, description)
+    else:
+        vectors = _vectors_for_weight(psalms, weight)
+        dimension = len(next(iter(vectors.values())))
+        description = (
+            f"Phrase-function-only skeleton, construction={weight}, dimension {dimension}."
+        )
+        write_vectors(path, vectors, description)
+    return f"function_{weight}"
 
 
-def main() -> None:
+def generate(
+    psalms: list[PhrasePsalm], output_root: Path, *, max_workers: int | None = None
+) -> list[str]:
+    """Writes every not-yet-written phrase-function construction, returns the names written."""
+    context = _Context(tuple(psalms), output_root)
+    return map_constructions(write_construction, context, _FULL_WEIGHTS, max_workers=max_workers)
+
+
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing phrase-function dataset."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    output_root = parser.parse_args().output_root
-    corpus = Corpus.load()
-    psalms = corpus.psalms()
-    written = generate(psalms, output_root)
-    print(f"wrote {len(written)} dataset files", file=sys.stderr)
+    run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)
 
 
 if __name__ == "__main__":

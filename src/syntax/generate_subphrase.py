@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
-from syntax.corpus import PhrasePsalm
-from syntax.skeleton import generate_skeleton, run
+from core.cli import run_generator
+from syntax.corpus import Corpus, PhrasePsalm
+from syntax.skeleton import generate_skeleton
 from syntax.subphrase_vectorize import (
     subphrase_rela_1gram_psalm_vectors,
     subphrase_rela_1gram_vectors,
@@ -29,9 +31,13 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
     )
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing subphrase_rela dataset."""
-    run(__doc__, generate)
+    run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import pyarrow.parquet as pq
+import pytest
 
 from core.export import dataset_path as _dataset_path
 from syntax.corpus import PhrasePsalm
-from syntax.generate_function import generate
+from syntax.generate_function import _vectors_for_weight, generate
 
 
 def dataset_path(output_root, vocab, weight):
@@ -66,3 +67,9 @@ class TestGenerate:
         table = pq.read_table(dataset_path(tmp_path, "function", "1gram"))
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] != by_node[101]
+
+
+def test_an_unregistered_weight_is_rejected_rather_than_silently_skipped() -> None:
+    """A construction name with no builder is a config error, not an empty dataset."""
+    with pytest.raises(ValueError, match="unknown weight"):
+        _vectors_for_weight([], "not_a_real_weight")

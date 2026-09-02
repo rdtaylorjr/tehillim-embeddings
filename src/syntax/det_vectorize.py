@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.columns import PsalmColumns
 from core.ngram import pooled_ngram_psalm_vectors, unigram_histogram
 from syntax.corpus import PhrasePsalm
 from syntax.vocabulary import DET_VOCABULARY
@@ -28,5 +29,5 @@ def phrase_det_1gram_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]
 
 def phrase_det_1gram_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `phrase_det_1gram`: atom-count-weighted pooling across every half-verse."""
-    columns = [(p.half_verse_nodes, p.half_verse_det) for p in psalms]
-    return pooled_ngram_psalm_vectors(columns, (1,), _INDEX_OF, _DIM, order_by_node=None)
+    columns = [PsalmColumns(p.number, p.half_verse_nodes, p.half_verse_det) for p in psalms]
+    return pooled_ngram_psalm_vectors(columns, (1,), DET_VOCABULARY, order_by_node=None)

@@ -3,19 +3,25 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.cli import (
+    add_config_root_argument,
+    add_output_root_argument,
+    add_shuffle_arguments,
+    report_written,
+)
 from core.export import write_dataset, write_sparse_dataset
+from core.ngram import concatenated_1_2_3gram_dim
 from core.parallel import map_seeds
 from core.shuffle import (
-    DEFAULT_N_SHUFFLES,
     shuffle_construction_name,
     shuffled_within_half_verse_order,
 )
 from core.support import build_signature_vocabulary, load_external_signature_counts
+from syntax import DATASET_TYPE, SIGNATURE_UNIT
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.function_ngram import (
     phrase_function_1_2_3gram_psalm_sparse_vectors,
@@ -24,12 +30,7 @@ from syntax.function_ngram import (
     phrase_function_1_2gram_vectors,
 )
 from syntax.signature_support import MIN_EXTERNAL_SUPPORT_K
-from syntax.signature_vectorize import (
-    phrase_signature_1_2_3gram_psalm_sparse_vectors,
-    phrase_signature_1_2_3gram_sparse_vectors,
-    phrase_signature_1_2gram_psalm_vectors,
-    phrase_signature_1_2gram_vectors,
-)
+from syntax.signature_vectorize import ORDERED_DENSE_BUILDERS, SPARSE_BUILDERS
 from syntax.typ_ngram import (
     phrase_typ_1_2_3gram_psalm_sparse_vectors,
     phrase_typ_1_2_3gram_sparse_vectors,
@@ -38,20 +39,11 @@ from syntax.typ_ngram import (
 )
 from syntax.vocabulary import FUNCTION_VOCABULARY, TYP_VOCABULARY
 
-_DATASET_TYPE = "syntax"
-
 _DIM_BY_UNIT = {"typ": len(TYP_VOCABULARY), "function": len(FUNCTION_VOCABULARY)}
 
-_DENSE_SIGNATURE_BUILDERS = {
-    "1_2gram": phrase_signature_1_2gram_vectors,
-    "1_2gram_psalm": phrase_signature_1_2gram_psalm_vectors,
-}
+_DENSE_SIGNATURE_BUILDERS = ORDERED_DENSE_BUILDERS
 
-#: The trigram block is 99.97% zeros at these dimensions, so it is stored sparsely.
-_SPARSE_SIGNATURE_BUILDERS = {
-    "1_2_3gram": phrase_signature_1_2_3gram_sparse_vectors,
-    "1_2_3gram_psalm": phrase_signature_1_2_3gram_psalm_sparse_vectors,
-}
+_SPARSE_SIGNATURE_BUILDERS = SPARSE_BUILDERS
 
 _DENSE_BUILDERS_BY_UNIT = {
     "typ": {
@@ -75,6 +67,19 @@ _SPARSE_BUILDERS_BY_UNIT = {
         "1_2_3gram_psalm": phrase_function_1_2_3gram_psalm_sparse_vectors,
     },
 }
+
+
+_ALL_UNITS = (*sorted({*_DENSE_BUILDERS_BY_UNIT, *_SPARSE_BUILDERS_BY_UNIT}), SIGNATURE_UNIT)
+
+#: Both signature layouts and every per-unit layout, since one --representation validates them all.
+_ALL_REPRESENTATIONS = sorted(
+    {
+        *_DENSE_SIGNATURE_BUILDERS,
+        *_SPARSE_SIGNATURE_BUILDERS,
+        *(r for builders in _DENSE_BUILDERS_BY_UNIT.values() for r in builders),
+        *(r for builders in _SPARSE_BUILDERS_BY_UNIT.values() for r in builders),
+    }
+)
 
 
 def _half_verse_typ(psalm: PhrasePsalm) -> tuple[tuple[str, ...], ...]:
@@ -121,7 +126,7 @@ def write_unit_seed(context: _UnitContext, seed: int) -> str:
             name,
             dense_builder(psalms, order),
             description,
-            domain=_DATASET_TYPE,
+            domain=DATASET_TYPE,
             unit_key="feature",
             level="phrase",
         )
@@ -133,9 +138,9 @@ def write_unit_seed(context: _UnitContext, seed: int) -> str:
             context.unit,
             name,
             sparse_builder(psalms, order),
-            dim + dim * dim + dim * dim * dim,
+            concatenated_1_2_3gram_dim(dim),
             description,
-            domain=_DATASET_TYPE,
+            domain=DATASET_TYPE,
             unit_key="feature",
             level="phrase",
         )
@@ -156,11 +161,11 @@ def write_signature_seed(context: _SignatureContext, seed: int) -> str:
     if dense_builder is not None:
         write_dataset(
             context.output_root,
-            "signature",
+            SIGNATURE_UNIT,
             name,
             dense_builder(*args),
             description,
-            domain=_DATASET_TYPE,
+            domain=DATASET_TYPE,
             unit_key="feature",
             level="phrase",
         )
@@ -168,12 +173,12 @@ def write_signature_seed(context: _SignatureContext, seed: int) -> str:
         dim = len(context.vocabulary)
         write_sparse_dataset(
             context.output_root,
-            "signature",
+            SIGNATURE_UNIT,
             name,
             _SPARSE_SIGNATURE_BUILDERS[context.representation](*args),
-            dim + dim * dim + dim * dim * dim,
+            concatenated_1_2_3gram_dim(dim),
             description,
-            domain=_DATASET_TYPE,
+            domain=DATASET_TYPE,
             unit_key="feature",
             level="phrase",
         )
@@ -239,14 +244,11 @@ def generate_signature_shuffle_control(
 def build_parser() -> argparse.ArgumentParser:
     """Command-line interface for the phrase unit and signature shuffle-null controls."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--unit", required=True, choices=(*sorted(_DENSE_BUILDERS_BY_UNIT), "signature")
-    )
-    parser.add_argument("--representation", required=True)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--config-root", type=Path, required=True)
-    parser.add_argument("--n-shuffles", type=int, default=DEFAULT_N_SHUFFLES)
-    parser.add_argument("--max-workers", type=int, default=None)
+    parser.add_argument("--unit", required=True, choices=_ALL_UNITS)
+    parser.add_argument("--representation", required=True, choices=_ALL_REPRESENTATIONS)
+    add_output_root_argument(parser)
+    add_config_root_argument(parser)
+    add_shuffle_arguments(parser)
     return parser
 
 
@@ -260,7 +262,7 @@ def main(
 
     corpus = corpus_factory()
     psalms = corpus.psalms()
-    if args.unit == "signature":
+    if args.unit == SIGNATURE_UNIT:
         support_path = args.config_root / "phrase_signature_external_support.csv"
         external_counts = load_external_signature_counts(support_path)
         vocabulary = build_signature_vocabulary(external_counts, MIN_EXTERNAL_SUPPORT_K)
@@ -283,7 +285,7 @@ def main(
             args.n_shuffles,
             max_workers=args.max_workers,
         )
-    print(f"wrote {len(written)} shuffle-control datasets", file=sys.stderr)
+    report_written(written)
 
 
 if __name__ == "__main__":

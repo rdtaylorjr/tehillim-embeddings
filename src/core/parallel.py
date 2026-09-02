@@ -16,6 +16,30 @@ def in_worker_process() -> bool:
     return multiprocessing.parent_process() is not None
 
 
+def map_items[ContextT, ItemT, ResultT](
+    worker: Callable[[ContextT, ItemT], ResultT],
+    context: ContextT,
+    items: Iterable[ItemT],
+    *,
+    max_workers: int | None = None,
+    executor_factory: Callable[..., AbstractContextManager[Any]] = ProcessPoolExecutor,
+    in_worker_process: Callable[[], bool] = in_worker_process,
+) -> list[ResultT]:
+    """Runs `worker(context, item)` for every item across processes, results in submission order."""
+    #: `worker` must be module-level: the pool pickles it by qualified name to reach each process.
+    item_list = list(items)
+    if not item_list:
+        return []
+    requested = max_workers if max_workers is not None else (os.cpu_count() or 1)
+    workers = max(1, min(requested, len(item_list)))
+    #: Nesting would square the process count and exhaust memory, so an inner call stays serial.
+    if workers == 1 or in_worker_process():
+        return [worker(context, item) for item in item_list]
+    chunksize = -(-len(item_list) // workers)
+    with executor_factory(max_workers=workers) as pool:
+        return list(pool.map(partial(worker, context), item_list, chunksize=chunksize))
+
+
 def map_seeds[ContextT, ResultT](
     worker: Callable[[ContextT, int], ResultT],
     context: ContextT,
@@ -26,15 +50,24 @@ def map_seeds[ContextT, ResultT](
     in_worker_process: Callable[[], bool] = in_worker_process,
 ) -> list[ResultT]:
     """Runs `worker(context, seed)` for every seed across processes, results in seed order."""
-    #: `worker` must be module-level: the pool pickles it by qualified name to reach each process.
-    seed_list = list(seeds)
-    if not seed_list:
-        return []
-    requested = max_workers if max_workers is not None else (os.cpu_count() or 1)
-    workers = max(1, min(requested, len(seed_list)))
-    #: Nesting would square the process count and exhaust memory, so an inner call stays serial.
-    if workers == 1 or in_worker_process():
-        return [worker(context, seed) for seed in seed_list]
-    chunksize = -(-len(seed_list) // workers)
-    with executor_factory(max_workers=workers) as pool:
-        return list(pool.map(partial(worker, context), seed_list, chunksize=chunksize))
+    return map_items(
+        worker,
+        context,
+        seeds,
+        max_workers=max_workers,
+        executor_factory=executor_factory,
+        in_worker_process=in_worker_process,
+    )
+
+
+def map_constructions[ContextT, ItemT](
+    worker: Callable[[ContextT, ItemT], str | None],
+    context: ContextT,
+    constructions: Iterable[ItemT],
+    *,
+    max_workers: int | None = None,
+) -> list[str]:
+    """Builds every construction across workers, returning the names written, skipping any None."""
+    #: A worker returns None for a construction already on disk, which is a skip rather than a name.
+    names = map_items(worker, context, constructions, max_workers=max_workers)
+    return [name for name in names if name is not None]

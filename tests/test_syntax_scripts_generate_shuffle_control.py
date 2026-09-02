@@ -6,6 +6,7 @@ import pytest
 from core.export import dataset_path as _dataset_path
 from core.support import build_signature_vocabulary
 from syntax.corpus import PhrasePsalm
+from syntax.scripts import generate_shuffle_control as generate_shuffle_control_module
 from syntax.scripts.generate_shuffle_control import (
     generate_shuffle_control,
     generate_signature_shuffle_control,
@@ -151,3 +152,27 @@ class TestGenerateSignatureShuffleControl:
                 external_counts=_external_counts(),
                 k=1000,
             )
+
+
+def test_the_unit_choices_cover_both_storage_layouts() -> None:
+    """--unit is validated once for dense and sparse alike, so neither may offer more than it."""
+    parser = generate_shuffle_control_module.build_parser()
+    unit = next(a for a in parser._actions if a.dest == "unit")
+
+    assert set(generate_shuffle_control_module._SPARSE_BUILDERS_BY_UNIT) <= set(unit.choices)
+
+
+def test_the_representation_choices_cover_every_builder_table() -> None:
+    parser = generate_shuffle_control_module.build_parser()
+    representation = next(a for a in parser._actions if a.dest == "representation")
+    every_representation = {
+        *generate_shuffle_control_module._DENSE_SIGNATURE_BUILDERS,
+        *generate_shuffle_control_module._SPARSE_SIGNATURE_BUILDERS,
+        *(
+            r
+            for builders in generate_shuffle_control_module._SPARSE_BUILDERS_BY_UNIT.values()
+            for r in builders
+        ),
+    }
+
+    assert every_representation <= set(representation.choices)

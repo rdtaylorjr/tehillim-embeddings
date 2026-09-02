@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from core.text import TextTier
 from semantic.api_models import COHERE_MODEL, GEMINI_MODEL, OPENAI_MODEL, VOYAGE_MODEL
 from semantic.local_models import (
     ALEPHBERT_MODEL,
@@ -117,27 +118,20 @@ MODEL_REGISTRY: dict[str, tuple[str, str, str]] = {
 #: These tokenizers strip niqqud and cantillation, so only the consonantal variation is generated.
 TOKENIZER_STRIPS_ALL_DIACRITICS = {"miqrabert", "alephbert", "neodictabert", "berel"}
 
-#: (variation, vocalized, niqqud_only, description), matching `select_half_verses`'s parameters.
-VARIATIONS: list[tuple[str, bool, bool, str]] = [
-    ("consonantal", False, False, "Bare consonants. No niqqud, no cantillation."),
-    ("vocalized", True, True, "Niqqud (vowel points) only. No cantillation marks."),
-    (
-        "cantillation",
-        True,
-        False,
-        "Niqqud and cantillation/accent marks together (full Masoretic pointing).",
-    ),
+#: (tier, description): the tier names the text state, so no second flag can disagree with it.
+VARIATIONS: list[tuple[TextTier, str]] = [
+    ("consonantal", "Bare consonants. No niqqud, no cantillation."),
+    ("vocalized", "Niqqud (vowel points) only. No cantillation marks."),
+    ("cantillation", "Niqqud and cantillation/accent marks together (full Masoretic pointing)."),
 ]
 
 
-def variations_for_model(slug: str) -> list[tuple[str, bool, bool, str]]:
+def variations_for_model(slug: str) -> list[tuple[TextTier, str]]:
     """Returns the text variations to generate for a model slug."""
     if slug in TOKENIZER_STRIPS_ALL_DIACRITICS:
         return [
             (
                 "consonantal",
-                False,
-                False,
                 (
                     "Bare consonants. No niqqud, no cantillation. This model's "
                     "tokenizer strips niqqud and cantillation identically, so the "

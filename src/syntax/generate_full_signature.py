@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import argparse
-import sys
+from collections.abc import Callable
 from pathlib import Path
 
-from core.export import dataset_path, write_dataset
-from core.support import build_signature_vocabulary, load_external_signature_counts
+from core.cli import run_signature_generator
+from core.export import path_to_write, write_vectors
+from core.support import build_signature_vocabulary
+from syntax import DATASET_TYPE
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.full_signature_vectorize import (
     phrase_full_signature_psalm_vectors,
@@ -15,7 +16,6 @@ from syntax.full_signature_vectorize import (
 )
 from syntax.signature_support import MIN_EXTERNAL_SUPPORT_K_FULL
 
-_DATASET_TYPE = "syntax"
 _UNIT = "full_signature"
 
 
@@ -30,49 +30,40 @@ def generate(
         ("inventory", phrase_full_signature_vectors),
         ("inventory_psalm", phrase_full_signature_psalm_vectors),
     ):
-        if dataset_path(
+        path = path_to_write(
             output_root,
             _UNIT,
             construction,
-            domain=_DATASET_TYPE,
+            domain=DATASET_TYPE,
             unit_key="feature",
             level="phrase",
-        ).exists():
+        )
+        if path is None:
             continue
-        print(f"computing syntax feature={_UNIT} construction={construction}...", file=sys.stderr)
         vectors = builder(psalms, vocabulary, external_counts, k)
         description = (
             f"Full typ:function:det signature histogram (RARE-collapsed, k={k}), "
             f"construction={construction}."
         )
-        write_dataset(
-            output_root,
-            _UNIT,
-            construction,
-            vectors,
-            description,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-            level="phrase",
-        )
+        write_vectors(path, vectors, description)
         written.append(f"{_UNIT}_{construction}")
     return written
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing phrase_full_signature dataset."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--config-root", type=Path, required=True)
-    args = parser.parse_args()
-    output_root = args.output_root
-    config_root = args.config_root
-    corpus = Corpus.load()
-    psalms = corpus.psalms()
-    support_path = config_root / "phrase_full_signature_external_support.csv"
-    external_counts = load_external_signature_counts(support_path)
-    written = generate(psalms, output_root, external_counts, MIN_EXTERNAL_SUPPORT_K_FULL)
-    print(f"wrote {len(written)} dataset files", file=sys.stderr)
+    run_signature_generator(
+        __doc__,
+        generate,
+        "phrase_full_signature_external_support.csv",
+        MIN_EXTERNAL_SUPPORT_K_FULL,
+        argv,
+        corpus_factory=corpus_factory,
+    )
 
 
 if __name__ == "__main__":

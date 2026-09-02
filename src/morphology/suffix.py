@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from core.ngram import PsalmColumns, pooled_ngram_psalm_vectors, unigram_histogram
+from core.columns import PsalmColumns
+from core.ngram import pooled_ngram_psalm_vectors, unigram_histogram
 from core.support import collapse_rare
 from morphology.corpus import MorphologicalPsalm
 from morphology.signature import psalm_signatures
@@ -71,12 +72,11 @@ def suffix_inventory_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.n
 
 def suffix_inventory_psalm_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `suffix_inventory_vectors`, word-count-weighted pooling."""
-    index_of = {value: i for i, value in enumerate(SUFFIX_VOCABULARY)}
-    dim = len(SUFFIX_VOCABULARY)
     columns: list[PsalmColumns] = [
-        (psalm.half_verse_nodes, psalm_suffix_signatures(psalm)) for psalm in psalms
+        PsalmColumns(psalm.number, psalm.half_verse_nodes, psalm_suffix_signatures(psalm))
+        for psalm in psalms
     ]
-    return pooled_ngram_psalm_vectors(columns, (1,), index_of, dim, order_by_node=None)
+    return pooled_ngram_psalm_vectors(columns, (1,), SUFFIX_VOCABULARY, order_by_node=None)
 
 
 def _collapsed_signatures(
@@ -123,14 +123,14 @@ def host_plus_suffix_psalm_vectors(
     k: int,
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast `host_plus_suffix_vectors`, each half word-count-weighted independently."""
-    host_index_of = {value: i for i, value in enumerate(signature_vocabulary)}
-    host_dim = len(signature_vocabulary)
     host_columns: list[PsalmColumns] = [
-        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
+        PsalmColumns(
+            psalm.number, psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k)
+        )
         for psalm in psalms
     ]
     host_vectors = pooled_ngram_psalm_vectors(
-        host_columns, (1,), host_index_of, host_dim, order_by_node=None
+        host_columns, (1,), signature_vocabulary, order_by_node=None
     )
     suffix_vectors = suffix_inventory_psalm_vectors(psalms)
     return {

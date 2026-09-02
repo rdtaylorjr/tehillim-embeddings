@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from core.shuffle import shuffled_within_half_verse_order
 from core.support import build_signature_vocabulary
 from syntax.corpus import PhrasePsalm
 from syntax.function_ngram import (
@@ -155,3 +156,55 @@ class TestSignatureTrigramSparseMatchesDense:
 
         assert np.array_equal(sparse[100][0], sparse[101][0])
         assert np.array_equal(sparse[100][1], sparse[101][1])
+
+
+class TestSparseMatchesDenseUnderAShufflePermutation:
+    """The shuffle-null datasets are written from the sparse path, with an order applied."""
+
+    @pytest.mark.parametrize("seed", [1, 2, 7])
+    @pytest.mark.parametrize(("name", "dense_builder", "sparse_builder"), UNIT_PAIRS)
+    def test_half_verse_level_still_reconstructs_the_dense_vector(
+        self, name, dense_builder, sparse_builder, seed
+    ):
+        psalms = _psalms()
+        order = shuffled_within_half_verse_order(
+            psalms, seed, half_verses=lambda psalm: psalm.half_verse_typ
+        )
+
+        dense = dense_builder(psalms, order)
+        sparse = sparse_builder(psalms, order)
+
+        for node in (100, 101):
+            assert np.array_equal(_densify(sparse[node], len(dense[node])), dense[node])
+
+    @pytest.mark.parametrize("seed", [1, 2, 7])
+    @pytest.mark.parametrize(("name", "dense_builder", "sparse_builder"), PSALM_PAIRS)
+    def test_psalm_broadcast_still_reconstructs_the_dense_vector(
+        self, name, dense_builder, sparse_builder, seed
+    ):
+        psalms = _psalms()
+        order = shuffled_within_half_verse_order(
+            psalms, seed, half_verses=lambda psalm: psalm.half_verse_typ
+        )
+
+        dense = dense_builder(psalms, order)
+        sparse = sparse_builder(psalms, order)
+
+        for node in (100, 101):
+            assert np.array_equal(_densify(sparse[node], len(dense[node])), dense[node])
+
+    @pytest.mark.parametrize("seed", [1, 2, 7])
+    def test_the_signature_family_still_reconstructs_the_dense_vector(self, seed):
+        psalms = _psalms()
+        vocabulary, counts, k = _signature_args()
+        order = shuffled_within_half_verse_order(
+            psalms, seed, half_verses=lambda psalm: psalm.half_verse_typ
+        )
+
+        dense = phrase_signature_1_2_3gram_psalm_vectors(psalms, vocabulary, counts, k, order)
+        sparse = phrase_signature_1_2_3gram_psalm_sparse_vectors(
+            psalms, vocabulary, counts, k, order
+        )
+
+        for node in (100, 101):
+            assert np.array_equal(_densify(sparse[node], len(dense[node])), dense[node])

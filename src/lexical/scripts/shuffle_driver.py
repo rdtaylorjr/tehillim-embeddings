@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
+from core.cli import add_output_root_argument, add_shuffle_arguments, report_written
 from core.columns import PsalmColumns
 from core.export import write_dataset
 from core.parallel import map_seeds
-from core.shuffle import DEFAULT_N_SHUFFLES, shuffle_construction_name, shuffled_order_by_psalm
+from core.shuffle import shuffle_construction_name, shuffled_order_by_psalm
 from lexical.corpus import Corpus, LexicalPsalm
 from lexical.frequency import icf_weights as compute_icf_weights
 from lexical.frequency import lex0_token_frequencies, total_token_count
@@ -76,9 +76,8 @@ def generate(
 def build_parser(doc: str | None) -> argparse.ArgumentParser:
     """Command-line interface shared by both lexical shuffle-null controls."""
     parser = argparse.ArgumentParser(description=doc)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--n-shuffles", type=int, default=DEFAULT_N_SHUFFLES)
-    parser.add_argument("--max-workers", type=int, default=None)
+    add_output_root_argument(parser)
+    add_shuffle_arguments(parser)
     return parser
 
 
@@ -106,4 +105,4 @@ def run(
         builder=builder,
         max_workers=args.max_workers,
     )
-    print(f"wrote {len(written)} shuffle-control datasets", file=sys.stderr)
+    report_written(written)

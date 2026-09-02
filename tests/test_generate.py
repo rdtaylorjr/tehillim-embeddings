@@ -10,9 +10,9 @@ from semantic.generate import generate_api, generate_local
 
 
 def _psalm(*, number: int, half_verses, half_verses_unvocalized, half_verses_niqqud_only=()):
-    from semantic.corpus import Psalm
+    from semantic.corpus import SemanticPsalm
 
-    return Psalm(
+    return SemanticPsalm(
         number=number,
         half_verses=half_verses,
         half_verses_unvocalized=half_verses_unvocalized,
@@ -25,8 +25,8 @@ class TestGenerateLocal:
     def test_computes_and_writes_every_variation_for_a_diacritic_preserving_model(self, tmp_path):
         calls = []
 
-        def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
-            calls.append((model_name, vocalized, niqqud_only))
+        def _fake_compute(psalms, model_name, *, tier, device, torch_dtype):
+            calls.append((model_name, tier))
             return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
@@ -38,15 +38,15 @@ class TestGenerateLocal:
             "semantic_bge_m3_vocalized",
             "semantic_bge_m3_cantillation",
         ]
-        assert len(calls) == 3
+        assert [tier for _, tier in calls] == ["consonantal", "vocalized", "cantillation"]
         for variation in ("consonantal", "vocalized", "cantillation"):
             assert dataset_path(tmp_path, "bge_m3", variation).exists()
 
     def test_computes_only_one_variation_for_a_diacritic_stripping_model(self, tmp_path):
         calls = []
 
-        def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
-            calls.append((model_name, vocalized, niqqud_only))
+        def _fake_compute(psalms, model_name, *, tier, device, torch_dtype):
+            calls.append((model_name, tier))
             return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
@@ -54,13 +54,13 @@ class TestGenerateLocal:
         written = generate_local(psalms, tmp_path, "miqrabert", compute=_fake_compute)
 
         assert written == ["semantic_miqrabert_consonantal"]
-        assert calls == [("davidmsmiley/MiqraBERT", False, False)]
+        assert calls == [("davidmsmiley/MiqraBERT", "consonantal")]
 
     def test_restricts_to_a_single_named_variation(self, tmp_path):
         calls = []
 
-        def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
-            calls.append((vocalized, niqqud_only))
+        def _fake_compute(psalms, model_name, *, tier, device, torch_dtype):
+            calls.append(tier)
             return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
 
         psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
@@ -106,7 +106,7 @@ class TestGenerateLocal:
     def test_passes_device_and_torch_dtype_through(self, tmp_path):
         calls = []
 
-        def _fake_compute(psalms, model_name, *, vocalized, niqqud_only, device, torch_dtype):
+        def _fake_compute(psalms, model_name, *, tier, device, torch_dtype):
             calls.append((device, torch_dtype))
             return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
 

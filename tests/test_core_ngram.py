@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.columns import PsalmColumns
 from core.ngram import (
     bigram_histogram,
+    concatenated_1_2_3gram_dim,
     pooled_ngram_psalm_vectors,
     reorder,
     sparse_1_2_3gram,
@@ -52,20 +54,16 @@ class TestTrigramHistogram:
 
 class TestPooledNgramPsalmVectors:
     def test_pools_raw_counts_across_half_verses_before_normalizing_once(self):
-        psalm_columns = [((100, 101), (("a",), ("b", "b", "c")))]
-        vectors = pooled_ngram_psalm_vectors(
-            psalm_columns, orders=(1,), index_of=_INDEX_OF, dim=_DIM, order_by_node=None
-        )
+        psalm_columns = [PsalmColumns(1, (100, 101), (("a",), ("b", "b", "c")))]
+        vectors = pooled_ngram_psalm_vectors(psalm_columns, (1,), _VOCAB, order_by_node=None)
         vector = vectors[100]
         assert np.isclose(vector[_INDEX_OF["a"]], 0.25)
         assert np.isclose(vector[_INDEX_OF["b"]], 0.5)
         assert np.isclose(vector[_INDEX_OF["c"]], 0.25)
 
     def test_broadcasts_the_identical_vector_within_a_psalm(self):
-        psalm_columns = [((100, 101), (("a",), ("b",)))]
-        vectors = pooled_ngram_psalm_vectors(
-            psalm_columns, orders=(1,), index_of=_INDEX_OF, dim=_DIM, order_by_node=None
-        )
+        psalm_columns = [PsalmColumns(1, (100, 101), (("a",), ("b",)))]
+        vectors = pooled_ngram_psalm_vectors(psalm_columns, (1,), _VOCAB, order_by_node=None)
         assert np.array_equal(vectors[100], vectors[101])
 
 
@@ -138,11 +136,11 @@ class TestSparse123Gram:
 class TestSparsePooled123Gram:
     def test_matches_the_dense_pooled_vector_exactly(self):
         combined_dim = _DIM + _DIM**2 + _DIM**3
-        psalm_columns = [((100, 101), (("a", "b", "a"), ("b", "c", "a", "b")))]
+        psalm_columns = [PsalmColumns(1, (100, 101), (("a", "b", "a"), ("b", "c", "a", "b")))]
 
-        sparse_vectors = sparse_pooled_1_2_3gram(psalm_columns, _INDEX_OF, _DIM, order_by_node=None)
+        sparse_vectors = sparse_pooled_1_2_3gram(psalm_columns, _VOCAB, order_by_node=None)
         dense_vectors = pooled_ngram_psalm_vectors(
-            psalm_columns, orders=(1, 2, 3), index_of=_INDEX_OF, dim=_DIM, order_by_node=None
+            psalm_columns, (1, 2, 3), _VOCAB, order_by_node=None
         )
 
         sparse_idx, sparse_val = sparse_vectors[100]
@@ -151,21 +149,38 @@ class TestSparsePooled123Gram:
         assert np.array_equal(reconstructed, dense_vectors[100])
 
     def test_broadcasts_the_identical_sparse_vector_within_a_psalm(self):
-        psalm_columns = [((100, 101), (("a", "b"), ("c",)))]
+        psalm_columns = [PsalmColumns(1, (100, 101), (("a", "b"), ("c",)))]
 
-        vectors = sparse_pooled_1_2_3gram(psalm_columns, _INDEX_OF, _DIM, order_by_node=None)
+        vectors = sparse_pooled_1_2_3gram(psalm_columns, _VOCAB, order_by_node=None)
 
         assert np.array_equal(vectors[100][0], vectors[101][0])
         assert np.array_equal(vectors[100][1], vectors[101][1])
 
     def test_applies_order_by_node_per_half_verse_before_pooling(self):
-        psalm_columns = [((100,), (("a", "b", "c"),))]
+        psalm_columns = [PsalmColumns(1, (100,), (("a", "b", "c"),))]
         order = {100: np.array([2, 1, 0])}
 
-        unshuffled = sparse_pooled_1_2_3gram(psalm_columns, _INDEX_OF, _DIM, order_by_node=None)
-        shuffled = sparse_pooled_1_2_3gram(psalm_columns, _INDEX_OF, _DIM, order_by_node=order)
+        unshuffled = sparse_pooled_1_2_3gram(psalm_columns, _VOCAB, order_by_node=None)
+        shuffled = sparse_pooled_1_2_3gram(psalm_columns, _VOCAB, order_by_node=order)
 
         assert not (
             np.array_equal(unshuffled[100][0], shuffled[100][0])
             and np.array_equal(unshuffled[100][1], shuffled[100][1])
         )
+
+
+def test_concatenated_1_2_3gram_dim_is_the_width_the_sparse_layout_actually_fills() -> None:
+    """The declared width must cover the trigram block the sparse builder offsets into."""
+    dim = 4
+
+    assert concatenated_1_2_3gram_dim(dim) == dim + dim * dim + dim * dim * dim
+
+
+def test_concatenated_1_2_3gram_dim_leaves_no_index_out_of_range() -> None:
+    """Every index a 1+2+3-gram sparse vector can emit must fall inside the declared width."""
+    index_of = {"a": 0, "b": 1}
+    dim = len(index_of)
+
+    indices, _ = sparse_1_2_3gram(("a", "b", "a", "b"), index_of, dim)
+
+    assert indices.max() < concatenated_1_2_3gram_dim(dim)

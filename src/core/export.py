@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -163,3 +164,28 @@ def write_sparse_dataset(
         output_root, vocab, weight, unit_key=unit_key, level=level, text=text, domain=domain
     )
     write_sparse_vectors(path, sparse_vectors, dim, description)
+
+
+def skip_if_written(path: Path, label: str) -> Path | None:
+    """The path to write, or None when the dataset already exists and the build is skipped."""
+    if path.exists():
+        return None
+    print(f"computing {label}...", file=sys.stderr)
+    return path
+
+
+def path_to_write(
+    output_root: Path,
+    vocab: str,
+    construction: str,
+    *,
+    unit_key: str,
+    level: str | None = None,
+    text: str | None = None,
+    domain: str = "lexical",
+) -> Path | None:
+    """The path a construction belongs at, or None when it is already written."""
+    path = dataset_path(
+        output_root, vocab, construction, unit_key=unit_key, level=level, text=text, domain=domain
+    )
+    return skip_if_written(path, f"{domain} {unit_key}={vocab} construction={construction}")

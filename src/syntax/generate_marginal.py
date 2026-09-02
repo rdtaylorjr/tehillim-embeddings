@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
-from syntax.corpus import PhrasePsalm
+from core.cli import run_generator
+from syntax.corpus import Corpus, PhrasePsalm
 from syntax.marginal import typ_function_marginal_psalm_vectors, typ_function_marginal_vectors
-from syntax.skeleton import generate_skeleton, run
+from syntax.skeleton import generate_skeleton
 
 _UNIT = "marginal"
 _DESCRIPTION = "Independent [typ; function] marginal histograms"
@@ -26,9 +28,13 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
     )
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing marginal dataset."""
-    run(__doc__, generate)
+    run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)
 
 
 if __name__ == "__main__":
