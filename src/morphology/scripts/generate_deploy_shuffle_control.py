@@ -3,20 +3,18 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.cli import add_output_root_argument, add_shuffle_arguments, report_written
 from core.export import write_dataset
 from core.parallel import map_seeds
-from core.shuffle import DEFAULT_N_SHUFFLES, shuffle_construction_name, shuffled_order_by_psalm
+from core.shuffle import shuffle_construction_name, shuffled_order_by_psalm
+from morphology import DATASET_TYPE, SUFFIX_UNIT
 from morphology.corpus import Corpus, MorphologicalPsalm
 from morphology.deploy import suffix_deploy_vectors
-
-_DATASET_TYPE = "morphology"
-_UNIT = "morph_suffix"
-_CONSTRUCTION = "posmean"
+from morphology.generate_deploy import CONSTRUCTION
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,18 +30,20 @@ def write_seed(context: _SeedContext, seed: int) -> str:
     psalms = list(context.psalms)
     order = shuffled_order_by_psalm(psalms, seed)
     vectors = suffix_deploy_vectors(psalms, order_by_psalm=order)
-    name = shuffle_construction_name(_CONSTRUCTION, seed)
-    description = f"Shuffle-null order-effect control for {_UNIT}_{_CONSTRUCTION}, seed {seed}."
+    name = shuffle_construction_name(CONSTRUCTION, seed)
+    description = (
+        f"Shuffle-null order-effect control for {SUFFIX_UNIT}_{CONSTRUCTION}, seed {seed}."
+    )
     write_dataset(
         context.output_root,
-        _UNIT,
+        SUFFIX_UNIT,
         name,
         vectors,
         description,
-        domain=_DATASET_TYPE,
+        domain=DATASET_TYPE,
         unit_key="feature",
     )
-    return f"{_UNIT}_{name}"
+    return f"{SUFFIX_UNIT}_{name}"
 
 
 def generate_shuffle_control(
@@ -61,9 +61,8 @@ def generate_shuffle_control(
 def build_parser() -> argparse.ArgumentParser:
     """Command-line interface for the morph_suffix_posmean shuffle-null control."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--n-shuffles", type=int, default=DEFAULT_N_SHUFFLES)
-    parser.add_argument("--max-workers", type=int, default=None)
+    add_output_root_argument(parser)
+    add_shuffle_arguments(parser)
     return parser
 
 
@@ -80,7 +79,7 @@ def main(
     written = generate_shuffle_control(
         psalms, args.output_root, args.n_shuffles, max_workers=args.max_workers
     )
-    print(f"wrote {len(written)} shuffle-control datasets", file=sys.stderr)
+    report_written(written)
 
 
 if __name__ == "__main__":

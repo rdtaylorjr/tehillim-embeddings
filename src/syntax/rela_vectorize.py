@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.columns import PsalmColumns
 from core.ngram import pooled_ngram_psalm_vectors, unigram_histogram
 from syntax.corpus import PhrasePsalm
 from syntax.rela import SAFE_RELA_VOCABULARY, half_verse_safe_rela
@@ -31,7 +32,11 @@ def phrase_rela_1gram_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray
 def phrase_rela_1gram_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `phrase_rela_1gram`: atom-count-weighted pooling, `Para` masked first."""
     columns = [
-        (psalm.half_verse_nodes, tuple(half_verse_safe_rela(c) for c in psalm.half_verse_rela))
+        PsalmColumns(
+            psalm.number,
+            psalm.half_verse_nodes,
+            tuple(half_verse_safe_rela(c) for c in psalm.half_verse_rela),
+        )
         for psalm in psalms
     ]
-    return pooled_ngram_psalm_vectors(columns, (1,), _INDEX_OF, _DIM, order_by_node=None)
+    return pooled_ngram_psalm_vectors(columns, (1,), SAFE_RELA_VOCABULARY, order_by_node=None)

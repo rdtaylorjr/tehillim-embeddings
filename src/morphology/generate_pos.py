@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-import argparse
-import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
-from core.export import dataset_path, write_dataset
+from core.cli import run_generator
+from core.export import path_to_write, write_vectors
+from core.parallel import map_constructions
+from morphology import DATASET_TYPE
 from morphology.corpus import Corpus, MorphologicalPsalm
 from morphology.pos_ngram import (
     sp_1_2_3gram_psalm_vectors,
@@ -28,8 +31,6 @@ _FULL_WEIGHTS = (
     "1_2_3gram_psalm",
 )
 
-_DATASET_TYPE = "morphology"
-
 
 def _vectors_for_weight(psalms: list[MorphologicalPsalm], weight: str) -> dict[int, np.ndarray]:
     """Dispatches to the vector-building function matching `weight`."""
@@ -48,42 +49,41 @@ def _vectors_for_weight(psalms: list[MorphologicalPsalm], weight: str) -> dict[i
     raise ValueError(f"unknown weight {weight!r}")
 
 
-def generate(psalms: list[MorphologicalPsalm], output_root: Path) -> list[str]:
+@dataclass(frozen=True, slots=True)
+class _Context:
+    """Everything one construction needs, pickled once per worker rather than once per build."""
+
+    psalms: tuple[MorphologicalPsalm, ...]
+    output_root: Path
+
+
+def write_construction(context: _Context, weight: str) -> str | None:
+    """Writes one construction's dataset, or returns None when it is already written."""
+    path = path_to_write(context.output_root, "sp", weight, domain=DATASET_TYPE, unit_key="feature")
+    if path is None:
+        return None
+    vectors = _vectors_for_weight(list(context.psalms), weight)
+    dimension = len(next(iter(vectors.values())))
+    description = f"POS-only grammatical skeleton, construction={weight}, dimension {dimension}."
+    write_vectors(path, vectors, description)
+    return f"sp_{weight}"
+
+
+def generate(
+    psalms: list[MorphologicalPsalm], output_root: Path, *, max_workers: int | None = None
+) -> list[str]:
     """Writes every not-yet-written POS construction, returns the names written."""
-    written: list[str] = []
-    for weight in _FULL_WEIGHTS:
-        if dataset_path(
-            output_root, "sp", weight, domain=_DATASET_TYPE, unit_key="feature"
-        ).exists():
-            continue
-        print(f"computing morphology feature=sp construction={weight}...", file=sys.stderr)
-        vectors = _vectors_for_weight(psalms, weight)
-        dimension = len(next(iter(vectors.values())))
-        description = (
-            f"POS-only grammatical skeleton, construction={weight}, dimension {dimension}."
-        )
-        write_dataset(
-            output_root,
-            "sp",
-            weight,
-            vectors,
-            description,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-        )
-        written.append(f"sp_{weight}")
-    return written
+    context = _Context(tuple(psalms), output_root)
+    return map_constructions(write_construction, context, _FULL_WEIGHTS, max_workers=max_workers)
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing POS-skeleton dataset."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    output_root = parser.parse_args().output_root
-    corpus = Corpus.load()
-    psalms = corpus.psalms()
-    written = generate(psalms, output_root)
-    print(f"wrote {len(written)} dataset files", file=sys.stderr)
+    run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)
 
 
 if __name__ == "__main__":

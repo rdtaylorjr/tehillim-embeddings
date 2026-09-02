@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.columns import PsalmColumns
 from core.ngram import (
     bigram_histogram,
     pooled_ngram_psalm_vectors,
@@ -76,21 +77,21 @@ def sp_1_2_3gram_vectors(
 
 def sp_unigram_psalm_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `sp_unigram`: word-count-weighted pooling across every half-verse."""
-    columns = [(p.half_verse_nodes, p.half_verse_sp) for p in psalms]
-    return pooled_ngram_psalm_vectors(columns, (1,), _INDEX_OF, _DIM, order_by_node=None)
+    columns = [PsalmColumns(p.number, p.half_verse_nodes, p.half_verse_sp) for p in psalms]
+    return pooled_ngram_psalm_vectors(columns, (1,), SP_VOCABULARY, order_by_node=None)
 
 
 def sp_1_2gram_psalm_vectors(
     psalms: list[MorphologicalPsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast `[sp_unigram; sp_bigram]`, word-count-weighted pooling."""
-    columns = [(p.half_verse_nodes, p.half_verse_sp) for p in psalms]
-    return pooled_ngram_psalm_vectors(columns, (1, 2), _INDEX_OF, _DIM, order_by_node)
+    columns = [PsalmColumns(p.number, p.half_verse_nodes, p.half_verse_sp) for p in psalms]
+    return pooled_ngram_psalm_vectors(columns, (1, 2), SP_VOCABULARY, order_by_node)
 
 
 def sp_1_2_3gram_psalm_vectors(
     psalms: list[MorphologicalPsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast `[sp_unigram; sp_bigram; sp_trigram]`, word-count-weighted pooling."""
-    columns = [(p.half_verse_nodes, p.half_verse_sp) for p in psalms]
-    return pooled_ngram_psalm_vectors(columns, (1, 2, 3), _INDEX_OF, _DIM, order_by_node)
+    columns = [PsalmColumns(p.number, p.half_verse_nodes, p.half_verse_sp) for p in psalms]
+    return pooled_ngram_psalm_vectors(columns, (1, 2, 3), SP_VOCABULARY, order_by_node)

@@ -43,14 +43,14 @@ def _real_use(spec: str, checkout: str, silent: str) -> Any:
 def _call_with_timeout(
     fn: Callable[..., Any], timeout_seconds: float, /, *args: Any, **kwargs: Any
 ) -> Any:
-    """Runs fn in a daemon thread; returns None (without waiting further) past timeout_seconds."""
+    """Runs fn in a daemon thread, returning its result, the error it raised, or None on timeout."""
     result: queue.Queue[Any] = queue.Queue(maxsize=1)
 
     def _run() -> None:
         try:
             result.put(fn(*args, **kwargs))
-        except Exception:  # noqa: BLE001 -- any failure means the call did not produce an api
-            result.put(None)
+        except Exception as error:  # noqa: BLE001 -- returned to the caller rather than swallowed
+            result.put(error)
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
@@ -99,13 +99,20 @@ def load_api(
             RuntimeWarning,
             stacklevel=2,
         )
-        app = _call_with_timeout(use_fn, timeout_seconds, "etcbc/bhsa", checkout, "deep")
+        outcome = _call_with_timeout(use_fn, timeout_seconds, "etcbc/bhsa", checkout, "deep")
+        app = None if isinstance(outcome, BaseException) else outcome
+        use_reason: object = outcome if isinstance(outcome, BaseException) else None
+        if app is None and use_reason is None:
+            use_reason = f"timed out after {timeout_seconds}s"
         api = _as_api(getattr(app, "api", None)) if app is not None else None
         if api is not None and required_features:
             api.TF.load(required_features, add=True, silent="deep")
+        if api is None and use_reason is None:
+            use_reason = "returned no usable api"
     if api is None:
         raise RuntimeError(
-            f"Text-Fabric failed to load BHSA from {location} or via use(checkout={checkout!r})"
+            f"Text-Fabric failed to load BHSA from {location} "
+            f"or via use(checkout={checkout!r}): {use_reason!r}"
         )
     missing = [name for name in required_features.split() if not hasattr(api.F, name)]
     if missing:

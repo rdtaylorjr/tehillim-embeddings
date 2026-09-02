@@ -5,6 +5,7 @@ import pytest
 
 from core.export import dataset_path as _dataset_path
 from morphology.corpus import MorphologicalPsalm
+from morphology.scripts import generate_shuffle_control as generate_shuffle_control_module
 from morphology.scripts.generate_shuffle_control import (
     generate_shuffle_control,
     generate_signature_shuffle_control,
@@ -178,3 +179,16 @@ class TestGenerateSignatureShuffleControl:
 
         assert written == ["morph_signature_1_2_3gram_psalm_shuffle0001"]
         assert dataset_path(tmp_path, "morph_signature", "1_2_3gram_psalm_shuffle0001").exists()
+
+
+def test_the_representation_choices_cover_every_family_the_cli_offers() -> None:
+    """--representation is validated once for both families, so neither may offer more than it."""
+    parser = generate_shuffle_control_module.build_parser()
+    representation = next(a for a in parser._actions if a.dest == "representation")
+    signature_representations = {
+        *generate_shuffle_control_module._DENSE_SIGNATURE_BUILDERS,
+        *generate_shuffle_control_module._SPARSE_SIGNATURE_BUILDERS,
+    }
+
+    assert signature_representations <= set(representation.choices)
+    assert set(generate_shuffle_control_module._POS_BUILDERS) <= set(representation.choices)

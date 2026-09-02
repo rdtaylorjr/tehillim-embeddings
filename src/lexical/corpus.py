@@ -19,9 +19,9 @@ class LexicalPsalm:
     """One psalm's half-verse lex and lex0 sequences, aligned word-for-word, and their node ids."""
 
     number: int
+    half_verse_nodes: tuple[int, ...] = ()
     half_verse_lexemes: tuple[tuple[str, ...], ...] = ()
     half_verse_forms: tuple[tuple[str, ...], ...] = ()
-    half_verse_nodes: tuple[int, ...] = ()
 
 
 class Corpus(BaseCorpus[LexicalPsalm]):

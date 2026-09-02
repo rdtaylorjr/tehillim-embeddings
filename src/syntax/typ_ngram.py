@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.columns import PsalmColumns
 from core.ngram import (
     bigram_histogram,
     pooled_ngram_psalm_vectors,
@@ -78,24 +79,24 @@ def phrase_typ_1_2_3gram_vectors(
 
 def phrase_typ_1gram_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `phrase_typ_1gram`: atom-count-weighted pooling across every half-verse."""
-    columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
-    return pooled_ngram_psalm_vectors(columns, (1,), _INDEX_OF, _DIM, order_by_node=None)
+    columns = [PsalmColumns(p.number, p.half_verse_nodes, p.half_verse_typ) for p in psalms]
+    return pooled_ngram_psalm_vectors(columns, (1,), TYP_VOCABULARY, order_by_node=None)
 
 
 def phrase_typ_1_2gram_psalm_vectors(
     psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast `[phrase_typ_1gram; phrase_typ_bigram]`, atom-count-weighted pooling."""
-    columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
-    return pooled_ngram_psalm_vectors(columns, (1, 2), _INDEX_OF, _DIM, order_by_node)
+    columns = [PsalmColumns(p.number, p.half_verse_nodes, p.half_verse_typ) for p in psalms]
+    return pooled_ngram_psalm_vectors(columns, (1, 2), TYP_VOCABULARY, order_by_node)
 
 
 def phrase_typ_1_2_3gram_psalm_vectors(
     psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
     """Dense psalm-broadcast `[1gram; bigram; trigram]`: the sparse path's exactness reference."""
-    columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
-    return pooled_ngram_psalm_vectors(columns, (1, 2, 3), _INDEX_OF, _DIM, order_by_node)
+    columns = [PsalmColumns(p.number, p.half_verse_nodes, p.half_verse_typ) for p in psalms]
+    return pooled_ngram_psalm_vectors(columns, (1, 2, 3), TYP_VOCABULARY, order_by_node)
 
 
 def phrase_typ_1_2_3gram_sparse_vectors(
@@ -114,5 +115,5 @@ def phrase_typ_1_2_3gram_psalm_sparse_vectors(
     psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, tuple[np.ndarray, np.ndarray]]:
     """Psalm-broadcast sparse `[phrase_typ_1gram; bigram; trigram]`, atom-count-weighted."""
-    columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
-    return sparse_pooled_1_2_3gram(columns, _INDEX_OF, _DIM, order_by_node)
+    columns = [PsalmColumns(p.number, p.half_verse_nodes, p.half_verse_typ) for p in psalms]
+    return sparse_pooled_1_2_3gram(columns, TYP_VOCABULARY, order_by_node)

@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import argparse
-import csv
-import sys
-from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
+from core.cli import run_support_builder
+from core.corpus import PSALMS_BOOK_NAME
 from morphology.corpus import Corpus
 from morphology.signature import build_signature
-
-_PSALMS_BOOK_NAME = "Psalmi"
 
 
 def build_external_signature_counts(api: Any) -> dict[str, int]:
@@ -19,7 +16,7 @@ def build_external_signature_counts(api: Any) -> dict[str, int]:
     F, L = api.F, api.L  # noqa: N806
     counts: dict[str, int] = {}
     for book in F.otype.s("book"):
-        if F.book.v(book) == _PSALMS_BOOK_NAME:
+        if F.book.v(book) == PSALMS_BOOK_NAME:
             continue
         for word in L.d(book, otype="word"):
             signature = build_signature(
@@ -35,24 +32,19 @@ def build_external_signature_counts(api: Any) -> dict[str, int]:
     return counts
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Writes `morph_signature_external_support.csv` under the given config root."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config-root", type=Path, required=True)
-    config_root = parser.parse_args().config_root
-    config_root.mkdir(parents=True, exist_ok=True)
-    output_path = config_root / "morph_signature_external_support.csv"
-
-    corpus = Corpus.load()
-    counts = build_external_signature_counts(corpus.api)
-
-    with output_path.open("w", newline="") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(["signature", "count"])
-        for signature, count in sorted(counts.items(), key=lambda item: (-item[1], item[0])):
-            writer.writerow([signature, count])
-
-    print(f"wrote {len(counts)} distinct signatures to {output_path}", file=sys.stderr)
+    run_support_builder(
+        __doc__,
+        build_external_signature_counts,
+        "morph_signature_external_support.csv",
+        argv,
+        corpus_factory=corpus_factory,
+    )
 
 
 if __name__ == "__main__":

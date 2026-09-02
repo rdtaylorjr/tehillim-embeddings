@@ -91,12 +91,13 @@ max-args = 8
 "src/semantic/local_models.py" = ["T201", "ANN401", "PLR0913"]
 # Text-Fabric names features at runtime and torch ships no types, so Any is accurate here.
 "src/core/corpus.py" = ["ANN401"]
+"src/core/cli.py" = ["ANN401", "T201"]
 "src/lexical/frequency.py" = ["ANN401"]
 "src/lexical/surface_frequency.py" = ["ANN401"]
 "src/semantic/api_models.py" = ["ANN401"]
 "src/semantic/large_models.py" = ["ANN401"]
 # The Hive path carries five optional partition tiers plus the payload and description.
-"src/core/export.py" = ["PLR0913"]
+"src/core/export.py" = ["PLR0913", "T201"]
 # The Colab notebook clones BHSA from a literal URL; `git` is resolved from Colab's PATH.
 "scripts/*.ipynb" = ["S603", "S607", "T201"]
 # A vulture whitelist is by format a list of bare attribute expressions.
@@ -117,7 +118,7 @@ DEP002 = ["einops", "pytest", "pytest-cov", "ruff", "mypy", "deptry", "vulture"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["--cov=src", "--cov-report=term-missing"]
+addopts = ["--cov=src", "--cov-report=term-missing", "--cov-fail-under=90"]
 # A numpy warning means a statistic silently degenerated, so it fails the build.
 filterwarnings = ["error"]
 markers = [
@@ -127,9 +128,13 @@ markers = [
 
 [tool.coverage.run]
 source = ["src"]
+#: Dataset generation runs its constructions in worker processes, which coverage must follow.
+concurrency = ["multiprocessing"]
+parallel = true
+sigterm = true
 
 [tool.coverage.report]
-fail_under = 90
+#: main() is CLI wiring under test like any other code, so only unreachable lines are excluded.
 exclude_also = [
     "^if __name__ == .__main__.:$",
 ]

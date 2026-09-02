@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
-from syntax.corpus import PhrasePsalm
+from core.cli import run_generator
+from syntax.corpus import Corpus, PhrasePsalm
 from syntax.det_vectorize import phrase_det_1gram_psalm_vectors, phrase_det_1gram_vectors
-from syntax.skeleton import generate_skeleton, run
+from syntax.skeleton import generate_skeleton
 
 _UNIT = "det"
 _DESCRIPTION = "Phrase-determination skeleton"
@@ -23,9 +25,13 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
     )
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing phrase_det dataset."""
-    run(__doc__, generate)
+    run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)
 
 
 if __name__ == "__main__":

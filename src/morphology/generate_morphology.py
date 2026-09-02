@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-import argparse
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
 
+from core.cli import run_generator
 from core.export import dataset_path, write_dataset
+from morphology import DATASET_TYPE
 from morphology.atomic import (
     FeatureKey,
     atomic_psalm_vectors,
@@ -32,8 +34,6 @@ _FEATURES: tuple[FeatureKey, ...] = (
     "prs_ps",
 )
 
-_DATASET_TYPE = "morphology"
-
 
 def _write_if_missing(
     output_root: Path,
@@ -44,7 +44,7 @@ def _write_if_missing(
 ) -> bool:
     """Writes one construction unless its Parquet file already exists, reporting whether it did."""
     if dataset_path(
-        output_root, unit, construction, domain=_DATASET_TYPE, unit_key="feature"
+        output_root, unit, construction, domain=DATASET_TYPE, unit_key="feature"
     ).exists():
         return False
     write_dataset(
@@ -53,7 +53,7 @@ def _write_if_missing(
         construction,
         vectors,
         description,
-        domain=_DATASET_TYPE,
+        domain=DATASET_TYPE,
         unit_key="feature",
     )
     return True
@@ -123,15 +123,13 @@ def generate(psalms: list[MorphologicalPsalm], output_root: Path) -> list[str]:
     return written
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing atomic-morphology dataset."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    output_root = parser.parse_args().output_root
-    corpus = Corpus.load()
-    psalms = corpus.psalms()
-    written = generate(psalms, output_root)
-    print(f"wrote {len(written)} dataset files", file=sys.stderr)
+    run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)
 
 
 if __name__ == "__main__":

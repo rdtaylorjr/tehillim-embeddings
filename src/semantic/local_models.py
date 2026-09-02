@@ -8,10 +8,12 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
+from core.text import TextTier
+
 if TYPE_CHECKING:
     import torch
 
-    from semantic.corpus import Psalm
+    from semantic.corpus import SemanticPsalm
 
 MIQRABERT_MODEL = "davidmsmiley/MiqraBERT"
 ALEPHBERT_MODEL = "imvladikon/sentence-transformers-alephbert"
@@ -32,13 +34,13 @@ _GTE_MULTILINGUAL_MAX_ATTEMPTS = 5
 ME5_LARGE_INSTRUCT_MODEL = "intfloat/multilingual-e5-large-instruct"
 
 
-def select_half_verses(
-    psalm: Psalm, *, vocalized: bool, niqqud_only: bool = False
-) -> tuple[str, ...]:
-    """Selects a psalm's half-verse texts for the given text state."""
-    if niqqud_only:
+def select_half_verses(psalm: SemanticPsalm, tier: TextTier) -> tuple[str, ...]:
+    """Selects a psalm's half-verse texts for one text tier."""
+    if tier == "consonantal":
+        return psalm.half_verses_unvocalized
+    if tier == "vocalized":
         return psalm.half_verses_niqqud_only
-    return psalm.half_verses if vocalized else psalm.half_verses_unvocalized
+    return psalm.half_verses
 
 
 def _rope_frequencies(
@@ -186,11 +188,10 @@ def _release_gpu_memory() -> None:
 
 
 def _raw_transformer_embeddings(
-    psalms: list[Psalm],
+    psalms: list[SemanticPsalm],
     model_name: str,
     *,
-    vocalized: bool,
-    niqqud_only: bool,
+    tier: TextTier,
     device: str | None,
     torch_dtype: str | None,
     raw_transformer_loader: Callable[..., tuple[Any, Any]],
@@ -203,7 +204,7 @@ def _raw_transformer_embeddings(
     )
     embeddings: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        half_verses = select_half_verses(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
+        half_verses = select_half_verses(psalm, tier)
         embeddings[psalm.number] = np.asarray(
             last_token_pooler(list(half_verses), tokenizer, raw_model)
         )
@@ -213,11 +214,10 @@ def _raw_transformer_embeddings(
 
 
 def compute_half_verse_embeddings(
-    psalms: list[Psalm],
+    psalms: list[SemanticPsalm],
     model_name: str,
     *,
-    vocalized: bool = True,
-    niqqud_only: bool = False,
+    tier: TextTier = "cantillation",
     device: str | None = None,
     torch_dtype: str | None = None,
     sentence_transformer_factory: Callable[..., Any] | None = None,
@@ -225,13 +225,12 @@ def compute_half_verse_embeddings(
     last_token_pooler: Callable[[list[str], Any, Any], np.ndarray] = _encode_last_token_pooled,
     release_gpu_memory: Callable[[], None] = _release_gpu_memory,
 ) -> dict[int, np.ndarray]:
-    """`niqqud_only=True` overrides `vocalized` with accent-stripped text."""
+    """Encodes every psalm's half-verses at one text tier, on the best device available."""
     if model_name in RAW_TRANSFORMER_MODELS:
         return _raw_transformer_embeddings(
             psalms,
             model_name,
-            vocalized=vocalized,
-            niqqud_only=niqqud_only,
+            tier=tier,
             device=device,
             torch_dtype=torch_dtype,
             raw_transformer_loader=raw_transformer_loader,
@@ -264,7 +263,7 @@ def compute_half_verse_embeddings(
             _repair_gte_multilingual_position_ids(model[0].auto_model)
         embeddings = {}
         for psalm in psalms:
-            half_verses = select_half_verses(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
+            half_verses = select_half_verses(psalm, tier)
             vectors = model.encode(list(half_verses), normalize_embeddings=True)
             embeddings[psalm.number] = np.asarray(vectors)
         del model

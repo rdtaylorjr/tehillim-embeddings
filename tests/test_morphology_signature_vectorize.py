@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
+from core.shuffle import shuffled_within_half_verse_order
 from morphology.corpus import MorphologicalPsalm
 from morphology.signature_vectorize import (
     morph_atomic_psalm_vectors,
@@ -225,3 +227,48 @@ class TestMorphSignatureSparseVectors:
             np.array_equal(unshuffled[100][0], shuffled[100][0])
             and np.array_equal(unshuffled[100][1], shuffled[100][1])
         )
+
+
+class TestMorphSignatureSparseUnderAShufflePermutation:
+    """The shuffle-null datasets are written from the sparse path, with an order applied."""
+
+    @staticmethod
+    def _fixture():
+        psalms = [_multi_word_psalm(1, (100, 101))]
+        vocabulary = ("subs|m|sg|a", "verb|qal|perf|p3", "verb|piel|impf|p1", "<RARE>")
+        counts = {"subs|m|sg|a": 5000, "verb|qal|perf|p3": 5000, "verb|piel|impf|p1": 5000}
+        return psalms, vocabulary, counts
+
+    @pytest.mark.parametrize("seed", [1, 2, 7])
+    def test_half_verse_level_still_matches_the_dense_computation(self, seed):
+        psalms, vocabulary, counts = self._fixture()
+        order = shuffled_within_half_verse_order(
+            psalms, seed, half_verses=lambda psalm: psalm.half_verse_sp
+        )
+
+        sparse = morph_signature_1_2_3gram_sparse_vectors(psalms, vocabulary, counts, 1000, order)
+        dense = morph_signature_1_2_3gram_vectors(psalms, vocabulary, counts, 1000, order)
+
+        for node in (100, 101):
+            idx, val = sparse[node]
+            reconstructed = np.zeros(dense[node].shape, dtype=np.float32)
+            reconstructed[idx] = val
+            assert np.array_equal(reconstructed, dense[node])
+
+    @pytest.mark.parametrize("seed", [1, 2, 7])
+    def test_psalm_broadcast_still_matches_the_dense_computation(self, seed):
+        psalms, vocabulary, counts = self._fixture()
+        order = shuffled_within_half_verse_order(
+            psalms, seed, half_verses=lambda psalm: psalm.half_verse_sp
+        )
+
+        sparse = morph_signature_1_2_3gram_psalm_sparse_vectors(
+            psalms, vocabulary, counts, 1000, order
+        )
+        dense = morph_signature_1_2_3gram_psalm_vectors(psalms, vocabulary, counts, 1000, order)
+
+        for node in (100, 101):
+            idx, val = sparse[node]
+            reconstructed = np.zeros(dense[node].shape, dtype=np.float32)
+            reconstructed[idx] = val
+            assert np.array_equal(reconstructed, dense[node])

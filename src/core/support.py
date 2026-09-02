@@ -23,3 +23,14 @@ def build_signature_vocabulary(external_counts: dict[str, int], k: int) -> tuple
     """Every signature at or above `k`, sorted, plus the `<RARE>` token last."""
     surviving = sorted(signature for signature, count in external_counts.items() if count >= k)
     return (*surviving, RARE_TOKEN)
+
+
+def write_external_signature_counts(path: Path, counts: dict[str, int]) -> None:
+    """Writes the `signature,count` CSV load_external_signature_counts reads, densest first."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["signature", "count"])
+        #: Descending count then name, so a vocabulary's keepers head the file and reruns match.
+        ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+        writer.writerows(ranked)

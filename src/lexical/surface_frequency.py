@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from core.text import strip_accents
-from lexical.surface_vocabulary import SurfaceTier
+from core.text import TextTier, strip_accents
 
 
-def surface_token_frequencies(api: Any, tier: SurfaceTier) -> dict[str, int]:
+def surface_token_frequencies(api: Any, tier: TextTier) -> dict[str, int]:
     """Whole-Bible token count per surface form at one text tier, not just its Psalms subset."""
     F = api.F  # noqa: N806
     frequencies: dict[str, int] = {}

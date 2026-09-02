@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-import argparse
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
+from core.cli import run_signature_generator
 from core.export import dataset_path, write_dataset
-from core.support import build_signature_vocabulary, load_external_signature_counts
+from core.support import build_signature_vocabulary
+from syntax import DATASET_TYPE, SIGNATURE_UNIT
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.deploy import signature_deploy_vectors
 from syntax.signature_support import MIN_EXTERNAL_SUPPORT_K
 
-_DATASET_TYPE = "syntax"
-_UNIT = "signature"
-_CONSTRUCTION = "posmean"
+CONSTRUCTION = "posmean"
 
 
 def generate(
@@ -23,44 +23,46 @@ def generate(
     """Writes the phrase_signature posmean dataset if not already present, returns names."""
     if dataset_path(
         output_root,
-        _UNIT,
-        _CONSTRUCTION,
-        domain=_DATASET_TYPE,
+        SIGNATURE_UNIT,
+        CONSTRUCTION,
+        domain=DATASET_TYPE,
         unit_key="feature",
         level="phrase",
     ).exists():
         return []
-    print(f"computing syntax feature={_UNIT} construction={_CONSTRUCTION}...", file=sys.stderr)
+    print(
+        f"computing syntax feature={SIGNATURE_UNIT} construction={CONSTRUCTION}...", file=sys.stderr
+    )
     vocabulary = build_signature_vocabulary(external_counts, k)
     vectors = signature_deploy_vectors(psalms, vocabulary, external_counts, k)
-    description = f"Psalm-scale phrase-signature deployment [b;m], construction={_CONSTRUCTION}."
+    description = f"Psalm-scale phrase-signature deployment [b;m], construction={CONSTRUCTION}."
     write_dataset(
         output_root,
-        _UNIT,
-        _CONSTRUCTION,
+        SIGNATURE_UNIT,
+        CONSTRUCTION,
         vectors,
         description,
-        domain=_DATASET_TYPE,
+        domain=DATASET_TYPE,
         unit_key="feature",
         level="phrase",
     )
-    return [f"{_UNIT}_{_CONSTRUCTION}"]
+    return [f"{SIGNATURE_UNIT}_{CONSTRUCTION}"]
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates the phrase_signature posmean dataset if missing."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--config-root", type=Path, required=True)
-    args = parser.parse_args()
-    output_root = args.output_root
-    config_root = args.config_root
-    corpus = Corpus.load()
-    psalms = corpus.psalms()
-    support_path = config_root / "phrase_signature_external_support.csv"
-    external_counts = load_external_signature_counts(support_path)
-    written = generate(psalms, output_root, external_counts, MIN_EXTERNAL_SUPPORT_K)
-    print(f"wrote {len(written)} dataset files", file=sys.stderr)
+    run_signature_generator(
+        __doc__,
+        generate,
+        "phrase_signature_external_support.csv",
+        MIN_EXTERNAL_SUPPORT_K,
+        argv,
+        corpus_factory=corpus_factory,
+    )
 
 
 if __name__ == "__main__":

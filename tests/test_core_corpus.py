@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -286,3 +287,38 @@ class TestLoadApiVerifiesTheFeaturesItWasAskedFor:
             )
 
         assert api is complete
+
+
+class TestUseFallbackReportsWhyItFailed:
+    """The local path names its reason, so the remote path must not lose one either."""
+
+    @staticmethod
+    def _declining_fabric(locations, silent):
+        class _Tf:
+            def load(self, features, silent):
+                return None
+
+        return _Tf()
+
+    def test_names_the_error_use_raised(self, tmp_path):
+        def _exploding_use(*_args, **_kwargs):
+            raise ConnectionError("no route to the Text-Fabric host")
+
+        with (
+            pytest.raises(RuntimeError, match="no route to the Text-Fabric host"),
+            pytest.warns(RuntimeWarning),
+        ):
+            load_api(tmp_path, "otype book", fabric=self._declining_fabric, use_fn=_exploding_use)
+
+    def test_says_it_timed_out_when_use_never_returns(self, tmp_path):
+        def _hanging_use(*_args, **_kwargs):
+            time.sleep(5)
+
+        with pytest.raises(RuntimeError, match="timed out"), pytest.warns(RuntimeWarning):
+            load_api(
+                tmp_path,
+                "otype book",
+                fabric=self._declining_fabric,
+                use_fn=_hanging_use,
+                timeout_seconds=0.05,
+            )

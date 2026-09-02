@@ -304,3 +304,26 @@ class TestFetchVoyageEmbeddings:
 
         with pytest.raises(RuntimeError, match="1024"):
             fetch_voyage_embeddings(["a"], api_key="k", client_factory=_WrongDimClient)
+
+
+class TestCohereReturnsTheWrongNumberOfEmbeddings:
+    """Cohere returns embeddings positionally, so a short batch misaligns every text after it."""
+
+    def test_a_short_batch_is_rejected_rather_than_silently_misaligned(self) -> None:
+        class _ShortClient:
+            def __init__(self, *, api_key: str) -> None:
+                self.api_key = api_key
+
+            def embed(self, **kwargs: object) -> _FakeCohereEmbedResponse:
+                texts = kwargs["texts"]
+                assert isinstance(texts, list)
+                return _FakeCohereEmbedResponse(
+                    float_=[_full_dim_vector(1.0, 1536) for _ in texts[:-1]]
+                )
+
+        with pytest.raises(RuntimeError, match="returned 1 embeddings for a batch of 2 texts"):
+            fetch_cohere_embeddings(
+                ["שלום", "עולם"],
+                api_key="secret-key",
+                client_factory=lambda *, api_key: _ShortClient(api_key=api_key),
+            )

@@ -2,97 +2,91 @@
 
 from __future__ import annotations
 
-import argparse
-import sys
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
-
-from core.export import dataset_path, write_sparse_vectors, write_vectors
-from core.support import build_signature_vocabulary, load_external_signature_counts
+from core.cli import run_signature_generator
+from core.export import path_to_write, write_sparse_vectors, write_vectors
+from core.ngram import concatenated_1_2_3gram_dim
+from core.parallel import map_constructions
+from core.support import build_signature_vocabulary
+from syntax import DATASET_TYPE, SIGNATURE_UNIT
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.signature_support import MIN_EXTERNAL_SUPPORT_K
-from syntax.signature_vectorize import (
-    phrase_signature_1_2_3gram_psalm_sparse_vectors,
-    phrase_signature_1_2_3gram_sparse_vectors,
-    phrase_signature_1_2gram_psalm_vectors,
-    phrase_signature_1_2gram_vectors,
-    phrase_signature_psalm_vectors,
-    phrase_signature_vectors,
-)
+from syntax.signature_vectorize import DENSE_BUILDERS, SPARSE_BUILDERS
 
-_DATASET_TYPE = "syntax"
-_UNIT = "signature"
+
+@dataclass(frozen=True, slots=True)
+class _Context:
+    """Everything one construction needs, pickled once per worker rather than once per build."""
+
+    psalms: tuple[PhrasePsalm, ...]
+    output_root: Path
+    vocabulary: tuple[str, ...]
+    external_counts: dict[str, int]
+    k: int
+
+
+def write_construction(context: _Context, construction: str) -> str | None:
+    """Writes one construction's dataset, or returns None when it is already written."""
+    path = path_to_write(
+        context.output_root,
+        SIGNATURE_UNIT,
+        construction,
+        domain=DATASET_TYPE,
+        unit_key="feature",
+        level="phrase",
+    )
+    if path is None:
+        return None
+    args = (list(context.psalms), context.vocabulary, context.external_counts, context.k)
+    description = (
+        f"Phrase-signature histogram (RARE-collapsed, k={context.k}), construction={construction}."
+    )
+    dense_builder = DENSE_BUILDERS.get(construction)
+    if dense_builder is not None:
+        write_vectors(path, dense_builder(*args), description)
+    else:
+        sparse_dim = concatenated_1_2_3gram_dim(len(context.vocabulary))
+        write_sparse_vectors(path, SPARSE_BUILDERS[construction](*args), sparse_dim, description)
+    return f"{SIGNATURE_UNIT}_{construction}"
 
 
 def generate(
-    psalms: list[PhrasePsalm], output_root: Path, external_counts: dict[str, int], k: int
+    psalms: list[PhrasePsalm],
+    output_root: Path,
+    external_counts: dict[str, int],
+    k: int,
+    *,
+    max_workers: int | None = None,
 ) -> list[str]:
     """Writes every not-yet-written phrase_signature construction, returns the names written."""
-    vocabulary = build_signature_vocabulary(external_counts, k)
-
-    builders: dict[str, Callable[[], dict[int, np.ndarray]]] = {
-        "inventory": lambda: phrase_signature_vectors(psalms, vocabulary, external_counts, k),
-        "inventory_psalm": lambda: phrase_signature_psalm_vectors(
-            psalms, vocabulary, external_counts, k
-        ),
-        "1_2gram": lambda: phrase_signature_1_2gram_vectors(psalms, vocabulary, external_counts, k),
-        "1_2gram_psalm": lambda: phrase_signature_1_2gram_psalm_vectors(
-            psalms, vocabulary, external_counts, k
-        ),
-    }
-
-    #: The trigram block is overwhelmingly zero at this dimension, so it is stored sparsely.
-    sparse_builders: dict[str, Callable[[], dict[int, tuple[np.ndarray, np.ndarray]]]] = {
-        "1_2_3gram": lambda: phrase_signature_1_2_3gram_sparse_vectors(
-            psalms, vocabulary, external_counts, k
-        ),
-        "1_2_3gram_psalm": lambda: phrase_signature_1_2_3gram_psalm_sparse_vectors(
-            psalms, vocabulary, external_counts, k
-        ),
-    }
-    dim = len(vocabulary)
-    sparse_dim = dim + dim * dim + dim * dim * dim
-
-    written: list[str] = []
-    for construction in (*builders, *sparse_builders):
-        path = dataset_path(
-            output_root,
-            _UNIT,
-            construction,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-            level="phrase",
-        )
-        if path.exists():
-            continue
-        print(f"computing syntax feature={_UNIT} construction={construction}...", file=sys.stderr)
-        description = (
-            f"Phrase-signature histogram (RARE-collapsed, k={k}), construction={construction}."
-        )
-        if construction in sparse_builders:
-            write_sparse_vectors(path, sparse_builders[construction](), sparse_dim, description)
-        else:
-            write_vectors(path, builders[construction](), description)
-        written.append(f"{_UNIT}_{construction}")
-    return written
+    context = _Context(
+        psalms=tuple(psalms),
+        output_root=output_root,
+        vocabulary=build_signature_vocabulary(external_counts, k),
+        external_counts=external_counts,
+        k=k,
+    )
+    constructions = (*DENSE_BUILDERS, *SPARSE_BUILDERS)
+    return map_constructions(write_construction, context, constructions, max_workers=max_workers)
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates every missing phrase_signature dataset."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--config-root", type=Path, required=True)
-    args = parser.parse_args()
-    output_root = args.output_root
-    config_root = args.config_root
-    corpus = Corpus.load()
-    psalms = corpus.psalms()
-    support_path = config_root / "phrase_signature_external_support.csv"
-    external_counts = load_external_signature_counts(support_path)
-    written = generate(psalms, output_root, external_counts, MIN_EXTERNAL_SUPPORT_K)
-    print(f"wrote {len(written)} dataset files", file=sys.stderr)
+    run_signature_generator(
+        __doc__,
+        generate,
+        "phrase_signature_external_support.csv",
+        MIN_EXTERNAL_SUPPORT_K,
+        argv,
+        corpus_factory=corpus_factory,
+    )
 
 
 if __name__ == "__main__":

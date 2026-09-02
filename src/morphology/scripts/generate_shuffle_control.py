@@ -3,19 +3,25 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.cli import (
+    add_config_root_argument,
+    add_output_root_argument,
+    add_shuffle_arguments,
+    report_written,
+)
 from core.export import write_dataset, write_sparse_dataset
+from core.ngram import concatenated_1_2_3gram_dim
 from core.parallel import map_seeds
 from core.shuffle import (
-    DEFAULT_N_SHUFFLES,
     shuffle_construction_name,
     shuffled_within_half_verse_order,
 )
 from core.support import build_signature_vocabulary, load_external_signature_counts
+from morphology import DATASET_TYPE, SIGNATURE_UNIT
 from morphology.corpus import Corpus, MorphologicalPsalm
 from morphology.pos_ngram import (
     sp_1_2_3gram_psalm_vectors,
@@ -24,14 +30,7 @@ from morphology.pos_ngram import (
     sp_1_2gram_vectors,
 )
 from morphology.signature_support import MIN_EXTERNAL_SUPPORT_K
-from morphology.signature_vectorize import (
-    morph_signature_1_2_3gram_psalm_sparse_vectors,
-    morph_signature_1_2_3gram_sparse_vectors,
-    morph_signature_1_2gram_psalm_vectors,
-    morph_signature_1_2gram_vectors,
-)
-
-_DATASET_TYPE = "morphology"
+from morphology.signature_vectorize import ORDERED_DENSE_BUILDERS, SPARSE_BUILDERS
 
 _POS_BUILDERS = {
     "1_2gram": sp_1_2gram_vectors,
@@ -40,15 +39,14 @@ _POS_BUILDERS = {
     "1_2_3gram_psalm": sp_1_2_3gram_psalm_vectors,
 }
 
-_DENSE_SIGNATURE_BUILDERS = {
-    "1_2gram": morph_signature_1_2gram_vectors,
-    "1_2gram_psalm": morph_signature_1_2gram_psalm_vectors,
-}
+_DENSE_SIGNATURE_BUILDERS = ORDERED_DENSE_BUILDERS
 
-_SPARSE_SIGNATURE_BUILDERS = {
-    "1_2_3gram": morph_signature_1_2_3gram_sparse_vectors,
-    "1_2_3gram_psalm": morph_signature_1_2_3gram_psalm_sparse_vectors,
-}
+_SPARSE_SIGNATURE_BUILDERS = SPARSE_BUILDERS
+
+#: One --representation validates both families, so it offers every representation either accepts.
+_ALL_REPRESENTATIONS = sorted(
+    {*_POS_BUILDERS, *_DENSE_SIGNATURE_BUILDERS, *_SPARSE_SIGNATURE_BUILDERS}
+)
 
 
 def _half_verse_sp(psalm: MorphologicalPsalm) -> tuple[tuple[str, ...], ...]:
@@ -90,7 +88,7 @@ def write_pos_seed(context: _PosContext, seed: int) -> str:
         name,
         vectors,
         description,
-        domain=_DATASET_TYPE,
+        domain=DATASET_TYPE,
         unit_key="feature",
     )
     return f"sp_{name}"
@@ -113,11 +111,11 @@ def write_signature_seed(context: _SignatureContext, seed: int) -> str:
         )
         write_dataset(
             context.output_root,
-            "morph_signature",
+            SIGNATURE_UNIT,
             name,
             vectors,
             description,
-            domain=_DATASET_TYPE,
+            domain=DATASET_TYPE,
             unit_key="feature",
         )
     else:
@@ -126,12 +124,12 @@ def write_signature_seed(context: _SignatureContext, seed: int) -> str:
         )
         write_sparse_dataset(
             context.output_root,
-            "morph_signature",
+            SIGNATURE_UNIT,
             name,
             sparse_vectors,
-            dim + dim * dim + dim * dim * dim,
+            concatenated_1_2_3gram_dim(dim),
             description,
-            domain=_DATASET_TYPE,
+            domain=DATASET_TYPE,
             unit_key="feature",
         )
     return f"morph_signature_{name}"
@@ -196,11 +194,10 @@ def build_parser() -> argparse.ArgumentParser:
     """Command-line interface for the POS and signature shuffle-null controls."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--family", required=True, choices=("pos", "signature"))
-    parser.add_argument("--representation", required=True, choices=sorted(_POS_BUILDERS))
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--config-root", type=Path, required=True)
-    parser.add_argument("--n-shuffles", type=int, default=DEFAULT_N_SHUFFLES)
-    parser.add_argument("--max-workers", type=int, default=None)
+    parser.add_argument("--representation", required=True, choices=_ALL_REPRESENTATIONS)
+    add_output_root_argument(parser)
+    add_config_root_argument(parser)
+    add_shuffle_arguments(parser)
     return parser
 
 
@@ -237,7 +234,7 @@ def main(
             MIN_EXTERNAL_SUPPORT_K,
             max_workers=args.max_workers,
         )
-    print(f"wrote {len(written)} shuffle-control datasets", file=sys.stderr)
+    report_written(written)
 
 
 if __name__ == "__main__":
