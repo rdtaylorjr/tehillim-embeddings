@@ -45,8 +45,7 @@ class _FakeApi:
 
 
 def _fake_whole_bible_api() -> _FakeApi:
-    # words 1,2 = lex X1 (freq 10); word 3 = lex X2 (freq 5), same lex0 "X" as X1.
-    # words 4,5 = lex Y1 (freq 3), lex0 "Y".
+    # words 1,2 = X1 (freq 10); word 3 = X2 (freq 5, lex0 "X"); words 4,5 = Y1 (freq 3, lex0 "Y").
     words = [1, 2, 3, 4, 5]
     lex = _FakeFeature({1: "X1", 2: "X1", 3: "X2", 4: "Y1", 5: "Y1"})
     lex0 = _FakeFeature({1: "X", 2: "X", 3: "X", 4: "Y", 5: "Y"})

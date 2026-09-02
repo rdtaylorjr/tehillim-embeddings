@@ -1,53 +1,39 @@
-"""Generates N colon-order-shuffled icf_position_mean_psalm datasets, a shuffle-null control."""
+"""Generates N order-shuffled icf_position_mean_psalm datasets, a shuffle-null control."""
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
+from collections.abc import Callable
 
-from lexical.corpus import Corpus, LexicalPsalm
-from lexical.export import write_dataset
-from lexical.frequency import icf_weights as compute_icf_weights
-from lexical.frequency import lex0_token_frequencies, total_token_count
+import numpy as np
+
+from core.columns import PsalmColumns
+from lexical.corpus import Corpus
 from lexical.psalm_zoning import psalm_position_mean_vectors
-from lexical.shuffle_control import DEFAULT_N_SHUFFLES, shuffled_order_by_psalm
-from lexical.vocabulary import build_vocabulary
+from lexical.scripts import shuffle_driver
+from lexical.scripts.shuffle_driver import build_parser, generate
+
+_CONSTRUCTION = "icf_position_mean_psalm"
+
+__all__ = ["build_parser", "generate", "main"]
 
 
-def generate_shuffle_control(
-    psalms: list[LexicalPsalm], output_root: Path, icf_weights: dict[str, float], n_shuffles: int
-) -> list[str]:
-    """Writes n_shuffles seeded, order-shuffled icf_position_mean_psalm datasets, returns names."""
-    vocabulary = build_vocabulary(psalms, key="lex0")
-    written: list[str] = []
-    for seed in range(1, n_shuffles + 1):
-        order = shuffled_order_by_psalm(psalms, seed)
-        vectors = psalm_position_mean_vectors(
-            psalms, vocabulary, "lex0", icf_weights, order_by_psalm=order
-        )
-        weight = f"icf_position_mean_psalm_shuffle{seed:02d}"
-        description = f"Shuffle-null order-effect control for icf_position_mean_psalm, seed {seed}."
-        write_dataset(output_root, "homograph", weight, vectors, description, unit_key="unit")
-        written.append(weight)
-    return written
+def build_vectors(
+    columns: list[PsalmColumns],
+    vocabulary: tuple[str, ...],
+    icf_weights: dict[str, float],
+    order: dict[int, np.ndarray],
+) -> dict[int, np.ndarray]:
+    """One seed's icf_position_mean_psalm vectors under a shuffled half-verse order."""
+    return psalm_position_mean_vectors(columns, vocabulary, icf_weights, order_by_psalm=order)
 
 
-def main() -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = Corpus.load,
+) -> None:
     """Generates the shuffle-null control datasets for icf_position_mean_psalm."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--n-shuffles", type=int, default=DEFAULT_N_SHUFFLES)
-    args = parser.parse_args()
-
-    corpus = Corpus.load()
-    psalms = corpus.psalms()
-    lex0_frequencies = lex0_token_frequencies(corpus.api)
-    total_tokens = total_token_count(corpus.api)
-    icf_lookup = compute_icf_weights(lex0_frequencies, total_tokens)
-    written = generate_shuffle_control(psalms, args.output_root, icf_lookup, args.n_shuffles)
-    print(f"wrote {len(written)} shuffle-control datasets", file=sys.stderr)
+    shuffle_driver.run(__doc__, _CONSTRUCTION, build_vectors, argv, corpus_factory=corpus_factory)
 
 
 if __name__ == "__main__":

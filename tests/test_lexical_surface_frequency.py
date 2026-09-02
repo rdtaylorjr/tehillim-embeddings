@@ -35,9 +35,7 @@ class _FakeApi:
 
 
 def _fake_api() -> _FakeApi:
-    # word 1,2 share consonantal "בר"; word 3 is "אש". Cantillation text carries an accent mark
-    # (U+0591) on word 1 only, so word 1 and 2 differ at the cantillation tier despite matching
-    # consonantally.
+    # Words 1,2 share consonantal "בר"; an accent (U+0591) on word 1 splits them at that tier.
     words = [1, 2, 3]
     g_cons = _FakeFeature({1: "בר", 2: "בר", 3: "אש"})
     g_word = _FakeFeature({1: "ב֑ר", 2: "בר", 3: "אש"})

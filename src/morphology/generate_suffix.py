@@ -9,13 +9,10 @@ from pathlib import Path
 
 import numpy as np
 
-from lexical.export import dataset_path, write_dataset
+from core.export import dataset_path, write_dataset
+from core.support import build_signature_vocabulary, load_external_signature_counts
 from morphology.corpus import Corpus, MorphologicalPsalm
-from morphology.signature_support import (
-    MIN_EXTERNAL_SUPPORT_K,
-    build_signature_vocabulary,
-    load_external_signature_counts,
-)
+from morphology.signature_support import MIN_EXTERNAL_SUPPORT_K
 from morphology.suffix import (
     host_plus_suffix_psalm_vectors,
     host_plus_suffix_vectors,

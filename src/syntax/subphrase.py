@@ -12,6 +12,6 @@ def mask_par(rela: str) -> str:
     return "NA" if rela in QUARANTINED_SUBPHRASE_RELA else rela
 
 
-def colon_safe_subphrase_rela(colon_rela: tuple[str, ...]) -> tuple[str, ...]:
-    """Applies `mask_par` to every subphrase in one colon."""
-    return tuple(mask_par(value) for value in colon_rela)
+def half_verse_safe_subphrase_rela(half_verse_rela: tuple[str, ...]) -> tuple[str, ...]:
+    """Applies `mask_par` to every subphrase in one half-verse."""
+    return tuple(mask_par(value) for value in half_verse_rela)

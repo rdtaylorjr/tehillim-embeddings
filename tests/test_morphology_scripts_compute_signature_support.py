@@ -30,7 +30,7 @@ class _FakeL:
 
 
 class _FakeF:
-    def __init__(self, otype, book, sp, gn, nu, ps, st, vs, vt) -> None:  # noqa: N803
+    def __init__(self, otype, book, sp, gn, nu, ps, st, vs, vt) -> None:
         self.otype = otype
         self.book = book
         self.sp = sp
@@ -49,11 +49,10 @@ class _FakeApi:
 
 
 def _fake_two_book_api() -> _FakeApi:
-    # Book 1 = "Psalmi" (must be excluded): words 10, 11.
-    # Book 2 = "Genesis" (included): words 20, 21, 22.
+    # Book 1 Psalmi is excluded; only Genesis contributes its "subs" and "verb" words.
     otype = _FakeOtype([1, 2])
     book = _FakeFeature({1: "Psalmi", 2: "Genesis"})
-    all_na = {n: "NA" for n in (10, 11, 20, 21, 22)}
+    all_na = dict.fromkeys((10, 11, 20, 21, 22), "NA")
     sp = _FakeFeature({10: "verb", 11: "subs", 20: "subs", 21: "subs", 22: "verb"})
     gn = _FakeFeature(all_na)
     nu = _FakeFeature(all_na)
@@ -69,6 +68,5 @@ class TestBuildExternalSignatureCounts:
     def test_excludes_words_belonging_to_the_psalms_book(self) -> None:
         counts = build_external_signature_counts(_fake_two_book_api())
 
-        # Only Genesis's 2 "subs" words and 1 "verb" word should be counted; Psalms' 1 verb
-        # and 1 subs must not contribute, so "subs" totals 2 (not 3) and "verb" totals 1 (not 2).
+        # Only Genesis counts, so "subs" totals 2 and "verb" totals 1.
         assert counts == {"subs": 2, "verb": 1}

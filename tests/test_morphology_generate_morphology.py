@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from lexical.export import dataset_path as _dataset_path
+from core.export import dataset_path as _dataset_path
 from morphology.corpus import MorphologicalPsalm
 from morphology.generate_morphology import _FEATURES, generate
 
@@ -12,8 +12,8 @@ def dataset_path(output_root, vocab, weight):
 def _psalm(*, number, nodes, **feature_columns):
     return MorphologicalPsalm(
         number=number,
-        colon_nodes=nodes,
-        **{f"colon_{feature}": values for feature, values in feature_columns.items()},
+        half_verse_nodes=nodes,
+        **{f"half_verse_{feature}": values for feature, values in feature_columns.items()},
     )
 
 

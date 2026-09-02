@@ -1,13 +1,15 @@
-"""Normalized phrase-type unigram/bigram/trigram histograms per colon, cumulative concatenation."""
+"""Normalized phrase-type unigram/bigram/trigram histograms, cumulatively concatenated."""
 
 from __future__ import annotations
 
 import numpy as np
 
-from morphology.ngram import (
+from core.ngram import (
     bigram_histogram,
     pooled_ngram_psalm_vectors,
     reorder,
+    sparse_1_2_3gram,
+    sparse_pooled_1_2_3gram,
     trigram_histogram,
     unigram_histogram,
 )
@@ -18,38 +20,38 @@ _INDEX_OF = {value: i for i, value in enumerate(TYP_VOCABULARY)}
 _DIM = len(TYP_VOCABULARY)
 
 
-def phrase_typ_unigram_histogram(colon_typ: tuple[str, ...]) -> np.ndarray:
-    """Normalized phrase-type proportions over one colon: count(typ) / m."""
-    return unigram_histogram(colon_typ, _INDEX_OF, _DIM)
+def phrase_typ_unigram_histogram(half_verse_typ: tuple[str, ...]) -> np.ndarray:
+    """Normalized phrase-type proportions over one half-verse: count(typ) / m."""
+    return unigram_histogram(half_verse_typ, _INDEX_OF, _DIM)
 
 
-def phrase_typ_bigram_histogram(colon_typ: tuple[str, ...]) -> np.ndarray:
-    """Normalized adjacent-phrase-type-pair proportions over one colon: count(pair) / (m - 1)."""
-    return bigram_histogram(colon_typ, _INDEX_OF, _DIM)
+def phrase_typ_bigram_histogram(half_verse_typ: tuple[str, ...]) -> np.ndarray:
+    """Normalized adjacent-phrase-type-pair proportions over one node: count(pair) / (m - 1)."""
+    return bigram_histogram(half_verse_typ, _INDEX_OF, _DIM)
 
 
-def phrase_typ_trigram_histogram(colon_typ: tuple[str, ...]) -> np.ndarray:
-    """Normalized phrase-type-triple proportions over one colon: count(triple) / (m - 2)."""
-    return trigram_histogram(colon_typ, _INDEX_OF, _DIM)
+def phrase_typ_trigram_histogram(half_verse_typ: tuple[str, ...]) -> np.ndarray:
+    """Normalized phrase-type-triple proportions over one half-verse: count(triple) / (m - 2)."""
+    return trigram_histogram(half_verse_typ, _INDEX_OF, _DIM)
 
 
 def phrase_typ_1gram_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
-    """One `phrase_typ_1gram` histogram per colon node."""
+    """One `phrase_typ_1gram` histogram per half-verse node."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_typ in zip(psalm.colon_nodes, psalm.colon_typ, strict=True):
-            vectors[node] = phrase_typ_unigram_histogram(colon_typ)
+        for node, half_verse_typ in zip(psalm.half_verse_nodes, psalm.half_verse_typ, strict=True):
+            vectors[node] = phrase_typ_unigram_histogram(half_verse_typ)
     return vectors
 
 
 def phrase_typ_1_2gram_vectors(
     psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
-    """`[phrase_typ_1gram; phrase_typ_bigram]` per colon node."""
+    """`[phrase_typ_1gram; phrase_typ_bigram]` per half-verse node."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_typ in zip(psalm.colon_nodes, psalm.colon_typ, strict=True):
-            ordered = reorder(colon_typ, node, order_by_node)
+        for node, half_verse_typ in zip(psalm.half_verse_nodes, psalm.half_verse_typ, strict=True):
+            ordered = reorder(half_verse_typ, node, order_by_node)
             vectors[node] = np.concatenate(
                 [phrase_typ_unigram_histogram(ordered), phrase_typ_bigram_histogram(ordered)]
             )
@@ -59,11 +61,11 @@ def phrase_typ_1_2gram_vectors(
 def phrase_typ_1_2_3gram_vectors(
     psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
-    """`[phrase_typ_1gram; phrase_typ_bigram; phrase_typ_trigram]` per colon node."""
+    """Dense `[1gram; bigram; trigram]` per half-verse: the sparse path's exactness reference."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_typ in zip(psalm.colon_nodes, psalm.colon_typ, strict=True):
-            ordered = reorder(colon_typ, node, order_by_node)
+        for node, half_verse_typ in zip(psalm.half_verse_nodes, psalm.half_verse_typ, strict=True):
+            ordered = reorder(half_verse_typ, node, order_by_node)
             vectors[node] = np.concatenate(
                 [
                     phrase_typ_unigram_histogram(ordered),
@@ -75,8 +77,8 @@ def phrase_typ_1_2_3gram_vectors(
 
 
 def phrase_typ_1gram_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
-    """Psalm-broadcast `phrase_typ_1gram`: atom-count-weighted pooling across every colon."""
-    columns = [(p.colon_nodes, p.colon_typ) for p in psalms]
+    """Psalm-broadcast `phrase_typ_1gram`: atom-count-weighted pooling across every half-verse."""
+    columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
     return pooled_ngram_psalm_vectors(columns, (1,), _INDEX_OF, _DIM, order_by_node=None)
 
 
@@ -84,13 +86,33 @@ def phrase_typ_1_2gram_psalm_vectors(
     psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast `[phrase_typ_1gram; phrase_typ_bigram]`, atom-count-weighted pooling."""
-    columns = [(p.colon_nodes, p.colon_typ) for p in psalms]
+    columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
     return pooled_ngram_psalm_vectors(columns, (1, 2), _INDEX_OF, _DIM, order_by_node)
 
 
 def phrase_typ_1_2_3gram_psalm_vectors(
     psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
 ) -> dict[int, np.ndarray]:
-    """Psalm-broadcast `[phrase_typ_1gram; bigram; trigram]`, atom-count-weighted pooling."""
-    columns = [(p.colon_nodes, p.colon_typ) for p in psalms]
+    """Dense psalm-broadcast `[1gram; bigram; trigram]`: the sparse path's exactness reference."""
+    columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
     return pooled_ngram_psalm_vectors(columns, (1, 2, 3), _INDEX_OF, _DIM, order_by_node)
+
+
+def phrase_typ_1_2_3gram_sparse_vectors(
+    psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
+) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+    """Sparse `[phrase_typ_1gram; bigram; trigram]` per half-verse node: (indices, values)."""
+    vectors: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+    for psalm in psalms:
+        for node, half_verse in zip(psalm.half_verse_nodes, psalm.half_verse_typ, strict=True):
+            ordered = reorder(half_verse, node, order_by_node)
+            vectors[node] = sparse_1_2_3gram(ordered, _INDEX_OF, _DIM)
+    return vectors
+
+
+def phrase_typ_1_2_3gram_psalm_sparse_vectors(
+    psalms: list[PhrasePsalm], order_by_node: dict[int, np.ndarray] | None = None
+) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+    """Psalm-broadcast sparse `[phrase_typ_1gram; bigram; trigram]`, atom-count-weighted."""
+    columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
+    return sparse_pooled_1_2_3gram(columns, _INDEX_OF, _DIM, order_by_node)

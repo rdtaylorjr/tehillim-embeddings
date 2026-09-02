@@ -2,26 +2,28 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.similarity import normalized_lag
 from lexical.corpus import LexicalPsalm
-from lexical.psalm_recurrence import lag_bin_index, normalized_lag, psalm_spacing_profile_vectors
+from lexical.psalm_recurrence import lag_bin_index, psalm_spacing_profile_vectors
+from lexical.vocabulary import columns_for_key
 
 
 def _psalm(*, number, lexemes, forms, nodes):
     return LexicalPsalm(
         number=number,
-        colon_lexemes=lexemes,
-        colon_forms=forms,
-        colon_nodes=nodes,
+        half_verse_lexemes=lexemes,
+        half_verse_forms=forms,
+        half_verse_nodes=nodes,
     )
 
 
 class TestNormalizedLag:
-    def test_four_cola_deltas_match_hand_computation(self):
+    def test_four_half_verses_deltas_match_hand_computation(self):
         delta = normalized_lag(4)
 
         assert np.allclose(delta, [1 / 3, 2 / 3, 1.0, 1 / 3, 2 / 3, 1 / 3])
 
-    def test_two_cola_gives_a_single_pair_at_max_lag(self):
+    def test_two_half_verses_gives_a_single_pair_at_max_lag(self):
         delta = normalized_lag(2)
 
         assert np.allclose(delta, [1.0])
@@ -55,7 +57,7 @@ class TestPsalmLagProfileVectors:
         ]
 
         vectors = psalm_spacing_profile_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=4
         )
 
         assert len(vectors[100]) == 4
@@ -73,13 +75,13 @@ class TestPsalmLagProfileVectors:
         ]
 
         vectors = psalm_spacing_profile_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=2
         )
 
         near_bin, far_bin = vectors[100]
         assert near_bin > far_bin
 
-    def test_broadcasts_the_same_psalm_level_vector_to_every_colon_node(self):
+    def test_broadcasts_the_same_psalm_level_vector_to_every_half_verse_node(self):
         vocabulary = ("A", "B")
         icf_weights = {"A": 1.0, "B": 1.0}
         psalms = [
@@ -92,7 +94,7 @@ class TestPsalmLagProfileVectors:
         ]
 
         vectors = psalm_spacing_profile_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=2
         )
 
         assert np.array_equal(vectors[100], vectors[101])
@@ -111,12 +113,11 @@ class TestPsalmLagProfileVectors:
         ]
 
         natural = psalm_spacing_profile_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=2
         )
         shuffled = psalm_spacing_profile_vectors(
-            psalms,
+            columns_for_key(psalms, "lex"),
             vocabulary,
-            key="lex",
             icf_weights=icf_weights,
             k=2,
             order_by_psalm={1: np.array([0, 2, 4, 1, 3, 5])},
@@ -124,18 +125,18 @@ class TestPsalmLagProfileVectors:
 
         assert not np.allclose(natural[100], shuffled[100])
 
-    def test_a_single_colon_psalm_returns_an_all_zero_profile_without_crashing(self):
+    def test_a_single_half_verse_psalm_returns_an_all_zero_profile_without_crashing(self):
         vocabulary = ("A",)
         icf_weights = {"A": 1.0}
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
 
         vectors = psalm_spacing_profile_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=4
         )
 
         assert np.allclose(vectors[100], [0.0, 0.0, 0.0, 0.0])
 
-    def test_a_colon_with_no_vocabulary_matches_does_not_produce_nan(self):
+    def test_a_half_verse_with_no_vocabulary_matches_does_not_produce_nan(self):
         vocabulary = ("A", "B")
         icf_weights = {"A": 1.0, "B": 1.0}
         psalms = [
@@ -148,7 +149,7 @@ class TestPsalmLagProfileVectors:
         ]
 
         vectors = psalm_spacing_profile_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=2
         )
 
         assert not np.isnan(vectors[100]).any()
@@ -166,7 +167,7 @@ class TestPsalmLagProfileVectors:
         ]
 
         vectors = psalm_spacing_profile_vectors(
-            psalms, vocabulary, key="lex0", icf_weights=icf_weights, k=2
+            columns_for_key(psalms, "lex0"), vocabulary, icf_weights=icf_weights, k=2
         )
 
         assert len(vectors[100]) == 2

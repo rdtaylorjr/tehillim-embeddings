@@ -3,7 +3,7 @@ from __future__ import annotations
 import pyarrow.parquet as pq
 import pytest
 
-from lexical.export import dataset_path as _dataset_path
+from core.export import dataset_path as _dataset_path
 from morphology.corpus import MorphologicalPsalm
 from morphology.scripts.generate_shuffle_control import (
     generate_shuffle_control,
@@ -15,12 +15,12 @@ def dataset_path(output_root, vocab, weight):
     return _dataset_path(output_root, vocab, weight, domain="morphology", unit_key="feature")
 
 
-def _psalm(*, number, sp_by_colon, nodes, **feature_columns):
+def _psalm(*, number, sp_by_half_verse, nodes, **feature_columns):
     return MorphologicalPsalm(
         number=number,
-        colon_nodes=nodes,
-        colon_sp=sp_by_colon,
-        **{f"colon_{feature}": values for feature, values in feature_columns.items()},
+        half_verse_nodes=nodes,
+        half_verse_sp=sp_by_half_verse,
+        **{f"half_verse_{feature}": values for feature, values in feature_columns.items()},
     )
 
 
@@ -28,7 +28,7 @@ def _psalms():
     return [
         _psalm(
             number=1,
-            sp_by_colon=(("subs", "verb", "prep"), ("verb", "subs", "conj")),
+            sp_by_half_verse=(("subs", "verb", "prep"), ("verb", "subs", "conj")),
             nodes=(100, 101),
         ),
     ]
@@ -39,7 +39,7 @@ def _signature_psalms():
     return [
         _psalm(
             number=1,
-            sp_by_colon=(("subs", "verb", "prep"), ("verb", "subs", "conj")),
+            sp_by_half_verse=(("subs", "verb", "prep"), ("verb", "subs", "conj")),
             nodes=(200, 201),
             gn=all_na,
             nu=all_na,
@@ -59,47 +59,53 @@ def _external_counts():
 
 
 class TestGenerateShuffleControl:
-    def test_writes_n_seeded_datasets_for_a_colon_level_representation(self, tmp_path):
+    def test_writes_n_seeded_datasets_for_a_half_verse_level_representation(self, tmp_path):
         written = generate_shuffle_control(
-            _psalms(), tmp_path, representation="1_2gram", n_shuffles=3
+            _psalms(), tmp_path, representation="1_2gram", n_shuffles=3, max_workers=1
         )
 
         assert written == [
-            "sp_1_2gram_shuffle01",
-            "sp_1_2gram_shuffle02",
-            "sp_1_2gram_shuffle03",
+            "sp_1_2gram_shuffle0001",
+            "sp_1_2gram_shuffle0002",
+            "sp_1_2gram_shuffle0003",
         ]
-        for weight in ("1_2gram_shuffle01", "1_2gram_shuffle02", "1_2gram_shuffle03"):
+        for weight in ("1_2gram_shuffle0001", "1_2gram_shuffle0002", "1_2gram_shuffle0003"):
             assert dataset_path(tmp_path, "sp", weight).exists()
 
     def test_writes_n_seeded_datasets_for_a_psalm_broadcast_representation(self, tmp_path):
         written = generate_shuffle_control(
-            _psalms(), tmp_path, representation="1_2_3gram_psalm", n_shuffles=2
+            _psalms(), tmp_path, representation="1_2_3gram_psalm", n_shuffles=2, max_workers=1
         )
 
         assert written == [
-            "sp_1_2_3gram_psalm_shuffle01",
-            "sp_1_2_3gram_psalm_shuffle02",
+            "sp_1_2_3gram_psalm_shuffle0001",
+            "sp_1_2_3gram_psalm_shuffle0002",
         ]
-        assert dataset_path(tmp_path, "sp", "1_2_3gram_psalm_shuffle01").exists()
+        assert dataset_path(tmp_path, "sp", "1_2_3gram_psalm_shuffle0001").exists()
 
     def test_psalm_broadcast_variants_still_broadcast_within_the_shuffled_psalm(self, tmp_path):
-        generate_shuffle_control(_psalms(), tmp_path, representation="1_2gram_psalm", n_shuffles=1)
+        generate_shuffle_control(
+            _psalms(), tmp_path, representation="1_2gram_psalm", n_shuffles=1, max_workers=1
+        )
 
-        table = pq.read_table(dataset_path(tmp_path, "sp", "1_2gram_psalm_shuffle01"))
+        table = pq.read_table(dataset_path(tmp_path, "sp", "1_2gram_psalm_shuffle0001"))
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]
 
     def test_different_seeds_give_different_vectors(self, tmp_path):
-        generate_shuffle_control(_psalms(), tmp_path, representation="1_2gram", n_shuffles=2)
+        generate_shuffle_control(
+            _psalms(), tmp_path, representation="1_2gram", n_shuffles=2, max_workers=1
+        )
 
-        table1 = pq.read_table(dataset_path(tmp_path, "sp", "1_2gram_shuffle01"))
-        table2 = pq.read_table(dataset_path(tmp_path, "sp", "1_2gram_shuffle02"))
+        table1 = pq.read_table(dataset_path(tmp_path, "sp", "1_2gram_shuffle0001"))
+        table2 = pq.read_table(dataset_path(tmp_path, "sp", "1_2gram_shuffle0002"))
         assert table1["vector"].to_pylist() != table2["vector"].to_pylist()
 
     def test_rejects_the_unigram_representation_which_has_no_shuffle_control(self, tmp_path):
         with pytest.raises(ValueError, match="unigram"):
-            generate_shuffle_control(_psalms(), tmp_path, representation="unigram", n_shuffles=1)
+            generate_shuffle_control(
+                _psalms(), tmp_path, representation="unigram", n_shuffles=1, max_workers=1
+            )
 
 
 class TestGenerateSignatureShuffleControl:
@@ -110,16 +116,17 @@ class TestGenerateSignatureShuffleControl:
             tmp_path,
             representation="1_2gram",
             n_shuffles=2,
+            max_workers=1,
             vocabulary=vocabulary,
             external_counts=_external_counts(),
             k=1000,
         )
 
         assert written == [
-            "morph_signature_1_2gram_shuffle01",
-            "morph_signature_1_2gram_shuffle02",
+            "morph_signature_1_2gram_shuffle0001",
+            "morph_signature_1_2gram_shuffle0002",
         ]
-        assert dataset_path(tmp_path, "morph_signature", "1_2gram_shuffle01").exists()
+        assert dataset_path(tmp_path, "morph_signature", "1_2gram_shuffle0001").exists()
 
     def test_rejects_a_representation_with_no_shuffle_control(self, tmp_path):
         with pytest.raises(ValueError, match="inventory"):
@@ -128,6 +135,7 @@ class TestGenerateSignatureShuffleControl:
                 tmp_path,
                 representation="inventory",
                 n_shuffles=1,
+                max_workers=1,
                 vocabulary=(),
                 external_counts={},
                 k=1000,
@@ -140,16 +148,17 @@ class TestGenerateSignatureShuffleControl:
             tmp_path,
             representation="1_2_3gram",
             n_shuffles=2,
+            max_workers=1,
             vocabulary=vocabulary,
             external_counts=_external_counts(),
             k=1000,
         )
 
         assert written == [
-            "morph_signature_1_2_3gram_shuffle01",
-            "morph_signature_1_2_3gram_shuffle02",
+            "morph_signature_1_2_3gram_shuffle0001",
+            "morph_signature_1_2_3gram_shuffle0002",
         ]
-        path = dataset_path(tmp_path, "morph_signature", "1_2_3gram_shuffle01")
+        path = dataset_path(tmp_path, "morph_signature", "1_2_3gram_shuffle0001")
         assert path.exists()
         table = pq.read_table(path)
         assert table.schema.metadata[b"sparse"] == b"true"
@@ -161,10 +170,11 @@ class TestGenerateSignatureShuffleControl:
             tmp_path,
             representation="1_2_3gram_psalm",
             n_shuffles=1,
+            max_workers=1,
             vocabulary=vocabulary,
             external_counts=_external_counts(),
             k=1000,
         )
 
-        assert written == ["morph_signature_1_2_3gram_psalm_shuffle01"]
-        assert dataset_path(tmp_path, "morph_signature", "1_2_3gram_psalm_shuffle01").exists()
+        assert written == ["morph_signature_1_2_3gram_psalm_shuffle0001"]
+        assert dataset_path(tmp_path, "morph_signature", "1_2_3gram_psalm_shuffle0001").exists()

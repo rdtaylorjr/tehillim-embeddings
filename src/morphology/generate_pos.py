@@ -1,4 +1,4 @@
-"""Computes and writes the POS-only skeleton family: unigram, bigram, trigram, colon and psalm."""
+"""Computes and writes the POS-only skeleton: unigram, bigram, trigram, both scales."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from lexical.export import dataset_path, write_dataset
+from core.export import dataset_path, write_dataset
 from morphology.corpus import Corpus, MorphologicalPsalm
 from morphology.pos_ngram import (
     sp_1_2_3gram_psalm_vectors,

@@ -13,17 +13,19 @@ from syntax.vocabulary import DET_VOCABULARY
 _DIM = len(DET_VOCABULARY)
 
 
-def _psalm(*, number, phrase_det_by_colon, nodes=None):
-    nodes = nodes if nodes is not None else tuple(range(100, 100 + len(phrase_det_by_colon)))
-    return PhrasePsalm(number=number, colon_nodes=nodes, colon_det=phrase_det_by_colon)
+def _psalm(*, number, phrase_det_by_half_verse, nodes=None):
+    nodes = nodes if nodes is not None else tuple(range(100, 100 + len(phrase_det_by_half_verse)))
+    return PhrasePsalm(
+        number=number, half_verse_nodes=nodes, half_verse_det=phrase_det_by_half_verse
+    )
 
 
 class TestPhraseDetUnigramHistogram:
-    def test_sums_to_one_for_a_non_empty_colon(self):
+    def test_sums_to_one_for_a_non_empty_half_verse(self):
         histogram = phrase_det_unigram_histogram(("det", "und", "NA"))
         assert np.isclose(histogram.sum(), 1.0)
 
-    def test_is_all_zero_for_an_empty_colon(self):
+    def test_is_all_zero_for_an_empty_half_verse(self):
         histogram = phrase_det_unigram_histogram(())
         assert histogram.sum() == 0.0
         assert histogram.shape == (_DIM,)
@@ -38,25 +40,29 @@ class TestPhraseDetUnigramHistogram:
 
 class TestPhraseDet1gramVectors:
     def test_has_dimension_of_the_vocabulary(self):
-        psalms = [_psalm(number=1, phrase_det_by_colon=(("det", "und"),))]
+        psalms = [_psalm(number=1, phrase_det_by_half_verse=(("det", "und"),))]
         vectors = phrase_det_1gram_vectors(psalms)
         assert next(iter(vectors.values())).shape == (_DIM,)
 
-    def test_keys_vectors_by_colon_node_id(self):
-        psalms = [_psalm(number=1, phrase_det_by_colon=(("det",), ("und",)), nodes=(200, 201))]
+    def test_keys_vectors_by_half_verse_node_id(self):
+        psalms = [_psalm(number=1, phrase_det_by_half_verse=(("det",), ("und",)), nodes=(200, 201))]
         vectors = phrase_det_1gram_vectors(psalms)
         assert set(vectors) == {200, 201}
 
 
 class TestPhraseDet1gramPsalmVectors:
-    def test_broadcasts_the_identical_vector_to_every_colon_node(self):
-        psalms = [_psalm(number=1, phrase_det_by_colon=(("det",), ("und",)), nodes=(400, 401))]
+    def test_broadcasts_the_identical_vector_to_every_half_verse_node(self):
+        psalms = [_psalm(number=1, phrase_det_by_half_verse=(("det",), ("und",)), nodes=(400, 401))]
         vectors = phrase_det_1gram_psalm_vectors(psalms)
-        assert np.allclose(vectors[400], vectors[401])
+        assert np.array_equal(vectors[400], vectors[401])
 
-    def test_pools_raw_atom_counts_across_colons_before_normalizing_once(self):
+    def test_pools_raw_atom_counts_across_half_verses_before_normalizing_once(self):
         psalms = [
-            _psalm(number=1, phrase_det_by_colon=(("det",), ("und", "und", "NA")), nodes=(500, 501))
+            _psalm(
+                number=1,
+                phrase_det_by_half_verse=(("det",), ("und", "und", "NA")),
+                nodes=(500, 501),
+            )
         ]
         vector = phrase_det_1gram_psalm_vectors(psalms)[500]
         det_i, und_i, na_i = (DET_VOCABULARY.index(v) for v in ("det", "und", "NA"))

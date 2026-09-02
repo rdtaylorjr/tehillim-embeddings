@@ -2,24 +2,25 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.position import bin_index, half_verse_positions
 from lexical.corpus import LexicalPsalm
-from lexical.positional import bin_index, colon_positions
 from lexical.psalm_position import psalm_positional_icf_vectors
 from lexical.vectorize import icf_weighted_vectors
+from lexical.vocabulary import columns_for_key
 
 
 def _psalm(*, number, lexemes, forms, nodes):
     return LexicalPsalm(
         number=number,
-        colon_lexemes=lexemes,
-        colon_forms=forms,
-        colon_nodes=nodes,
+        half_verse_lexemes=lexemes,
+        half_verse_forms=forms,
+        half_verse_nodes=nodes,
     )
 
 
-class TestColonPositionsAndBinIndex:
+class TestHalfVersePositionsAndBinIndex:
     def test_reexported_helpers_still_behave_as_before(self):
-        t = colon_positions(4)
+        t = half_verse_positions(4)
         assert np.allclose(t, [0.125, 0.375, 0.625, 0.875])
         assert bin_index(t, k=2).tolist() == [0, 0, 1, 1]
 
@@ -38,15 +39,17 @@ class TestPsalmPositionalIcfVectors:
         ]
 
         positional = psalm_positional_icf_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=1
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=1
         )
-        frozen = icf_weighted_vectors(psalms, vocabulary, key="lex", icf_weights=icf_weights)
+        frozen = icf_weighted_vectors(
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights
+        )
         expected = sum(frozen[node] for node in (100, 101, 102))
 
         for node in (100, 101, 102):
-            assert np.allclose(positional[node], expected)
+            assert np.array_equal(positional[node], expected)
 
-    def test_k1_is_invariant_under_any_colon_order_since_it_is_a_sum(self):
+    def test_k1_is_invariant_under_any_half_verse_order_since_it_is_a_sum(self):
         vocabulary = ("A", "B", "C")
         icf_weights = {"A": 2.0, "B": 0.5, "C": 1.0}
         psalms = [
@@ -59,12 +62,11 @@ class TestPsalmPositionalIcfVectors:
         ]
 
         natural = psalm_positional_icf_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=1
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=1
         )
         reversed_order = psalm_positional_icf_vectors(
-            psalms,
+            columns_for_key(psalms, "lex"),
             vocabulary,
-            key="lex",
             icf_weights=icf_weights,
             k=1,
             order_by_psalm={1: np.array([2, 1, 0])},
@@ -85,7 +87,7 @@ class TestPsalmPositionalIcfVectors:
         ]
 
         vectors = psalm_positional_icf_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=2
         )
 
         assert np.allclose(vectors[100], [2.0, 0.0, 0.0, 3.0])
@@ -102,9 +104,8 @@ class TestPsalmPositionalIcfVectors:
             )
         ]
         shuffled = psalm_positional_icf_vectors(
-            psalms,
+            columns_for_key(psalms, "lex"),
             vocabulary,
-            key="lex",
             icf_weights=icf_weights,
             k=2,
             order_by_psalm={1: np.array([3, 2, 1, 0])},
@@ -112,7 +113,7 @@ class TestPsalmPositionalIcfVectors:
 
         assert np.allclose(shuffled[100], [0.0, 3.0, 2.0, 0.0])
 
-    def test_broadcasts_the_same_psalm_level_vector_to_every_colon_node(self):
+    def test_broadcasts_the_same_psalm_level_vector_to_every_half_verse_node(self):
         vocabulary = ("A", "B")
         icf_weights = {"A": 2.0, "B": 3.0}
         psalms = [
@@ -125,7 +126,7 @@ class TestPsalmPositionalIcfVectors:
         ]
 
         vectors = psalm_positional_icf_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=2
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=2
         )
 
         assert np.array_equal(vectors[100], vectors[101])
@@ -140,7 +141,7 @@ class TestPsalmPositionalIcfVectors:
         ]
 
         vectors = psalm_positional_icf_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights, k=4
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights, k=4
         )
 
         assert len(vectors[100]) == 12
@@ -153,7 +154,7 @@ class TestPsalmPositionalIcfVectors:
         ]
 
         vectors = psalm_positional_icf_vectors(
-            psalms, vocabulary, key="lex0", icf_weights=icf_weights, k=1
+            columns_for_key(psalms, "lex0"), vocabulary, icf_weights=icf_weights, k=1
         )
 
         assert np.allclose(vectors[100], [5.0])

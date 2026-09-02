@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from syntax.rela import SAFE_RELA_VOCABULARY, colon_safe_rela, mask_para
+from syntax.rela import SAFE_RELA_VOCABULARY, half_verse_safe_rela, mask_para
 
 
 class TestMaskPara:
@@ -20,9 +20,9 @@ class TestSafeRelaVocabulary:
         assert set(SAFE_RELA_VOCABULARY) == {"NA", "Appo", "Link", "Sfxs", "Spec"}
 
 
-class TestColonSafeRela:
-    def test_masks_every_para_in_the_colon(self):
-        assert colon_safe_rela(("NA", "Para", "Appo", "Para")) == ("NA", "NA", "Appo", "NA")
+class TestHalfVerseSafeRela:
+    def test_masks_every_para_in_the_half_verse(self):
+        assert half_verse_safe_rela(("NA", "Para", "Appo", "Para")) == ("NA", "NA", "Appo", "NA")
 
     def test_is_a_no_op_when_no_para_present(self):
-        assert colon_safe_rela(("NA", "Appo", "Spec")) == ("NA", "Appo", "Spec")
+        assert half_verse_safe_rela(("NA", "Appo", "Spec")) == ("NA", "Appo", "Spec")

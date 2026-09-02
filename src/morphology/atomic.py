@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Literal
 
 import numpy as np
 
+from core.ngram import unigram_histogram
+from core.vocabulary import index_map
 from morphology.corpus import MorphologicalPsalm
-from morphology.ngram import unigram_histogram
 from morphology.pos_ngram import pos_unigram_histogram, sp_unigram_psalm_vectors
 from morphology.vocabulary import (
     GN_VOCABULARY,
@@ -48,58 +50,59 @@ _FULL_FEATURE_ORDER: tuple[FeatureKey, ...] = (
 )
 
 
-def _cola_for_feature(
+#: Written out rather than resolved by name so a renamed field fails type checking.
+_HALF_VERSES_BY_FEATURE: dict[
+    FeatureKey, Callable[[MorphologicalPsalm], tuple[tuple[str, ...], ...]]
+] = {
+    "gn": lambda psalm: psalm.half_verse_gn,
+    "nu": lambda psalm: psalm.half_verse_nu,
+    "ps": lambda psalm: psalm.half_verse_ps,
+    "st": lambda psalm: psalm.half_verse_st,
+    "vs": lambda psalm: psalm.half_verse_vs,
+    "vt": lambda psalm: psalm.half_verse_vt,
+    "prs_gn": lambda psalm: psalm.half_verse_prs_gn,
+    "prs_nu": lambda psalm: psalm.half_verse_prs_nu,
+    "prs_ps": lambda psalm: psalm.half_verse_prs_ps,
+}
+
+
+def half_verses_for_feature(
     psalm: MorphologicalPsalm, feature: FeatureKey
 ) -> tuple[tuple[str, ...], ...]:
-    if feature == "gn":
-        return psalm.colon_gn
-    if feature == "nu":
-        return psalm.colon_nu
-    if feature == "ps":
-        return psalm.colon_ps
-    if feature == "st":
-        return psalm.colon_st
-    if feature == "vs":
-        return psalm.colon_vs
-    if feature == "vt":
-        return psalm.colon_vt
-    if feature == "prs_gn":
-        return psalm.colon_prs_gn
-    if feature == "prs_nu":
-        return psalm.colon_prs_nu
-    return psalm.colon_prs_ps
+    """Selects one psalm's per-half-verse value sequences for `feature`."""
+    return _HALF_VERSES_BY_FEATURE[feature](psalm)
 
 
-def atomic_histogram(colon_values: tuple[str, ...], vocabulary: tuple[str, ...]) -> np.ndarray:
-    """Normalized value proportions over one colon: count(v) / m, NA included as its own bin."""
-    index_of = {value: i for i, value in enumerate(vocabulary)}
-    return unigram_histogram(colon_values, index_of, len(vocabulary))
+def atomic_histogram(half_verse_values: tuple[str, ...], vocabulary: tuple[str, ...]) -> np.ndarray:
+    """Normalized value proportions over one node: count(v) / m, NA included as its own bin."""
+    index_of = index_map(vocabulary)
+    return unigram_histogram(half_verse_values, index_of, len(vocabulary))
 
 
 def atomic_vectors(psalms: list[MorphologicalPsalm], feature: FeatureKey) -> dict[int, np.ndarray]:
-    """One atomic histogram per colon node for `feature`."""
+    """One atomic histogram per half-verse node for `feature`."""
     vocabulary = _VOCABULARY_BY_FEATURE[feature]
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        cola = _cola_for_feature(psalm, feature)
-        for node, colon_values in zip(psalm.colon_nodes, cola, strict=True):
-            vectors[node] = atomic_histogram(colon_values, vocabulary)
+        half_verses = half_verses_for_feature(psalm, feature)
+        for node, half_verse_values in zip(psalm.half_verse_nodes, half_verses, strict=True):
+            vectors[node] = atomic_histogram(half_verse_values, vocabulary)
     return vectors
 
 
 def atomic_psalm_vectors(
     psalms: list[MorphologicalPsalm], feature: FeatureKey
 ) -> dict[int, np.ndarray]:
-    """Psalm-broadcast atomic histogram: word-count-weighted pooling across every colon."""
+    """Psalm-broadcast atomic histogram: word-count-weighted pooling across every half-verse."""
     vocabulary = _VOCABULARY_BY_FEATURE[feature]
-    index_of = {value: i for i, value in enumerate(vocabulary)}
+    index_of = index_map(vocabulary)
     dim = len(vocabulary)
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        cola = _cola_for_feature(psalm, feature)
-        flattened = tuple(value for colon_values in cola for value in colon_values)
+        half_verses = half_verses_for_feature(psalm, feature)
+        flattened = tuple(value for half_verse_values in half_verses for value in half_verse_values)
         psalm_vector = unigram_histogram(flattened, index_of, dim)
-        for node in psalm.colon_nodes:
+        for node in psalm.half_verse_nodes:
             vectors[node] = psalm_vector
     return vectors
 
@@ -107,12 +110,14 @@ def atomic_psalm_vectors(
 def sp_plus_feature_vectors(
     psalms: list[MorphologicalPsalm], feature: FeatureKey
 ) -> dict[int, np.ndarray]:
-    """`[sp_unigram; atomic(feature)]` per colon node."""
+    """`[sp_unigram; atomic(feature)]` per half-verse node."""
     feature_vectors = atomic_vectors(psalms, feature)
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_sp in zip(psalm.colon_nodes, psalm.colon_sp, strict=True):
-            vectors[node] = np.concatenate([pos_unigram_histogram(colon_sp), feature_vectors[node]])
+        for node, half_verse_sp in zip(psalm.half_verse_nodes, psalm.half_verse_sp, strict=True):
+            vectors[node] = np.concatenate(
+                [pos_unigram_histogram(half_verse_sp), feature_vectors[node]]
+            )
     return vectors
 
 
@@ -126,12 +131,12 @@ def sp_plus_feature_psalm_vectors(
 
 
 def full_morphology_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.ndarray]:
-    """[sp; gn; nu; ps; st; vs; vt; prs_gn; prs_nu; prs_ps] per colon, dim 77 (H4.4 baseline)."""
+    """[sp; gn; nu; ps; st; vs; vt; prs_gn; prs_nu; prs_ps] per node, dim 77 (H4.4 baseline)."""
     per_feature = {feature: atomic_vectors(psalms, feature) for feature in _FULL_FEATURE_ORDER}
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_sp in zip(psalm.colon_nodes, psalm.colon_sp, strict=True):
-            blocks = [pos_unigram_histogram(colon_sp)]
+        for node, half_verse_sp in zip(psalm.half_verse_nodes, psalm.half_verse_sp, strict=True):
+            blocks = [pos_unigram_histogram(half_verse_sp)]
             blocks.extend(per_feature[feature][node] for feature in _FULL_FEATURE_ORDER)
             vectors[node] = np.concatenate(blocks)
     return vectors

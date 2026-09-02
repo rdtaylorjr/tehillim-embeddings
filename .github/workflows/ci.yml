@@ -18,6 +18,8 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy --strict src
+      - run: deptry src
+      - run: vulture src .vulture-whitelist.py --min-confidence 60
       - run: pytest -q -m "not integration and not api_integration"
 
   vulnerability-scan:
@@ -27,7 +29,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: pip install -e "."
+      - run: pip install -e ".[semantic]"
       - run: pip install pip-audit
       - run: pip-audit
 

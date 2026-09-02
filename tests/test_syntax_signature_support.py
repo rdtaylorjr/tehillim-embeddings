@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from syntax.signature_support import (
-    MIN_EXTERNAL_SUPPORT_K,
+from core.support import (
     RARE_TOKEN,
     build_signature_vocabulary,
     collapse_rare,
     load_external_signature_counts,
 )
+from syntax.signature_support import MIN_EXTERNAL_SUPPORT_K
 
 _EXTERNAL_SUPPORT_CSV = (
     Path(__file__).resolve().parents[1] / "config" / "phrase_signature_external_support.csv"
@@ -39,7 +39,7 @@ class TestCollapseRare:
 class TestLoadExternalSignatureCounts:
     def test_reads_a_signature_count_csv(self, tmp_path):
         path = tmp_path / "support.csv"
-        with open(path, "w", newline="") as handle:
+        with path.open("w", newline="") as handle:
             writer = csv.writer(handle)
             writer.writerow(["signature", "count"])
             writer.writerow(["VP:Pred", "500"])

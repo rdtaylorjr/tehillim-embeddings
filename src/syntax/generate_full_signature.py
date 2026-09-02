@@ -6,17 +6,14 @@ import argparse
 import sys
 from pathlib import Path
 
-from lexical.export import dataset_path, write_dataset
+from core.export import dataset_path, write_dataset
+from core.support import build_signature_vocabulary, load_external_signature_counts
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.full_signature_vectorize import (
     phrase_full_signature_psalm_vectors,
     phrase_full_signature_vectors,
 )
-from syntax.signature_support import (
-    MIN_EXTERNAL_SUPPORT_K_FULL,
-    build_signature_vocabulary,
-    load_external_signature_counts,
-)
+from syntax.signature_support import MIN_EXTERNAL_SUPPORT_K_FULL
 
 _DATASET_TYPE = "syntax"
 _UNIT = "full_signature"

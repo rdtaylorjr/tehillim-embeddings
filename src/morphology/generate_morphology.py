@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from lexical.export import dataset_path, write_dataset
+from core.export import dataset_path, write_dataset
 from morphology.atomic import (
     FeatureKey,
     atomic_psalm_vectors,
@@ -42,6 +42,7 @@ def _write_if_missing(
     vectors: dict[int, np.ndarray],
     description: str,
 ) -> bool:
+    """Writes one construction unless its Parquet file already exists, reporting whether it did."""
     if dataset_path(
         output_root, unit, construction, domain=_DATASET_TYPE, unit_key="feature"
     ).exists():

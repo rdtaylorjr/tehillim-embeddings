@@ -41,19 +41,18 @@ _FEATURE_DIMS = {
 def _psalm(*, number, nodes, **feature_columns):
     return MorphologicalPsalm(
         number=number,
-        colon_nodes=nodes,
-        **{f"colon_{feature}": values for feature, values in feature_columns.items()},
+        half_verse_nodes=nodes,
+        **{f"half_verse_{feature}": values for feature, values in feature_columns.items()},
     )
 
 
 class TestAtomicHistogram:
-    def test_sums_to_one_for_a_non_empty_colon(self):
+    def test_sums_to_one_for_a_non_empty_half_verse(self):
         histogram = atomic_histogram(("NA", "NA", "qal"), VS_VOCABULARY)
         assert np.isclose(histogram.sum(), 1.0)
 
     def test_na_counts_as_part_of_the_same_distribution(self):
-        # An all-noun colon: vs is NA for every word, so the NA bin should hold the full mass,
-        # exposing the applicability-rate confound rather than hiding it.
+        # An all-noun half-verse puts full mass in the NA bin, exposing the applicability confound.
         histogram = atomic_histogram(("NA", "NA", "NA"), VS_VOCABULARY)
         na_index = VS_VOCABULARY.index("NA")
         assert np.isclose(histogram[na_index], 1.0)
@@ -75,7 +74,7 @@ class TestAtomicVectors:
         vectors = atomic_vectors(psalms, "vs")
         assert vectors[100].shape == (_FEATURE_DIMS["vs"],)
 
-    def test_a_colon_of_all_nouns_is_entirely_na_for_a_verb_only_feature(self):
+    def test_a_half_verse_of_all_nouns_is_entirely_na_for_a_verb_only_feature(self):
         psalms = [_psalm(number=1, nodes=(100,), vt=(("NA", "NA", "NA"),))]
         vector = atomic_vectors(psalms, "vt")[100]
         na_index = VT_VOCABULARY.index("NA")
@@ -83,12 +82,12 @@ class TestAtomicVectors:
 
 
 class TestAtomicPsalmVectors:
-    def test_broadcasts_the_identical_vector_to_every_colon_node(self):
+    def test_broadcasts_the_identical_vector_to_every_half_verse_node(self):
         psalms = [_psalm(number=1, nodes=(200, 201), gn=(("m",), ("f",)))]
         vectors = atomic_psalm_vectors(psalms, "gn")
-        assert np.allclose(vectors[200], vectors[201])
+        assert np.array_equal(vectors[200], vectors[201])
 
-    def test_pools_raw_word_counts_across_colons_before_normalizing_once(self):
+    def test_pools_raw_word_counts_across_half_verses_before_normalizing_once(self):
         psalms = [_psalm(number=1, nodes=(300, 301), gn=(("m",), ("f", "f", "NA")))]
         vector = atomic_psalm_vectors(psalms, "gn")[300]
         m_index, f_index, na_index = (GN_VOCABULARY.index(v) for v in ("m", "f", "NA"))

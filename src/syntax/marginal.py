@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from morphology.ngram import pooled_ngram_psalm_vectors
+from core.ngram import pooled_ngram_psalm_vectors
 from syntax.corpus import PhrasePsalm
 from syntax.function_ngram import _DIM as _FUNCTION_DIM
 from syntax.function_ngram import _INDEX_OF as _FUNCTION_INDEX_OF
@@ -15,16 +15,16 @@ from syntax.typ_ngram import phrase_typ_unigram_histogram
 
 
 def typ_function_marginal_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
-    """`[phrase_typ_1gram; phrase_function_1gram]` per colon, independent marginal histograms."""
+    """`[phrase_typ_1gram; phrase_function_1gram]` per node, independent marginal histograms."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_typ, colon_function in zip(
-            psalm.colon_nodes, psalm.colon_typ, psalm.colon_function, strict=True
+        for node, half_verse_typ, half_verse_function in zip(
+            psalm.half_verse_nodes, psalm.half_verse_typ, psalm.half_verse_function, strict=True
         ):
             vectors[node] = np.concatenate(
                 [
-                    phrase_typ_unigram_histogram(colon_typ),
-                    phrase_function_unigram_histogram(colon_function),
+                    phrase_typ_unigram_histogram(half_verse_typ),
+                    phrase_function_unigram_histogram(half_verse_function),
                 ]
             )
     return vectors
@@ -32,8 +32,8 @@ def typ_function_marginal_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.nda
 
 def typ_function_marginal_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `typ_function_marginal_vectors`."""
-    typ_columns = [(p.colon_nodes, p.colon_typ) for p in psalms]
-    function_columns = [(p.colon_nodes, p.colon_function) for p in psalms]
+    typ_columns = [(p.half_verse_nodes, p.half_verse_typ) for p in psalms]
+    function_columns = [(p.half_verse_nodes, p.half_verse_function) for p in psalms]
     typ_vectors = pooled_ngram_psalm_vectors(
         typ_columns, (1,), _TYP_INDEX_OF, _TYP_DIM, order_by_node=None
     )

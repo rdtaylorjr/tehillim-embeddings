@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from lexical.export import dataset_path as _dataset_path
+from core.export import dataset_path as _dataset_path
 from morphology.corpus import MorphologicalPsalm
 from morphology.generate_signature import generate
 
@@ -14,8 +14,8 @@ def dataset_path(output_root, vocab, weight):
 def _psalm(*, number, nodes, **feature_columns):
     return MorphologicalPsalm(
         number=number,
-        colon_nodes=nodes,
-        **{f"colon_{feature}": values for feature, values in feature_columns.items()},
+        half_verse_nodes=nodes,
+        **{f"half_verse_{feature}": values for feature, values in feature_columns.items()},
     )
 
 
@@ -43,7 +43,7 @@ def _external_counts():
 
 
 class TestGenerate:
-    def test_writes_morph_atomic_colon_and_psalm(self, tmp_path):
+    def test_writes_morph_atomic_half_verse_and_psalm(self, tmp_path):
         written = generate(_psalms(), tmp_path, _external_counts(), k=1000)
 
         assert "morph_atomic_core" in written

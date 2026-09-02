@@ -35,7 +35,7 @@ class _FakeL:
 
 
 class _FakeF:
-    def __init__(self, otype, book, typ, function, det) -> None:  # noqa: N803
+    def __init__(self, otype, book, typ, function, det) -> None:
         self.otype = otype
         self.book = book
         self.typ = typ
@@ -50,9 +50,7 @@ class _FakeApi:
 
 
 def _fake_two_book_api() -> _FakeApi:
-    # Book 1 = "Psalmi" (must be excluded): atom 10, mother phrase 100.
-    # Book 2 = "Genesis" (included): atoms 20 (det=NA), 21 (det=NA), 22 (det=det), mothers
-    # 200, 200, 201.
+    # Book 1 Psalmi (excluded): atom 10. Book 2 Genesis: atoms 20, 21 (det=NA) and 22 (det=det).
     otype = _FakeOtype([1, 2])
     book = _FakeFeature({1: "Psalmi", 2: "Genesis"})
     typ = _FakeFeature({10: "NP", 20: "NP", 21: "NP", 22: "NP"})
@@ -69,13 +67,11 @@ class TestBuildExternalFullSignatureCounts:
     def test_excludes_atoms_belonging_to_the_psalms_book(self) -> None:
         counts = build_external_full_signature_counts(_fake_two_book_api())
 
-        # Only Genesis's 2 "NP:Subj" (det=NA) atoms should be counted under that key; Psalms'
-        # single "NP:Subj" atom must not contribute, so "NP:Subj" totals 2, not 3.
+        # Only Genesis's 2 det=NA "NP:Subj" atoms count, so the total is 2, not 3.
         assert counts["NP:Subj"] == 2
 
     def test_appends_det_only_when_not_na(self) -> None:
         counts = build_external_full_signature_counts(_fake_two_book_api())
 
-        # Atom 22 carries det="det", so it lands under "NP:Subj:det", separate from the
-        # det=NA atoms counted under the bare "NP:Subj".
+        # Atom 22 carries det="det", so it lands under "NP:Subj:det", separate from the bare key.
         assert counts == {"NP:Subj": 2, "NP:Subj:det": 1}

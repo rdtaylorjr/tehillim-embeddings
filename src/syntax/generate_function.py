@@ -1,4 +1,4 @@
-"""Computes and writes the phrase-function skeleton: unigram, bigram, trigram, colon/psalm."""
+"""Computes and writes the phrase-function skeleton: unigram, bigram, trigram, half-verse/psalm."""
 
 from __future__ import annotations
 
@@ -8,16 +8,17 @@ from pathlib import Path
 
 import numpy as np
 
-from lexical.export import dataset_path, write_dataset
+from core.export import dataset_path, write_sparse_vectors, write_vectors
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.function_ngram import (
-    phrase_function_1_2_3gram_psalm_vectors,
-    phrase_function_1_2_3gram_vectors,
+    phrase_function_1_2_3gram_psalm_sparse_vectors,
+    phrase_function_1_2_3gram_sparse_vectors,
     phrase_function_1_2gram_psalm_vectors,
     phrase_function_1_2gram_vectors,
     phrase_function_1gram_psalm_vectors,
     phrase_function_1gram_vectors,
 )
+from syntax.vocabulary import FUNCTION_VOCABULARY
 
 _FULL_WEIGHTS = (
     "1gram",
@@ -37,15 +38,23 @@ def _vectors_for_weight(psalms: list[PhrasePsalm], weight: str) -> dict[int, np.
         return phrase_function_1gram_vectors(psalms)
     if weight == "1_2gram":
         return phrase_function_1_2gram_vectors(psalms)
-    if weight == "1_2_3gram":
-        return phrase_function_1_2_3gram_vectors(psalms)
+
     if weight == "1gram_psalm":
         return phrase_function_1gram_psalm_vectors(psalms)
     if weight == "1_2gram_psalm":
         return phrase_function_1_2gram_psalm_vectors(psalms)
-    if weight == "1_2_3gram_psalm":
-        return phrase_function_1_2_3gram_psalm_vectors(psalms)
+
     raise ValueError(f"unknown weight {weight!r}")
+
+
+#: The trigram block is overwhelmingly zero at this dimension, so it is stored sparsely.
+_SPARSE_WEIGHTS = {
+    "1_2_3gram": phrase_function_1_2_3gram_sparse_vectors,
+    "1_2_3gram_psalm": phrase_function_1_2_3gram_psalm_sparse_vectors,
+}
+
+_DIM = len(FUNCTION_VOCABULARY)
+_SPARSE_DIM = _DIM + _DIM * _DIM + _DIM * _DIM * _DIM
 
 
 def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
@@ -62,21 +71,27 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
         ).exists():
             continue
         print(f"computing syntax feature=function construction={weight}...", file=sys.stderr)
-        vectors = _vectors_for_weight(psalms, weight)
-        dimension = len(next(iter(vectors.values())))
-        description = (
-            f"Phrase-function-only skeleton, construction={weight}, dimension {dimension}."
-        )
-        write_dataset(
+        path = dataset_path(
             output_root,
             "function",
             weight,
-            vectors,
-            description,
             domain=_DATASET_TYPE,
             unit_key="feature",
             level="phrase",
         )
+        sparse_builder = _SPARSE_WEIGHTS.get(weight)
+        if sparse_builder is not None:
+            description = (
+                f"Phrase-function-only skeleton, construction={weight}, dimension {_SPARSE_DIM}."
+            )
+            write_sparse_vectors(path, sparse_builder(psalms), _SPARSE_DIM, description)
+        else:
+            vectors = _vectors_for_weight(psalms, weight)
+            dimension = len(next(iter(vectors.values())))
+            description = (
+                f"Phrase-function-only skeleton, construction={weight}, dimension {dimension}."
+            )
+            write_vectors(path, vectors, description)
         written.append(f"function_{weight}")
     return written
 

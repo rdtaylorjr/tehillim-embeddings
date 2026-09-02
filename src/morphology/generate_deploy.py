@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from lexical.export import dataset_path, write_dataset
+from core.export import dataset_path, write_dataset
 from morphology.corpus import Corpus, MorphologicalPsalm
 from morphology.deploy import suffix_deploy_vectors
 

@@ -73,3 +73,41 @@ class TestModelRegistryAndVariationsAreConsistent:
     def test_every_diacritic_stripping_slug_is_a_real_model_registry_key(self):
         for slug in TOKENIZER_STRIPS_ALL_DIACRITICS:
             assert slug in MODEL_REGISTRY
+
+
+class TestRegistryCoversEveryKnownModel:
+    """A model constant that never reaches MODEL_REGISTRY is a model nothing can generate."""
+
+    def test_every_local_model_constant_is_registered(self):
+        from semantic import local_models
+
+        constants = {
+            value
+            for name, value in vars(local_models).items()
+            if name.endswith("_MODEL") and isinstance(value, str)
+        }
+        registered = {technical for technical, _, _ in MODEL_REGISTRY.values()}
+
+        assert constants - registered == set()
+
+    def test_every_api_model_constant_is_registered(self):
+        from semantic import api_models
+
+        constants = {
+            value
+            for name, value in vars(api_models).items()
+            if name.endswith("_MODEL") and isinstance(value, str)
+        }
+        registered = {technical for technical, _, _ in MODEL_REGISTRY.values()}
+
+        assert constants - registered == set()
+
+    def test_technical_ids_are_unique_across_the_registry(self):
+        technical = [entry[0] for entry in MODEL_REGISTRY.values()]
+
+        assert len(technical) == len(set(technical))
+
+    def test_dataset_slugs_are_unique_across_the_registry(self):
+        slugs = [entry[1] for entry in MODEL_REGISTRY.values()]
+
+        assert len(slugs) == len(set(slugs))

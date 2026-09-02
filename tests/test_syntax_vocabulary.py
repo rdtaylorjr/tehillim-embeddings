@@ -24,9 +24,9 @@ class TestVocabularyContents:
 def _load_full_api():
     from tf.fabric import Fabric
 
-    from syntax.corpus import DEFAULT_BHSA_TF_PATH
+    from syntax.corpus import DEFAULT_BHSA_CLONE
 
-    tf = Fabric(locations=[str(DEFAULT_BHSA_TF_PATH)], silent="deep")
+    tf = Fabric(locations=[str(DEFAULT_BHSA_CLONE)], silent="deep")
     return tf.load("otype typ det function", silent="deep")
 
 

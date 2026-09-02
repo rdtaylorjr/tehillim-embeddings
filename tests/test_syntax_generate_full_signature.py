@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from lexical.export import dataset_path as _dataset_path
+from core.export import dataset_path as _dataset_path
 from syntax.corpus import PhrasePsalm
 from syntax.generate_full_signature import generate
 
@@ -14,10 +14,10 @@ def dataset_path(output_root, vocab, weight):
 def _psalm(*, number, nodes, typ, function, det):
     return PhrasePsalm(
         number=number,
-        colon_nodes=nodes,
-        colon_typ=typ,
-        colon_function=function,
-        colon_det=det,
+        half_verse_nodes=nodes,
+        half_verse_typ=typ,
+        half_verse_function=function,
+        half_verse_det=det,
     )
 
 

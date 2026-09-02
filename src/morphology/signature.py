@@ -18,7 +18,7 @@ def build_signature(*, sp: str, gn: str, nu: str, ps: str, st: str, vs: str, vt:
     return "|".join(parts)
 
 
-def colon_signatures(
+def half_verse_signatures(
     *,
     sp: tuple[str, ...],
     gn: tuple[str, ...],
@@ -36,17 +36,17 @@ def colon_signatures(
 
 
 def psalm_signatures(psalm: MorphologicalPsalm) -> tuple[tuple[str, ...], ...]:
-    """One signature sequence per colon of `psalm`."""
+    """One signature sequence per half-verse of `psalm`."""
     return tuple(
-        colon_signatures(sp=sp, gn=gn, nu=nu, ps=ps, st=st, vs=vs, vt=vt)
+        half_verse_signatures(sp=sp, gn=gn, nu=nu, ps=ps, st=st, vs=vs, vt=vt)
         for sp, gn, nu, ps, st, vs, vt in zip(
-            psalm.colon_sp,
-            psalm.colon_gn,
-            psalm.colon_nu,
-            psalm.colon_ps,
-            psalm.colon_st,
-            psalm.colon_vs,
-            psalm.colon_vt,
+            psalm.half_verse_sp,
+            psalm.half_verse_gn,
+            psalm.half_verse_nu,
+            psalm.half_verse_ps,
+            psalm.half_verse_st,
+            psalm.half_verse_vs,
+            psalm.half_verse_vt,
             strict=True,
         )
     )

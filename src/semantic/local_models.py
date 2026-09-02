@@ -1,4 +1,4 @@
-"""Computes colon embeddings from local sentence-embedding models."""
+"""Computes half-verse embeddings from local sentence-embedding models."""
 
 from __future__ import annotations
 
@@ -26,19 +26,19 @@ F2LLM_V2_MODEL = "codefuse-ai/F2LLM-v2-14B"
 BGE_M3_MODEL = "BAAI/bge-m3"
 GTE_MULTILINGUAL_MODEL = "Alibaba-NLP/gte-multilingual-base"
 
-#: This checkpoint's NaN failure mode is intermittent even on CPU.
-#: Retries, each paired with a dynamic-module eviction, are the actual
-#: fix.
+#: This checkpoint's NaN failure is intermittent even on CPU, so retries with eviction are the fix.
 _GTE_MULTILINGUAL_MAX_ATTEMPTS = 5
 
 ME5_LARGE_INSTRUCT_MODEL = "intfloat/multilingual-e5-large-instruct"
 
 
-def _select_cola(psalm: Psalm, *, vocalized: bool, niqqud_only: bool = False) -> tuple[str, ...]:
-    """Selects a psalm's colon texts for the given text state."""
+def select_half_verses(
+    psalm: Psalm, *, vocalized: bool, niqqud_only: bool = False
+) -> tuple[str, ...]:
+    """Selects a psalm's half-verse texts for the given text state."""
     if niqqud_only:
-        return psalm.cola_niqqud_only
-    return psalm.cola if vocalized else psalm.cola_unvocalized
+        return psalm.half_verses_niqqud_only
+    return psalm.half_verses if vocalized else psalm.half_verses_unvocalized
 
 
 def _rope_frequencies(
@@ -63,6 +63,12 @@ def _repair_neodictabert_rope_buffers(auto_model: Any) -> None:
             continue
         dim = module.config.hidden_size // module.config.num_attention_heads
         cos, sin = _rope_frequencies(dim, module.config.max_length)
+        #: copy_ would broadcast a mismatched recomputation into the buffer silently.
+        if tuple(freqs_cos.shape) != tuple(cos.shape):
+            raise RuntimeError(
+                f"NeoDictaBERT RoPE buffer shape {tuple(freqs_cos.shape)} does not match the "
+                f"recomputed {tuple(cos.shape)}, refusing to overwrite it"
+            )
         module.freqs_cos.copy_(cos)
         module.freqs_sin.copy_(sin)
 
@@ -84,9 +90,12 @@ def _repair_gte_multilingual_position_ids(auto_model: Any) -> None:
 
     for module in auto_model.modules():
         position_ids = getattr(module, "position_ids", None)
-        if position_ids is None or not torch.is_tensor(position_ids):
+        if position_ids is None or not torch.is_tensor(position_ids) or position_ids.ndim == 0:
             continue
-        expected = torch.arange(position_ids.shape[0], device=position_ids.device)
+        #: Buffers are (max_positions,) or (1, max_positions), so the ramp runs on the last axis.
+        expected = torch.arange(position_ids.shape[-1], device=position_ids.device).expand_as(
+            position_ids
+        )
         if torch.equal(position_ids, expected):
             continue
         module.position_ids.copy_(expected)
@@ -176,7 +185,34 @@ def _release_gpu_memory() -> None:
         torch.mps.empty_cache()
 
 
-def compute_colon_embeddings(
+def _raw_transformer_embeddings(
+    psalms: list[Psalm],
+    model_name: str,
+    *,
+    vocalized: bool,
+    niqqud_only: bool,
+    device: str | None,
+    torch_dtype: str | None,
+    raw_transformer_loader: Callable[..., tuple[Any, Any]],
+    last_token_pooler: Callable[[list[str], Any, Any], np.ndarray],
+    release_gpu_memory: Callable[[], None],
+) -> dict[int, np.ndarray]:
+    """Encodes with plain transformers and last-token pooling, for checkpoints ST cannot load."""
+    tokenizer, raw_model = raw_transformer_loader(
+        model_name, torch_dtype=torch_dtype, device=device
+    )
+    embeddings: dict[int, np.ndarray] = {}
+    for psalm in psalms:
+        half_verses = select_half_verses(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
+        embeddings[psalm.number] = np.asarray(
+            last_token_pooler(list(half_verses), tokenizer, raw_model)
+        )
+    del tokenizer, raw_model
+    release_gpu_memory()
+    return embeddings
+
+
+def compute_half_verse_embeddings(
     psalms: list[Psalm],
     model_name: str,
     *,
@@ -191,22 +227,22 @@ def compute_colon_embeddings(
 ) -> dict[int, np.ndarray]:
     """`niqqud_only=True` overrides `vocalized` with accent-stripped text."""
     if model_name in RAW_TRANSFORMER_MODELS:
-        tokenizer, raw_model = raw_transformer_loader(
-            model_name, torch_dtype=torch_dtype, device=device
+        return _raw_transformer_embeddings(
+            psalms,
+            model_name,
+            vocalized=vocalized,
+            niqqud_only=niqqud_only,
+            device=device,
+            torch_dtype=torch_dtype,
+            raw_transformer_loader=raw_transformer_loader,
+            last_token_pooler=last_token_pooler,
+            release_gpu_memory=release_gpu_memory,
         )
-        embeddings: dict[int, np.ndarray] = {}
-        for psalm in psalms:
-            cola = _select_cola(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
-            vectors = last_token_pooler(list(cola), tokenizer, raw_model)
-            embeddings[psalm.number] = np.asarray(vectors)
-        del tokenizer, raw_model
-        release_gpu_memory()
-        return embeddings
 
     if sentence_transformer_factory is None:
         from sentence_transformers import SentenceTransformer
 
-        factory = cast(Callable[..., Any], SentenceTransformer)
+        factory = cast("Callable[..., Any]", SentenceTransformer)
     else:
         factory = sentence_transformer_factory
 
@@ -228,8 +264,8 @@ def compute_colon_embeddings(
             _repair_gte_multilingual_position_ids(model[0].auto_model)
         embeddings = {}
         for psalm in psalms:
-            cola = _select_cola(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
-            vectors = model.encode(list(cola), normalize_embeddings=True)
+            half_verses = select_half_verses(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
+            vectors = model.encode(list(half_verses), normalize_embeddings=True)
             embeddings[psalm.number] = np.asarray(vectors)
         del model
         release_gpu_memory()

@@ -12,6 +12,6 @@ def mask_para(rela: str) -> str:
     return "NA" if rela in QUARANTINED_RELA else rela
 
 
-def colon_safe_rela(colon_rela: tuple[str, ...]) -> tuple[str, ...]:
-    """Applies `mask_para` to every phrase atom in one colon."""
-    return tuple(mask_para(value) for value in colon_rela)
+def half_verse_safe_rela(half_verse_rela: tuple[str, ...]) -> tuple[str, ...]:
+    """Applies `mask_para` to every phrase atom in one half-verse."""
+    return tuple(mask_para(value) for value in half_verse_rela)

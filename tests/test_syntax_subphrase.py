@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from syntax.subphrase import SAFE_SUBPHRASE_RELA_VOCABULARY, colon_safe_subphrase_rela, mask_par
+from syntax.subphrase import (
+    SAFE_SUBPHRASE_RELA_VOCABULARY,
+    half_verse_safe_subphrase_rela,
+    mask_par,
+)
 
 
 class TestMaskPar:
@@ -20,9 +24,14 @@ class TestSafeSubphraseRelaVocabulary:
         assert set(SAFE_SUBPHRASE_RELA_VOCABULARY) == {"NA", "adj", "atr", "dem", "mod", "rec"}
 
 
-class TestColonSafeSubphraseRela:
-    def test_masks_every_par_in_the_colon(self):
-        assert colon_safe_subphrase_rela(("NA", "par", "rec", "par")) == ("NA", "NA", "rec", "NA")
+class TestHalfVerseSafeSubphraseRela:
+    def test_masks_every_par_in_the_half_verse(self):
+        assert half_verse_safe_subphrase_rela(("NA", "par", "rec", "par")) == (
+            "NA",
+            "NA",
+            "rec",
+            "NA",
+        )
 
     def test_is_a_no_op_when_no_par_present(self):
-        assert colon_safe_subphrase_rela(("NA", "rec", "atr")) == ("NA", "rec", "atr")
+        assert half_verse_safe_subphrase_rela(("NA", "rec", "atr")) == ("NA", "rec", "atr")
