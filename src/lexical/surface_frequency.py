@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from lexical.surface_corpus import _strip_accents
+from core.text import strip_accents
 from lexical.surface_vocabulary import SurfaceTier
 
 
@@ -18,6 +18,6 @@ def surface_token_frequencies(api: Any, tier: SurfaceTier) -> dict[str, int]:
         elif tier == "cantillation":
             value = F.g_word_utf8.v(word)
         else:
-            value = _strip_accents(F.g_word_utf8.v(word))
+            value = strip_accents(F.g_word_utf8.v(word))
         frequencies[value] = frequencies.get(value, 0) + 1
     return frequencies

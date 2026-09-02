@@ -18,8 +18,10 @@ def _full_dim_vector(lead_value: float, dim: int) -> list[float]:
 
 
 class _FakeEmbedding:
-    def __init__(self, embedding: list[float]) -> None:
+    # The real `Embedding` carries a required `index`, which restores input order within a batch.
+    def __init__(self, embedding: list[float], index: int = 0) -> None:
         self.embedding = embedding
+        self.index = index
 
 
 class _FakeEmbeddingResponse:
@@ -37,7 +39,10 @@ class _FakeEmbeddingsResource:
         texts = kwargs["input"]
         assert isinstance(texts, list)
         return _FakeEmbeddingResponse(
-            data=[_FakeEmbedding(_full_dim_vector(float(len(text)), self._dim)) for text in texts]
+            data=[
+                _FakeEmbedding(_full_dim_vector(float(len(text)), self._dim), index)
+                for index, text in enumerate(texts)
+            ]
         )
 
 
@@ -51,9 +56,7 @@ class _FakeOpenAiCompatibleClient:
 
 class _FakeCohereEmbeddings:
     def __init__(self, float_: list[list[float]] | None) -> None:
-        # The real attribute is `float_` (trailing underscore, aliased
-        # from the JSON key "float"), confirmed against cohere-python's
-        # EmbedByTypeResponseEmbeddings type.
+        # The real attribute is `float_`, aliased from the JSON key "float", per cohere-python.
         self.float_ = float_
 
 
@@ -105,7 +108,7 @@ class TestFetchGeminiEmbeddings:
             return client
 
         texts = [f"text-{i}" for i in range(250)]
-        fetch_gemini_embeddings(texts, api_key="k", client_factory=_factory)
+        fetch_gemini_embeddings(texts, api_key="k", client_factory=_factory, max_workers=1)
 
         batch_sizes = [len(call["input"]) for call in created[0].calls]
         assert batch_sizes == [100, 100, 50]
@@ -172,7 +175,7 @@ class TestFetchCohereEmbeddings:
             return client
 
         texts = [f"text-{i}" for i in range(250)]
-        fetch_cohere_embeddings(texts, api_key="k", client_factory=_factory)
+        fetch_cohere_embeddings(texts, api_key="k", client_factory=_factory, max_workers=1)
 
         batch_sizes = [len(call["texts"]) for call in created[0].calls]
         assert batch_sizes == [96, 96, 58]
@@ -233,7 +236,7 @@ class TestFetchOpenaiEmbeddings:
             return client
 
         texts = [f"text-{i}" for i in range(250)]
-        fetch_openai_embeddings(texts, api_key="k", client_factory=_factory)
+        fetch_openai_embeddings(texts, api_key="k", client_factory=_factory, max_workers=1)
 
         batch_sizes = [len(call["input"]) for call in created[0].calls]
         assert batch_sizes == [100, 100, 50]
@@ -276,7 +279,7 @@ class TestFetchVoyageEmbeddings:
             return client
 
         texts = [f"text-{i}" for i in range(250)]
-        fetch_voyage_embeddings(texts, api_key="k", client_factory=_factory)
+        fetch_voyage_embeddings(texts, api_key="k", client_factory=_factory, max_workers=1)
 
         batch_sizes = [len(call["input"]) for call in created[0].calls]
         assert batch_sizes == [100, 100, 50]

@@ -6,14 +6,11 @@ import argparse
 import sys
 from pathlib import Path
 
-from lexical.export import dataset_path, write_dataset
+from core.export import dataset_path, write_dataset
+from core.support import build_signature_vocabulary, load_external_signature_counts
 from syntax.corpus import Corpus, PhrasePsalm
 from syntax.deploy import signature_deploy_vectors
-from syntax.signature_support import (
-    MIN_EXTERNAL_SUPPORT_K,
-    build_signature_vocabulary,
-    load_external_signature_counts,
-)
+from syntax.signature_support import MIN_EXTERNAL_SUPPORT_K
 
 _DATASET_TYPE = "syntax"
 _UNIT = "signature"

@@ -16,7 +16,7 @@ def build_full_phrase_signature(*, typ: str, function: str, det: str) -> str:
     return base if det == "NA" else f"{base}:{det}"
 
 
-def colon_signatures(*, typ: tuple[str, ...], function: tuple[str, ...]) -> tuple[str, ...]:
+def half_verse_signatures(*, typ: tuple[str, ...], function: tuple[str, ...]) -> tuple[str, ...]:
     """One signature per phrase atom, aligned across the two per-atom feature sequences."""
     return tuple(
         build_phrase_signature(typ=w_typ, function=w_function)
@@ -25,14 +25,14 @@ def colon_signatures(*, typ: tuple[str, ...], function: tuple[str, ...]) -> tupl
 
 
 def psalm_signatures(psalm: PhrasePsalm) -> tuple[tuple[str, ...], ...]:
-    """One signature sequence per colon of `psalm`."""
+    """One signature sequence per half-verse of `psalm`."""
     return tuple(
-        colon_signatures(typ=typ, function=function)
-        for typ, function in zip(psalm.colon_typ, psalm.colon_function, strict=True)
+        half_verse_signatures(typ=typ, function=function)
+        for typ, function in zip(psalm.half_verse_typ, psalm.half_verse_function, strict=True)
     )
 
 
-def colon_full_signatures(
+def half_verse_full_signatures(
     *, typ: tuple[str, ...], function: tuple[str, ...], det: tuple[str, ...]
 ) -> tuple[str, ...]:
     """One `typ:function[:det]` signature per phrase atom, aligned across all three features."""
@@ -43,10 +43,10 @@ def colon_full_signatures(
 
 
 def psalm_full_signatures(psalm: PhrasePsalm) -> tuple[tuple[str, ...], ...]:
-    """One `typ:function[:det]` signature sequence per colon of `psalm`."""
+    """One `typ:function[:det]` signature sequence per half-verse of `psalm`."""
     return tuple(
-        colon_full_signatures(typ=typ, function=function, det=det)
+        half_verse_full_signatures(typ=typ, function=function, det=det)
         for typ, function, det in zip(
-            psalm.colon_typ, psalm.colon_function, psalm.colon_det, strict=True
+            psalm.half_verse_typ, psalm.half_verse_function, psalm.half_verse_det, strict=True
         )
     )

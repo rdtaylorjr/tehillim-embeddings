@@ -9,16 +9,13 @@ from pathlib import Path
 
 import numpy as np
 
-from lexical.export import dataset_path, write_dataset
+from core.export import dataset_path, write_sparse_vectors, write_vectors
+from core.support import build_signature_vocabulary, load_external_signature_counts
 from syntax.corpus import Corpus, PhrasePsalm
-from syntax.signature_support import (
-    MIN_EXTERNAL_SUPPORT_K,
-    build_signature_vocabulary,
-    load_external_signature_counts,
-)
+from syntax.signature_support import MIN_EXTERNAL_SUPPORT_K
 from syntax.signature_vectorize import (
-    phrase_signature_1_2_3gram_psalm_vectors,
-    phrase_signature_1_2_3gram_vectors,
+    phrase_signature_1_2_3gram_psalm_sparse_vectors,
+    phrase_signature_1_2_3gram_sparse_vectors,
     phrase_signature_1_2gram_psalm_vectors,
     phrase_signature_1_2gram_vectors,
     phrase_signature_psalm_vectors,
@@ -44,39 +41,40 @@ def generate(
         "1_2gram_psalm": lambda: phrase_signature_1_2gram_psalm_vectors(
             psalms, vocabulary, external_counts, k
         ),
-        "1_2_3gram": lambda: phrase_signature_1_2_3gram_vectors(
+    }
+
+    #: The trigram block is overwhelmingly zero at this dimension, so it is stored sparsely.
+    sparse_builders: dict[str, Callable[[], dict[int, tuple[np.ndarray, np.ndarray]]]] = {
+        "1_2_3gram": lambda: phrase_signature_1_2_3gram_sparse_vectors(
             psalms, vocabulary, external_counts, k
         ),
-        "1_2_3gram_psalm": lambda: phrase_signature_1_2_3gram_psalm_vectors(
+        "1_2_3gram_psalm": lambda: phrase_signature_1_2_3gram_psalm_sparse_vectors(
             psalms, vocabulary, external_counts, k
         ),
     }
+    dim = len(vocabulary)
+    sparse_dim = dim + dim * dim + dim * dim * dim
 
     written: list[str] = []
-    for construction, builder in builders.items():
-        if dataset_path(
+    for construction in (*builders, *sparse_builders):
+        path = dataset_path(
             output_root,
             _UNIT,
             construction,
             domain=_DATASET_TYPE,
             unit_key="feature",
             level="phrase",
-        ).exists():
+        )
+        if path.exists():
             continue
         print(f"computing syntax feature={_UNIT} construction={construction}...", file=sys.stderr)
         description = (
             f"Phrase-signature histogram (RARE-collapsed, k={k}), construction={construction}."
         )
-        write_dataset(
-            output_root,
-            _UNIT,
-            construction,
-            builder(),
-            description,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-            level="phrase",
-        )
+        if construction in sparse_builders:
+            write_sparse_vectors(path, sparse_builders[construction](), sparse_dim, description)
+        else:
+            write_vectors(path, builders[construction](), description)
         written.append(f"{_UNIT}_{construction}")
     return written
 

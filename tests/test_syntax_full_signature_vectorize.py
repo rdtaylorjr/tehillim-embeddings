@@ -12,10 +12,10 @@ from syntax.full_signature_vectorize import (
 def _psalm(*, number, nodes, typ, function, det):
     return PhrasePsalm(
         number=number,
-        colon_nodes=nodes,
-        colon_typ=typ,
-        colon_function=function,
-        colon_det=det,
+        half_verse_nodes=nodes,
+        half_verse_typ=typ,
+        half_verse_function=function,
+        half_verse_det=det,
     )
 
 
@@ -49,7 +49,7 @@ class TestPhraseFullSignatureVectors:
 
 
 class TestPhraseFullSignaturePsalmVectors:
-    def test_broadcasts_the_same_vector_to_every_colon(self):
+    def test_broadcasts_the_same_vector_to_every_half_verse(self):
         psalms = [
             _psalm(
                 number=1,

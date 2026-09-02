@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from lexical.export import dataset_path as _dataset_path
+from core.export import dataset_path as _dataset_path
 from syntax.corpus import PhrasePsalm
 from syntax.generate_function import generate
 
@@ -23,14 +23,18 @@ _FULL_WEIGHTS = (
 )
 
 
-def _psalm(*, number, phrase_function_by_colon, nodes):
-    return PhrasePsalm(number=number, colon_nodes=nodes, colon_function=phrase_function_by_colon)
+def _psalm(*, number, phrase_function_by_half_verse, nodes):
+    return PhrasePsalm(
+        number=number, half_verse_nodes=nodes, half_verse_function=phrase_function_by_half_verse
+    )
 
 
 def _psalms():
     return [
-        _psalm(number=1, phrase_function_by_colon=(("Subj", "Pred"), ("Cmpl",)), nodes=(100, 101)),
-        _psalm(number=2, phrase_function_by_colon=(("Adju",),), nodes=(200,)),
+        _psalm(
+            number=1, phrase_function_by_half_verse=(("Subj", "Pred"), ("Cmpl",)), nodes=(100, 101)
+        ),
+        _psalm(number=2, phrase_function_by_half_verse=(("Adju",),), nodes=(200,)),
     ]
 
 
@@ -56,7 +60,7 @@ class TestGenerate:
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]
 
-    def test_colon_level_variants_give_distinct_colons_their_own_vector(self, tmp_path):
+    def test_half_verse_level_variants_give_distinct_half_verses_their_own_vector(self, tmp_path):
         generate(_psalms(), tmp_path)
 
         table = pq.read_table(dataset_path(tmp_path, "function", "1gram"))

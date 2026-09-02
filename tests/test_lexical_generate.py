@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
+from core.export import dataset_path
 from lexical.corpus import LexicalPsalm
-from lexical.export import dataset_path
 from lexical.generate import generate
 
 
 def _psalm(*, number, lexemes, forms, nodes):
     return LexicalPsalm(
         number=number,
-        colon_lexemes=lexemes,
-        colon_forms=forms,
-        colon_nodes=nodes,
+        half_verse_lexemes=lexemes,
+        half_verse_forms=forms,
+        half_verse_nodes=nodes,
     )
 
 
@@ -73,7 +73,7 @@ class TestGenerate:
             table = pq.read_table(dataset_path(tmp_path, "homograph", weight, unit_key="unit"))
             assert len(table["vector"].to_pylist()[0]) == k
 
-    def test_lag_broadcasts_the_same_vector_to_every_colon_of_a_psalm(self, tmp_path):
+    def test_lag_broadcasts_the_same_vector_to_every_half_verse_of_a_psalm(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
         table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_spacing4", unit_key="unit"))
@@ -88,7 +88,7 @@ class TestGenerate:
         )
         assert len(table["vector"].to_pylist()[0]) == 6
 
-    def test_position_mean_gives_each_colon_of_a_psalm_its_own_vector(self, tmp_path):
+    def test_position_mean_gives_each_half_verse_of_a_psalm_its_own_vector(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
         table = pq.read_table(
@@ -105,7 +105,7 @@ class TestGenerate:
             table = pq.read_table(dataset_path(tmp_path, "homograph", weight, unit_key="unit"))
             assert len(table["vector"].to_pylist()[0]) == 3 * k
 
-    def test_positional_gives_each_colon_of_a_psalm_its_own_vector(self, tmp_path):
+    def test_positional_gives_each_half_verse_of_a_psalm_its_own_vector(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
         table = pq.read_table(dataset_path(tmp_path, "homograph", "icf_position4", unit_key="unit"))
@@ -113,7 +113,7 @@ class TestGenerate:
         # psalm 1 has nodes 100 and 101, with different content, so different vectors.
         assert by_node[100] != by_node[101]
 
-    def test_psalm_lag_broadcasts_the_same_vector_to_every_colon_of_a_psalm(self, tmp_path):
+    def test_psalm_lag_broadcasts_the_same_vector_to_every_half_verse_of_a_psalm(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
         table = pq.read_table(
@@ -122,7 +122,7 @@ class TestGenerate:
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]
 
-    def test_psalm_position_mean_broadcasts_the_same_vector_to_every_colon_of_a_psalm(
+    def test_psalm_position_mean_broadcasts_the_same_vector_to_every_half_verse_of_a_psalm(
         self, tmp_path
     ):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
@@ -133,7 +133,9 @@ class TestGenerate:
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]
 
-    def test_psalm_positional_broadcasts_the_same_vector_to_every_colon_of_a_psalm(self, tmp_path):
+    def test_psalm_positional_broadcasts_the_same_vector_to_every_half_verse_of_a_psalm(
+        self, tmp_path
+    ):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
         table = pq.read_table(
@@ -142,10 +144,10 @@ class TestGenerate:
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]
 
-    def test_psalm_variants_match_their_colon_level_counterparts_dimension(self, tmp_path):
+    def test_psalm_variants_match_their_half_verse_level_counterparts_dimension(self, tmp_path):
         generate(_psalms(), tmp_path, _icf_weights_by_key())
 
-        for colon_weight, psalm_weight in (
+        for half_verse_weight, psalm_weight in (
             ("icf_position2", "icf_position2_psalm"),
             ("icf_position4", "icf_position4_psalm"),
             ("icf_position8", "icf_position8_psalm"),
@@ -154,13 +156,13 @@ class TestGenerate:
             ("icf_spacing8", "icf_spacing8_psalm"),
             ("icf_position_mean", "icf_position_mean_psalm"),
         ):
-            colon_table = pq.read_table(
-                dataset_path(tmp_path, "homograph", colon_weight, unit_key="unit")
+            half_verse_table = pq.read_table(
+                dataset_path(tmp_path, "homograph", half_verse_weight, unit_key="unit")
             )
             psalm_table = pq.read_table(
                 dataset_path(tmp_path, "homograph", psalm_weight, unit_key="unit")
             )
-            assert len(colon_table["vector"].to_pylist()[0]) == len(
+            assert len(half_verse_table["vector"].to_pylist()[0]) == len(
                 psalm_table["vector"].to_pylist()[0]
             )
 

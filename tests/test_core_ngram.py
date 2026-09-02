@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from morphology.ngram import (
+from core.ngram import (
     bigram_histogram,
     pooled_ngram_psalm_vectors,
     reorder,
@@ -51,7 +51,7 @@ class TestTrigramHistogram:
 
 
 class TestPooledNgramPsalmVectors:
-    def test_pools_raw_counts_across_colons_before_normalizing_once(self):
+    def test_pools_raw_counts_across_half_verses_before_normalizing_once(self):
         psalm_columns = [((100, 101), (("a",), ("b", "b", "c")))]
         vectors = pooled_ngram_psalm_vectors(
             psalm_columns, orders=(1,), index_of=_INDEX_OF, dim=_DIM, order_by_node=None
@@ -66,7 +66,7 @@ class TestPooledNgramPsalmVectors:
         vectors = pooled_ngram_psalm_vectors(
             psalm_columns, orders=(1,), index_of=_INDEX_OF, dim=_DIM, order_by_node=None
         )
-        assert np.allclose(vectors[100], vectors[101])
+        assert np.array_equal(vectors[100], vectors[101])
 
 
 def _dense_from_sparse(indices: np.ndarray, values: np.ndarray, dim: int) -> np.ndarray:
@@ -75,48 +75,48 @@ def _dense_from_sparse(indices: np.ndarray, values: np.ndarray, dim: int) -> np.
     return dense
 
 
-def _dense_1_2_3gram(colon: tuple[str, ...]) -> np.ndarray:
+def _dense_1_2_3gram(half_verse: tuple[str, ...]) -> np.ndarray:
     return np.concatenate(
         [
-            unigram_histogram(colon, _INDEX_OF, _DIM),
-            bigram_histogram(colon, _INDEX_OF, _DIM),
-            trigram_histogram(colon, _INDEX_OF, _DIM),
+            unigram_histogram(half_verse, _INDEX_OF, _DIM),
+            bigram_histogram(half_verse, _INDEX_OF, _DIM),
+            trigram_histogram(half_verse, _INDEX_OF, _DIM),
         ]
     )
 
 
 class TestSparse123Gram:
-    def test_matches_the_dense_concatenation_exactly_for_a_typical_colon(self):
-        colon = ("a", "b", "c", "a", "b")
+    def test_matches_the_dense_concatenation_exactly_for_a_typical_half_verse(self):
+        half_verse = ("a", "b", "c", "a", "b")
         combined_dim = _DIM + _DIM**2 + _DIM**3
 
-        indices, values = sparse_1_2_3gram(colon, _INDEX_OF, _DIM)
+        indices, values = sparse_1_2_3gram(half_verse, _INDEX_OF, _DIM)
 
         assert np.array_equal(
-            _dense_from_sparse(indices, values, combined_dim), _dense_1_2_3gram(colon)
+            _dense_from_sparse(indices, values, combined_dim), _dense_1_2_3gram(half_verse)
         )
 
-    def test_matches_the_dense_concatenation_for_a_colon_with_repeated_bigrams(self):
-        colon = ("a", "b", "a", "b", "a", "b")
+    def test_matches_the_dense_concatenation_for_a_half_verse_with_repeated_bigrams(self):
+        half_verse = ("a", "b", "a", "b", "a", "b")
         combined_dim = _DIM + _DIM**2 + _DIM**3
 
-        indices, values = sparse_1_2_3gram(colon, _INDEX_OF, _DIM)
+        indices, values = sparse_1_2_3gram(half_verse, _INDEX_OF, _DIM)
 
         assert np.array_equal(
-            _dense_from_sparse(indices, values, combined_dim), _dense_1_2_3gram(colon)
+            _dense_from_sparse(indices, values, combined_dim), _dense_1_2_3gram(half_verse)
         )
 
-    def test_empty_colon_gives_no_nonzero_entries(self):
+    def test_empty_half_verse_gives_no_nonzero_entries(self):
         indices, values = sparse_1_2_3gram((), _INDEX_OF, _DIM)
         assert indices.size == 0
         assert values.size == 0
 
-    def test_single_word_colon_gives_only_a_unigram_entry(self):
+    def test_single_word_half_verse_gives_only_a_unigram_entry(self):
         indices, values = sparse_1_2_3gram(("a",), _INDEX_OF, _DIM)
         assert indices.tolist() == [_INDEX_OF["a"]]
         assert np.isclose(values[0], 1.0)
 
-    def test_two_word_colon_gives_unigram_and_bigram_but_no_trigram_entries(self):
+    def test_two_word_half_verse_gives_unigram_and_bigram_but_no_trigram_entries(self):
         combined_dim = _DIM + _DIM**2 + _DIM**3
         indices, values = sparse_1_2_3gram(("a", "b"), _INDEX_OF, _DIM)
         assert np.array_equal(
@@ -125,8 +125,8 @@ class TestSparse123Gram:
         assert indices.max() < _DIM + _DIM**2
 
     def test_never_returns_a_zero_value(self):
-        colon = ("a", "b", "c", "a", "c", "b", "b")
-        _, values = sparse_1_2_3gram(colon, _INDEX_OF, _DIM)
+        half_verse = ("a", "b", "c", "a", "c", "b", "b")
+        _, values = sparse_1_2_3gram(half_verse, _INDEX_OF, _DIM)
         assert np.all(values != 0)
 
     def test_dtypes_are_int32_indices_and_float32_values(self):
@@ -158,7 +158,7 @@ class TestSparsePooled123Gram:
         assert np.array_equal(vectors[100][0], vectors[101][0])
         assert np.array_equal(vectors[100][1], vectors[101][1])
 
-    def test_applies_order_by_node_per_colon_before_pooling(self):
+    def test_applies_order_by_node_per_half_verse_before_pooling(self):
         psalm_columns = [((100,), (("a", "b", "c"),))]
         order = {100: np.array([2, 1, 0])}
 

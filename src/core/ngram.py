@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import numpy as np
 
-Colon = tuple[str, ...]
-PsalmColumns = tuple[tuple[int, ...], tuple[Colon, ...]]
+HalfVerse = tuple[str, ...]
+PsalmColumns = tuple[tuple[int, ...], tuple[HalfVerse, ...]]
 
 
-def reorder(values: Colon, node: int, order_by_node: dict[int, np.ndarray] | None) -> Colon:
+def reorder(values: HalfVerse, node: int, order_by_node: dict[int, np.ndarray] | None) -> HalfVerse:
     """Applies the word-index permutation for `node`, if any, else returns `values` unchanged."""
     if order_by_node is None:
         return values
@@ -18,19 +18,19 @@ def reorder(values: Colon, node: int, order_by_node: dict[int, np.ndarray] | Non
     return tuple(values[i] for i in order)
 
 
-def _indices(values: Colon, index_of: dict[str, int]) -> np.ndarray:
+def _indices(values: HalfVerse, index_of: dict[str, int]) -> np.ndarray:
     """Maps each value to its vocabulary index; the only per-word Python-level step."""
     return np.fromiter((index_of[value] for value in values), dtype=np.int64, count=len(values))
 
 
-def unigram_counts(values: Colon, index_of: dict[str, int], dim: int) -> np.ndarray:
+def unigram_counts(values: HalfVerse, index_of: dict[str, int], dim: int) -> np.ndarray:
     """Raw per-value occurrence counts over `values`, via a single batched bincount."""
     if not values:
         return np.zeros(dim, dtype=np.float64)
     return np.bincount(_indices(values, index_of), minlength=dim).astype(np.float64)
 
 
-def bigram_counts(values: Colon, index_of: dict[str, int], dim: int) -> np.ndarray:
+def bigram_counts(values: HalfVerse, index_of: dict[str, int], dim: int) -> np.ndarray:
     """Raw adjacent-pair occurrence counts over `values`, flattened row-major, batched."""
     if len(values) < 2:
         return np.zeros(dim * dim, dtype=np.float64)
@@ -39,7 +39,7 @@ def bigram_counts(values: Colon, index_of: dict[str, int], dim: int) -> np.ndarr
     return np.bincount(flat, minlength=dim * dim).astype(np.float64)
 
 
-def trigram_counts(values: Colon, index_of: dict[str, int], dim: int) -> np.ndarray:
+def trigram_counts(values: HalfVerse, index_of: dict[str, int], dim: int) -> np.ndarray:
     """Raw adjacent-triple occurrence counts over `values`, flattened row-major, batched."""
     if len(values) < 3:
         return np.zeros(dim * dim * dim, dtype=np.float64)
@@ -51,22 +51,22 @@ def trigram_counts(values: Colon, index_of: dict[str, int], dim: int) -> np.ndar
 _COUNTERS = {1: unigram_counts, 2: bigram_counts, 3: trigram_counts}
 
 
-def unigram_histogram(values: Colon, index_of: dict[str, int], dim: int) -> np.ndarray:
-    """Normalized value proportions over one colon: count(v) / m."""
+def unigram_histogram(values: HalfVerse, index_of: dict[str, int], dim: int) -> np.ndarray:
+    """Normalized value proportions over one half-verse: count(v) / m."""
     m = len(values)
     counts = unigram_counts(values, index_of, dim)
     return (counts / m if m > 0 else counts).astype(np.float32)
 
 
-def bigram_histogram(values: Colon, index_of: dict[str, int], dim: int) -> np.ndarray:
-    """Normalized adjacent-pair proportions over one colon: count(pair) / (m - 1)."""
+def bigram_histogram(values: HalfVerse, index_of: dict[str, int], dim: int) -> np.ndarray:
+    """Normalized adjacent-pair proportions over one half-verse: count(pair) / (m - 1)."""
     denom = len(values) - 1
     counts = bigram_counts(values, index_of, dim)
     return (counts / denom if denom > 0 else counts).astype(np.float32)
 
 
-def trigram_histogram(values: Colon, index_of: dict[str, int], dim: int) -> np.ndarray:
-    """Normalized adjacent-triple proportions over one colon: count(triple) / (m - 2)."""
+def trigram_histogram(values: HalfVerse, index_of: dict[str, int], dim: int) -> np.ndarray:
+    """Normalized adjacent-triple proportions over one half-verse: count(triple) / (m - 2)."""
     denom = len(values) - 2
     counts = trigram_counts(values, index_of, dim)
     return (counts / denom if denom > 0 else counts).astype(np.float32)
@@ -81,7 +81,7 @@ def _sparse_order_counts(flat: np.ndarray, denom: int) -> tuple[np.ndarray, np.n
 
 
 def sparse_1_2_3gram(
-    values: Colon, index_of: dict[str, int], dim: int
+    values: HalfVerse, index_of: dict[str, int], dim: int
 ) -> tuple[np.ndarray, np.ndarray]:
     """Nonzero (index, value) pairs of [unigram; bigram; trigram], no dense dim-sized array ever."""
     m = len(values)
@@ -115,11 +115,11 @@ def pooled_ngram_psalm_vectors(
 ) -> dict[int, np.ndarray]:
     """Word-count-weighted psalm-wide pooling: sums raw n-gram counts, normalizes once per order."""
     vectors: dict[int, np.ndarray] = {}
-    for nodes, colons in psalm_columns:
+    for nodes, half_verses in psalm_columns:
         totals = {order: np.zeros(dim**order, dtype=np.float64) for order in orders}
         denominators = dict.fromkeys(orders, 0)
-        for node, colon_values in zip(nodes, colons, strict=True):
-            ordered = reorder(colon_values, node, order_by_node)
+        for node, half_verse_values in zip(nodes, half_verses, strict=True):
+            ordered = reorder(half_verse_values, node, order_by_node)
             m = len(ordered)
             for order in orders:
                 totals[order] += _COUNTERS[order](ordered, index_of, dim)
@@ -143,11 +143,11 @@ def sparse_pooled_1_2_3gram(
 ) -> dict[int, tuple[np.ndarray, np.ndarray]]:
     """Word-count-weighted psalm-wide sparse pooling of [unigram; bigram; trigram], never dense."""
     vectors: dict[int, tuple[np.ndarray, np.ndarray]] = {}
-    for nodes, colons in psalm_columns:
+    for nodes, half_verses in psalm_columns:
         uni_parts, bi_parts, tri_parts = [], [], []
         uni_denom = bi_denom = tri_denom = 0
-        for node, colon_values in zip(nodes, colons, strict=True):
-            ordered = reorder(colon_values, node, order_by_node)
+        for node, half_verse_values in zip(nodes, half_verses, strict=True):
+            ordered = reorder(half_verse_values, node, order_by_node)
             m = len(ordered)
             if m == 0:
                 continue

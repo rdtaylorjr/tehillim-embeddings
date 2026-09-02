@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.support import build_signature_vocabulary
 from morphology.corpus import MorphologicalPsalm
-from morphology.signature_support import build_signature_vocabulary
 from morphology.suffix import (
     NONE_SUFFIX_TOKEN,
     SUFFIX_VOCABULARY,
     build_suffix_signature,
-    colon_suffix_signatures,
+    half_verse_suffix_signatures,
     host_plus_suffix_psalm_vectors,
     host_plus_suffix_vectors,
     psalm_suffix_signatures,
@@ -20,8 +20,8 @@ from morphology.suffix import (
 def _psalm(*, number, nodes, **feature_columns):
     return MorphologicalPsalm(
         number=number,
-        colon_nodes=nodes,
-        **{f"colon_{feature}": values for feature, values in feature_columns.items()},
+        half_verse_nodes=nodes,
+        **{f"half_verse_{feature}": values for feature, values in feature_columns.items()},
     )
 
 
@@ -85,16 +85,16 @@ class TestSuffixVocabulary:
         assert set(SUFFIX_VOCABULARY) == expected
 
 
-class TestColonSuffixSignatures:
+class TestHalfVerseSuffixSignatures:
     def test_builds_one_signature_per_word_aligned_across_the_three_features(self):
-        signatures = colon_suffix_signatures(
+        signatures = half_verse_suffix_signatures(
             prs_gn=("NA", "m"), prs_nu=("NA", "pl"), prs_ps=("NA", "p3")
         )
         assert signatures == (NONE_SUFFIX_TOKEN, "p3|m|pl")
 
 
 class TestPsalmSuffixSignatures:
-    def test_builds_one_signature_sequence_per_colon(self):
+    def test_builds_one_signature_sequence_per_half_verse(self):
         psalm = _psalm(
             number=1,
             nodes=(100, 101),
@@ -134,7 +134,7 @@ class TestSuffixInventoryVectors:
 
 
 class TestSuffixInventoryPsalmVectors:
-    def test_broadcasts_the_same_word_count_weighted_vector_to_every_colon(self):
+    def test_broadcasts_the_same_word_count_weighted_vector_to_every_half_verse(self):
         psalm = _psalm(
             number=1,
             nodes=(100, 101),
@@ -183,7 +183,9 @@ class TestHostPlusSuffixVectors:
 
 
 class TestHostPlusSuffixPsalmVectors:
-    def test_broadcasts_the_same_vector_to_every_colon_and_matches_the_colon_level_pieces(self):
+    def test_broadcasts_the_same_vector_to_every_half_verse_and_matches_the_half_verse_level_pieces(
+        self,
+    ):
         from morphology.signature_vectorize import morph_signature_psalm_vectors
 
         psalm = _psalm(

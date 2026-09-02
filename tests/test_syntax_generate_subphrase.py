@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from lexical.export import dataset_path as _dataset_path
+from core.export import dataset_path as _dataset_path
 from syntax.corpus import PhrasePsalm
 from syntax.generate_subphrase import generate
 from syntax.subphrase import SAFE_SUBPHRASE_RELA_VOCABULARY
@@ -15,7 +15,7 @@ def dataset_path(output_root, vocab, weight):
 
 
 def _psalm(*, number, nodes, rela):
-    return PhrasePsalm(number=number, colon_nodes=nodes, colon_subphrase_rela=rela)
+    return PhrasePsalm(number=number, half_verse_nodes=nodes, half_verse_subphrase_rela=rela)
 
 
 def _psalms():

@@ -4,18 +4,20 @@ from __future__ import annotations
 
 import numpy as np
 
-from morphology.ngram import pooled_ngram_psalm_vectors, unigram_histogram
+from core.ngram import pooled_ngram_psalm_vectors, unigram_histogram
+from core.support import collapse_rare
+from core.vocabulary import index_map
 from syntax.corpus import PhrasePsalm
 from syntax.signature import psalm_full_signatures
-from syntax.signature_support import collapse_rare
 
 
 def _collapsed_full_signatures(
     psalm: PhrasePsalm, external_counts: dict[str, int], k: int
 ) -> tuple[tuple[str, ...], ...]:
+    """One psalm's full-signature sequences, sub-threshold entries collapsed to RARE."""
     return tuple(
-        tuple(collapse_rare(signature, external_counts, k) for signature in colon)
-        for colon in psalm_full_signatures(psalm)
+        tuple(collapse_rare(signature, external_counts, k) for signature in half_verse)
+        for half_verse in psalm_full_signatures(psalm)
     )
 
 
@@ -23,13 +25,13 @@ def phrase_full_signature_vectors(
     psalms: list[PhrasePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, np.ndarray]:
     """Full typ:function:det signature inventory histogram, RARE-collapsed at the unigram level."""
-    index_of = {value: i for i, value in enumerate(vocabulary)}
+    index_of = index_map(vocabulary)
     dim = len(vocabulary)
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         collapsed = _collapsed_full_signatures(psalm, external_counts, k)
-        for node, colon_sigs in zip(psalm.colon_nodes, collapsed, strict=True):
-            vectors[node] = unigram_histogram(colon_sigs, index_of, dim)
+        for node, half_verse_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+            vectors[node] = unigram_histogram(half_verse_sigs, index_of, dim)
     return vectors
 
 
@@ -37,10 +39,10 @@ def phrase_full_signature_psalm_vectors(
     psalms: list[PhrasePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast full-signature inventory histogram, atom-count-weighted pooling."""
-    index_of = {value: i for i, value in enumerate(vocabulary)}
+    index_of = index_map(vocabulary)
     dim = len(vocabulary)
     columns = [
-        (psalm.colon_nodes, _collapsed_full_signatures(psalm, external_counts, k))
+        (psalm.half_verse_nodes, _collapsed_full_signatures(psalm, external_counts, k))
         for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1,), index_of, dim, order_by_node=None)

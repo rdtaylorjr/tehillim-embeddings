@@ -46,7 +46,7 @@ def main() -> None:
     corpus = Corpus.load()
     counts = build_external_signature_counts(corpus.api)
 
-    with open(output_path, "w", newline="") as handle:
+    with output_path.open("w", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(["signature", "count"])
         for signature, count in sorted(counts.items(), key=lambda item: (-item[1], item[0])):

@@ -9,13 +9,10 @@ from pathlib import Path
 
 import numpy as np
 
-from lexical.export import dataset_path, write_dataset, write_sparse_dataset
+from core.export import dataset_path, write_sparse_vectors, write_vectors
+from core.support import build_signature_vocabulary, load_external_signature_counts
 from morphology.corpus import Corpus, MorphologicalPsalm
-from morphology.signature_support import (
-    MIN_EXTERNAL_SUPPORT_K,
-    build_signature_vocabulary,
-    load_external_signature_counts,
-)
+from morphology.signature_support import MIN_EXTERNAL_SUPPORT_K
 from morphology.signature_vectorize import (
     morph_atomic_psalm_vectors,
     morph_atomic_vectors,
@@ -30,6 +27,20 @@ from morphology.signature_vectorize import (
 _DATASET_TYPE = "morphology"
 
 
+def _signature_description(k: int, construction: str) -> str:
+    """The metadata sentence shared by every morph_signature construction."""
+    return f"Grammatical-signature histogram (RARE-collapsed, k={k}), construction={construction}."
+
+
+def _path_to_write(output_root: Path, unit: str, construction: str) -> Path | None:
+    """The path to write, or None when the dataset already exists and should be skipped."""
+    path = dataset_path(output_root, unit, construction, domain=_DATASET_TYPE, unit_key="feature")
+    if path.exists():
+        return None
+    print(f"computing morphology feature={unit} construction={construction}...", file=sys.stderr)
+    return path
+
+
 def generate(
     psalms: list[MorphologicalPsalm],
     output_root: Path,
@@ -39,35 +50,17 @@ def generate(
     """Writes every not-yet-written morph_atomic/morph_signature construction, returns names."""
     written: list[str] = []
 
-    for construction, builder in (
+    for construction, atomic_builder in (
         ("core", morph_atomic_vectors),
         ("core_psalm", morph_atomic_psalm_vectors),
     ):
-        if dataset_path(
-            output_root,
-            "morph_atomic",
-            construction,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-        ).exists():
+        path = _path_to_write(output_root, "morph_atomic", construction)
+        if path is None:
             continue
-        print(
-            f"computing morphology feature=morph_atomic construction={construction}...",
-            file=sys.stderr,
-        )
-        vectors = builder(psalms)
         description = (
             f"Atomic morphology baseline [sp;gn;nu;ps;st;vs;vt], construction={construction}."
         )
-        write_dataset(
-            output_root,
-            "morph_atomic",
-            construction,
-            vectors,
-            description,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-        )
+        write_vectors(path, atomic_builder(psalms), description)
         written.append(f"morph_atomic_{construction}")
 
     vocabulary = build_signature_vocabulary(external_counts, k)
@@ -83,35 +76,14 @@ def generate(
             psalms, vocabulary, external_counts, k
         ),
     }
-    for construction, signature_builder in dense_builders.items():
-        if dataset_path(
-            output_root,
-            "morph_signature",
-            construction,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-        ).exists():
+    for construction, dense_builder in dense_builders.items():
+        path = _path_to_write(output_root, "morph_signature", construction)
+        if path is None:
             continue
-        print(
-            f"computing morphology feature=morph_signature construction={construction}...",
-            file=sys.stderr,
-        )
-        description = (
-            f"Grammatical-signature histogram (RARE-collapsed, k={k}), construction={construction}."
-        )
-        write_dataset(
-            output_root,
-            "morph_signature",
-            construction,
-            signature_builder(),
-            description,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-        )
+        write_vectors(path, dense_builder(), _signature_description(k, construction))
         written.append(f"morph_signature_{construction}")
 
-    # 1_2_3gram's dim (42^1 + 42^2 + 42^3) is huge and almost entirely zero per colon (at most
-    # ~8 nonzero entries), so it is stored sparsely rather than as a dense array.
+    #: The 42^1+42^2+42^3 trigram block is nearly all zero per half-verse, so it is stored sparsely.
     combined_dim = dim + dim * dim + dim * dim * dim
     sparse_builders: dict[str, Callable[[], dict[int, tuple[np.ndarray, np.ndarray]]]] = {
         "1_2_3gram": lambda: morph_signature_1_2_3gram_sparse_vectors(
@@ -122,30 +94,11 @@ def generate(
         ),
     }
     for construction, sparse_builder in sparse_builders.items():
-        if dataset_path(
-            output_root,
-            "morph_signature",
-            construction,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
-        ).exists():
+        path = _path_to_write(output_root, "morph_signature", construction)
+        if path is None:
             continue
-        print(
-            f"computing morphology feature=morph_signature construction={construction}...",
-            file=sys.stderr,
-        )
-        description = (
-            f"Grammatical-signature histogram (RARE-collapsed, k={k}), construction={construction}."
-        )
-        write_sparse_dataset(
-            output_root,
-            "morph_signature",
-            construction,
-            sparse_builder(),
-            combined_dim,
-            description,
-            domain=_DATASET_TYPE,
-            unit_key="feature",
+        write_sparse_vectors(
+            path, sparse_builder(), combined_dim, _signature_description(k, construction)
         )
         written.append(f"morph_signature_{construction}")
 

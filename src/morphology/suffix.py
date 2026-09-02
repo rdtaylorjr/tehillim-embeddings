@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.ngram import PsalmColumns, pooled_ngram_psalm_vectors, unigram_histogram
+from core.support import collapse_rare
 from morphology.corpus import MorphologicalPsalm
-from morphology.ngram import PsalmColumns, pooled_ngram_psalm_vectors, unigram_histogram
 from morphology.signature import psalm_signatures
-from morphology.signature_support import collapse_rare
 from morphology.vocabulary import PRS_GN_VOCABULARY, PRS_NU_VOCABULARY, PRS_PS_VOCABULARY
 
 NONE_SUFFIX_TOKEN = "<NONE>"
@@ -23,6 +23,7 @@ def build_suffix_signature(*, prs_gn: str, prs_nu: str, prs_ps: str) -> str:
 
 
 def _all_suffix_signatures() -> tuple[str, ...]:
+    """Every suffix signature occurring anywhere in the psalms, for vocabulary construction."""
     signatures = {
         build_suffix_signature(prs_gn=gn, prs_nu=nu, prs_ps=ps)
         for ps in PRS_PS_VOCABULARY
@@ -35,7 +36,7 @@ def _all_suffix_signatures() -> tuple[str, ...]:
 SUFFIX_VOCABULARY: tuple[str, ...] = _all_suffix_signatures()
 
 
-def colon_suffix_signatures(
+def half_verse_suffix_signatures(
     *, prs_gn: tuple[str, ...], prs_nu: tuple[str, ...], prs_ps: tuple[str, ...]
 ) -> tuple[str, ...]:
     """One suffix signature per word, aligned across the three per-word suffix feature sequences."""
@@ -46,23 +47,25 @@ def colon_suffix_signatures(
 
 
 def psalm_suffix_signatures(psalm: MorphologicalPsalm) -> tuple[tuple[str, ...], ...]:
-    """One suffix signature sequence per colon of `psalm`."""
+    """One suffix signature sequence per half-verse of `psalm`."""
     return tuple(
-        colon_suffix_signatures(prs_gn=gn, prs_nu=nu, prs_ps=ps)
+        half_verse_suffix_signatures(prs_gn=gn, prs_nu=nu, prs_ps=ps)
         for gn, nu, ps in zip(
-            psalm.colon_prs_gn, psalm.colon_prs_nu, psalm.colon_prs_ps, strict=True
+            psalm.half_verse_prs_gn, psalm.half_verse_prs_nu, psalm.half_verse_prs_ps, strict=True
         )
     )
 
 
 def suffix_inventory_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.ndarray]:
-    """`M_S`: normalized suffix-signature proportions per colon node, over `SUFFIX_VOCABULARY`."""
+    """`M_S`: normalized suffix-signature proportions, over `SUFFIX_VOCABULARY`."""
     index_of = {value: i for i, value in enumerate(SUFFIX_VOCABULARY)}
     dim = len(SUFFIX_VOCABULARY)
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
-        for node, colon_sigs in zip(psalm.colon_nodes, psalm_suffix_signatures(psalm), strict=True):
-            vectors[node] = unigram_histogram(colon_sigs, index_of, dim)
+        for node, half_verse_sigs in zip(
+            psalm.half_verse_nodes, psalm_suffix_signatures(psalm), strict=True
+        ):
+            vectors[node] = unigram_histogram(half_verse_sigs, index_of, dim)
     return vectors
 
 
@@ -71,7 +74,7 @@ def suffix_inventory_psalm_vectors(psalms: list[MorphologicalPsalm]) -> dict[int
     index_of = {value: i for i, value in enumerate(SUFFIX_VOCABULARY)}
     dim = len(SUFFIX_VOCABULARY)
     columns: list[PsalmColumns] = [
-        (psalm.colon_nodes, psalm_suffix_signatures(psalm)) for psalm in psalms
+        (psalm.half_verse_nodes, psalm_suffix_signatures(psalm)) for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1,), index_of, dim, order_by_node=None)
 
@@ -79,9 +82,10 @@ def suffix_inventory_psalm_vectors(psalms: list[MorphologicalPsalm]) -> dict[int
 def _collapsed_signatures(
     psalm: MorphologicalPsalm, external_counts: dict[str, int], k: int
 ) -> tuple[tuple[str, ...], ...]:
+    """One psalm's half-verse suffix-signature sequences with rare entries collapsed to RARE."""
     return tuple(
-        tuple(collapse_rare(signature, external_counts, k) for signature in colon)
-        for colon in psalm_signatures(psalm)
+        tuple(collapse_rare(signature, external_counts, k) for signature in half_verse)
+        for half_verse in psalm_signatures(psalm)
     )
 
 
@@ -91,7 +95,7 @@ def host_plus_suffix_vectors(
     external_counts: dict[str, int],
     k: int,
 ) -> dict[int, np.ndarray]:
-    """`[M_G; M_S]` per colon node: RARE-collapsed host signature, then suffix, inventory blocks."""
+    """`[M_G; M_S]`: RARE-collapsed host signature, then suffix, inventory blocks."""
     host_index_of = {value: i for i, value in enumerate(signature_vocabulary)}
     host_dim = len(signature_vocabulary)
     suffix_index_of = {value: i for i, value in enumerate(SUFFIX_VOCABULARY)}
@@ -100,13 +104,13 @@ def host_plus_suffix_vectors(
     for psalm in psalms:
         collapsed_host = _collapsed_signatures(psalm, external_counts, k)
         suffix_sigs = psalm_suffix_signatures(psalm)
-        for node, host_colon, suffix_colon in zip(
-            psalm.colon_nodes, collapsed_host, suffix_sigs, strict=True
+        for node, host_half_verse, suffix_half_verse in zip(
+            psalm.half_verse_nodes, collapsed_host, suffix_sigs, strict=True
         ):
             vectors[node] = np.concatenate(
                 [
-                    unigram_histogram(host_colon, host_index_of, host_dim),
-                    unigram_histogram(suffix_colon, suffix_index_of, suffix_dim),
+                    unigram_histogram(host_half_verse, host_index_of, host_dim),
+                    unigram_histogram(suffix_half_verse, suffix_index_of, suffix_dim),
                 ]
             )
     return vectors
@@ -122,7 +126,8 @@ def host_plus_suffix_psalm_vectors(
     host_index_of = {value: i for i, value in enumerate(signature_vocabulary)}
     host_dim = len(signature_vocabulary)
     host_columns: list[PsalmColumns] = [
-        (psalm.colon_nodes, _collapsed_signatures(psalm, external_counts, k)) for psalm in psalms
+        (psalm.half_verse_nodes, _collapsed_signatures(psalm, external_counts, k))
+        for psalm in psalms
     ]
     host_vectors = pooled_ngram_psalm_vectors(
         host_columns, (1,), host_index_of, host_dim, order_by_node=None

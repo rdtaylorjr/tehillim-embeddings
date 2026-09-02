@@ -35,7 +35,7 @@ class _FakeL:
 
 
 class _FakeF:
-    def __init__(self, otype, book, typ, function) -> None:  # noqa: N803
+    def __init__(self, otype, book, typ, function) -> None:
         self.otype = otype
         self.book = book
         self.typ = typ
@@ -49,8 +49,7 @@ class _FakeApi:
 
 
 def _fake_two_book_api() -> _FakeApi:
-    # Book 1 = "Psalmi" (must be excluded): atom 10, mother phrase 100.
-    # Book 2 = "Genesis" (included): atoms 20, 21, 22, mothers 200, 200, 201.
+    # Book 1 Psalmi is excluded; only Genesis contributes its "NP:Subj" and "VP:Pred" atoms.
     otype = _FakeOtype([1, 2])
     book = _FakeFeature({1: "Psalmi", 2: "Genesis"})
     typ = _FakeFeature({10: "NP", 20: "NP", 21: "NP", 22: "VP"})
@@ -66,8 +65,7 @@ class TestBuildExternalSignatureCounts:
     def test_excludes_atoms_belonging_to_the_psalms_book(self) -> None:
         counts = build_external_signature_counts(_fake_two_book_api())
 
-        # Only Genesis's 2 "NP:Subj" atoms and 1 "VP:Pred" atom should be counted; Psalms'
-        # single "NP:Subj" atom must not contribute, so "NP:Subj" totals 2, not 3.
+        # Only Genesis counts, so "NP:Subj" totals 2, not 3.
         assert counts == {"NP:Subj": 2, "VP:Pred": 1}
 
     def test_resolves_function_from_the_atom_s_mother_phrase_not_the_atom_itself(self) -> None:

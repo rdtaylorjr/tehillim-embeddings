@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from lexical.export import dataset_path as _dataset_path
+from core.export import dataset_path as _dataset_path
 from syntax.corpus import PhrasePsalm
 from syntax.generate_det import generate
 
@@ -14,7 +14,7 @@ def dataset_path(output_root, vocab, weight):
 
 
 def _psalm(*, number, nodes, det):
-    return PhrasePsalm(number=number, colon_nodes=nodes, colon_det=det)
+    return PhrasePsalm(number=number, half_verse_nodes=nodes, half_verse_det=det)
 
 
 def _psalms():

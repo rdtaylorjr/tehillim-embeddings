@@ -15,8 +15,7 @@ from semantic.local_models import (
     QWEN3_EMBEDDING_MODEL,
 )
 
-#: slug -> (technical model id, torch_dtype). torch_dtype="auto" uses
-#: the checkpoint's on-disk dtype rather than upcasting to fp32.
+#: slug -> (model id, torch_dtype); "auto" uses the on-disk dtype rather than upcasting.
 LARGE_MODELS: tuple[tuple[str, str, str], ...] = (
     ("bge-multilingual-gemma2", BGE_MULTILINGUAL_GEMMA2_MODEL, "float16"),
     ("qwen3-embedding", QWEN3_EMBEDDING_MODEL, "auto"),

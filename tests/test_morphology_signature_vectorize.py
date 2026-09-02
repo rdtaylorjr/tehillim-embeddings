@@ -29,8 +29,8 @@ from morphology.vocabulary import (
 def _psalm(*, number, nodes, **feature_columns):
     return MorphologicalPsalm(
         number=number,
-        colon_nodes=nodes,
-        **{f"colon_{feature}": values for feature, values in feature_columns.items()},
+        half_verse_nodes=nodes,
+        **{f"half_verse_{feature}": values for feature, values in feature_columns.items()},
     )
 
 
@@ -72,18 +72,16 @@ class TestMorphAtomicVectors:
             _psalm(
                 number=1,
                 nodes=(100, 101),
-                **{
-                    "sp": (("subs",), ("verb",)),
-                    "gn": (("m",), ("m",)),
-                    "nu": (("sg",), ("sg",)),
-                    "ps": (("NA",), ("p3",)),
-                    "st": (("a",), ("NA",)),
-                    "vs": (("NA",), ("qal",)),
-                    "vt": (("NA",), ("perf",)),
-                    "prs_gn": (("NA",), ("NA",)),
-                    "prs_nu": (("NA",), ("NA",)),
-                    "prs_ps": (("NA",), ("NA",)),
-                },
+                sp=(("subs",), ("verb",)),
+                gn=(("m",), ("m",)),
+                nu=(("sg",), ("sg",)),
+                ps=(("NA",), ("p3",)),
+                st=(("a",), ("NA",)),
+                vs=(("NA",), ("qal",)),
+                vt=(("NA",), ("perf",)),
+                prs_gn=(("NA",), ("NA",)),
+                prs_nu=(("NA",), ("NA",)),
+                prs_ps=(("NA",), ("NA",)),
             )
         ]
         vectors = morph_atomic_psalm_vectors(psalms)
@@ -94,8 +92,7 @@ class TestMorphAtomicVectors:
 class TestMorphSignatureVectors:
     def test_rare_below_threshold_signatures_collapse_before_histogramming(self):
         psalms = [_one_word_psalm(1, 100)]
-        # "subs|m|sg|a" is not in the external counts at all, so it collapses to <RARE>
-        # regardless of k, and the whole unigram mass lands on the <RARE> bin.
+        # "subs|m|sg|a" is absent from the counts, so it collapses to <RARE> at any k.
         external_counts = {"subs|m|sg|a": 1}
         vocabulary = ("subs|m|sg|a", "<RARE>")
         vector = morph_signature_vectors(psalms, vocabulary, external_counts, k=100)[100]
@@ -113,18 +110,16 @@ class TestMorphSignatureVectors:
             _psalm(
                 number=1,
                 nodes=(100, 101),
-                **{
-                    "sp": (("subs",), ("subs",)),
-                    "gn": (("m",), ("m",)),
-                    "nu": (("sg",), ("sg",)),
-                    "ps": (("NA",), ("NA",)),
-                    "st": (("a",), ("a",)),
-                    "vs": (("NA",), ("NA",)),
-                    "vt": (("NA",), ("NA",)),
-                    "prs_gn": (("NA",), ("NA",)),
-                    "prs_nu": (("NA",), ("NA",)),
-                    "prs_ps": (("NA",), ("NA",)),
-                },
+                sp=(("subs",), ("subs",)),
+                gn=(("m",), ("m",)),
+                nu=(("sg",), ("sg",)),
+                ps=(("NA",), ("NA",)),
+                st=(("a",), ("a",)),
+                vs=(("NA",), ("NA",)),
+                vt=(("NA",), ("NA",)),
+                prs_gn=(("NA",), ("NA",)),
+                prs_nu=(("NA",), ("NA",)),
+                prs_ps=(("NA",), ("NA",)),
             )
         ]
         external_counts = {"subs|m|sg|a": 500}
@@ -180,7 +175,7 @@ def _multi_word_psalm(number, nodes):
 
 
 class TestMorphSignatureSparseVectors:
-    def test_colon_level_matches_the_dense_computation_exactly(self):
+    def test_half_verse_level_matches_the_dense_computation_exactly(self):
         psalms = [_multi_word_psalm(1, (100, 101))]
         vocabulary = ("subs|m|sg|a", "verb|qal|perf|p3", "verb|piel|impf|p1", "<RARE>")
         external_counts = {"subs|m|sg|a": 5000, "verb|qal|perf|p3": 5000, "verb|piel|impf|p1": 5000}
@@ -213,7 +208,7 @@ class TestMorphSignatureSparseVectors:
         assert np.array_equal(sparse[100][0], sparse[101][0])
         assert np.array_equal(sparse[100][1], sparse[101][1])
 
-    def test_colon_level_respects_order_by_node(self):
+    def test_half_verse_level_respects_order_by_node(self):
         psalms = [_multi_word_psalm(1, (100, 101))]
         vocabulary = ("subs|m|sg|a", "verb|qal|perf|p3", "verb|piel|impf|p1", "<RARE>")
         external_counts = {"subs|m|sg|a": 5000, "verb|qal|perf|p3": 5000, "verb|piel|impf|p1": 5000}
