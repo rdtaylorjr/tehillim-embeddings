@@ -43,8 +43,8 @@ vocalized, and fully pointed text states. Morphology records part of speech, gen
 state, verbal stem and tense, and pronominal-suffix features. `NA` remains a vocabulary value, so a
 feature's applicability contributes to the representation. Syntax records phrase-atom `typ`, mother
 phrase `function`, `det`, relations, subphrase relations, phrase complexity, and joint
-`typ:function` signatures. Semantic models encode the corresponding Hebrew string under the same
-three text states where their tokenizers preserve the distinction.
+`typ:function` signatures. Semantic models encode the corresponding Hebrew string in
+`consonantal`, `vocalized`, and `cantillation` text states where their tokenizers preserve the distinction.
 
 Feature inventories are normalized within a `half_verse`. N-gram constructions concatenate
 unigram, bigram, and trigram proportions, each normalized by its available positions. Psalm-scale
@@ -173,12 +173,18 @@ Andersen, Francis I., and A. Dean Forbes. [“The Andersen-Forbes Computational 
 
 Berman, Joshua. [“Measuring Style in Isaiah: Isaiah 34-35 and the Tiberias Stylistic Classifier for the Hebrew Bible.”](https://doi.org/10.1163/15685330-12341070) *Vetus Testamentum* 71, no. 3 (2021): 303-316.
 
-Coeckelbergs, Mathias, and Dirk Roorda. “Extracting Topics from the Hebrew Bible: An Initial Analysis of LDA Performance.” Pages 196 in *IOSOT 2016: XXII Congress of the International Organization for the Study of the Old Testament*. Stellenbosch, 2016.
-
-Coeckelbergs, Mathias, and Seth van Hooland. “Modeling the Hebrew Bible: Potential of Topic Modeling Techniques for Semantic Annotation and Historical Analysis.” Pages 47-52 in *Proceedings of the Second International Workshop on Semantic Web for Scientific Heritage*. CEUR-WS.org, 2016.
-
 Roorda, Dirk. 2019. “Text-Fabric: Handling Biblical Data with IKEA Logistics.” *HIPHIL Novum* 5
 (2): 126-135. https://doi.org/10.7146/hn.v5i2.142740.
+
+Seker, Amit, Elron Bandel, Dan Bareket, Idan Brusilovsky, Refael Greenfeld, and Reut Tsarfaty. 2022. [“AlephBERT: Language Model Pre-training and Evaluation from Sub-Word to Sentence Level.”](https://doi.org/10.18653/v1/2022.acl-long.4) In *Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics*, 46-56.
+
+Shmidman, Avi, Joshua Guedalia, Shaltiel Shmidman, Cheyn Shmuel Shmidman, Eli Handel, and Moshe Koppel. 2022. [*BEREL: BERT Embeddings for Rabbinic-Encoded Language*](https://huggingface.co/dicta-il/BEREL), revision `029fa610debddd0cd798f8babc33e41388fb2bac`.
+
+Chen, Jianlv, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, and Zheng Liu. 2024. “M3-Embedding: Multi-Linguality, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation.” In *Findings of the Association for Computational Linguistics: ACL 2024*, 2318-2335.
+
+Zhang, Xin, Yanzhao Zhang, Dingkun Long, Wen Xie, Ziqi Dai, Jialong Tang, Huan Lin, Baosong Yang, Pengjun Xie, Fei Huang, Meishan Zhang, Wenjie Li, and Min Zhang. 2024. “mGTE: Generalized Long-Context Text Representation and Reranking Models for Multilingual Text Retrieval.” In *Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing: Industry Track*, 1393-1412.
+
+Zhang, Yanzhao, Mingxin Li, Dingkun Long, Xin Zhang, Huan Lin, Baosong Yang, Pengjun Xie, An Yang, Dayiheng Liu, Junyang Lin, Fei Huang, and Jingren Zhou. 2025. [*Qwen3-Embedding-8B*](https://huggingface.co/Qwen/Qwen3-Embedding-8B), revision `1d8ad4ca9b3dd8059ad90a75d4983776a23d44af`.
 
 Smiley, David M. [“MiqraBERT: Regression-Based Sentence-BERT Finetuning for Biblical Hebrew Parallel Detection.”](https://doi.org/10.48550/arXiv.2606.19638) 2026.
 
