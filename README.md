@@ -4,7 +4,7 @@
 
 This repository generates Parquet feature representations of the 150 Psalms from the
 [ETCBC Biblia Hebraica Stuttgartensia Amstelodamensis](https://github.com/ETCBC/bhsa) (BHSA).
-It supplies a common representation layer for `tehillim-benchmarks`: lexical, morphological,
+It supplies a common representation layer for `tehillim-benchmark`: lexical, morphological,
 syntactic, and semantic vectors keyed to the same BHSA `half_verse` nodes.
 
 ## Data
@@ -87,7 +87,7 @@ semantic datasets cover the 17 registered models and the applicable text states.
 24,183 files include linguistic representations and their controlled permutations.
 
 This repository does not calculate retrieval scores, clustering outcomes, significance tests, or
-claims about Hebrew poetic categories. [`tehillim-benchmarks`](https://github.com/rdtaylorjr/tehillim-benchmarks)
+claims about Hebrew poetic categories. [`tehillim-benchmark`](https://github.com/rdtaylorjr/tehillim-benchmark)
 performs those comparisons. [`tehillim-data`](https://github.com/rdtaylorjr/tehillim-data) publishes
 the resulting measurements. Keeping representation generation separate from evaluation makes the
 construction, control, and scoring stages inspectable on their terms.
