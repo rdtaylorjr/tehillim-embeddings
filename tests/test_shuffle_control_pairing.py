@@ -8,17 +8,17 @@ import pytest
 
 from core.export import dataset_path
 from core.shuffle import shuffle_construction_name
-from morphology import generate_deploy as morphology_production
-from morphology.scripts import generate_deploy_shuffle_control as morphology_control
-from syntax import generate_deploy as syntax_production
-from syntax.scripts import generate_deploy_shuffle_control as syntax_control
+from morphological import generate_deploy as morphological_production
+from morphological.scripts import generate_deploy_shuffle_control as morphological_control
+from syntactic import generate_deploy as syntactic_production
+from syntactic.scripts import generate_deploy_shuffle_control as syntactic_control
 
 #: Each domain names its own Hive unit, so the pair is compared through that domain's name.
 PAIRS = [
-    ("morphology", "SUFFIX_UNIT", morphology_production, morphology_control),
-    ("syntax", "SIGNATURE_UNIT", syntax_production, syntax_control),
+    ("morphological", "SUFFIX_UNIT", morphological_production, morphological_control),
+    ("syntactic", "SIGNATURE_UNIT", syntactic_production, syntactic_control),
 ]
-IDS = ["morphology", "syntax"]
+IDS = ["morphological", "syntactic"]
 
 
 @pytest.mark.parametrize(("domain", "unit_attribute", "production", "control"), PAIRS, ids=IDS)

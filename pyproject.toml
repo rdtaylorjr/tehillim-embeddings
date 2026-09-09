@@ -87,7 +87,7 @@ max-args = 8
 # A generator's stdout/stderr progress line is its interface.
 "src/*/generate*.py" = ["T201"]
 "src/*/scripts/*.py" = ["T201", "ANN401"]
-"src/syntax/skeleton.py" = ["T201"]
+"src/syntactic/skeleton.py" = ["T201"]
 "src/semantic/local_models.py" = ["T201", "ANN401", "PLR0913"]
 # Text-Fabric names features at runtime and torch ships no types, so Any is accurate here.
 "src/core/corpus.py" = ["ANN401"]
@@ -110,7 +110,7 @@ strict = true
 ignore_missing_imports = true
 
 [tool.deptry]
-known_first_party = ["core", "lexical", "morphology", "semantic", "syntax"]
+known_first_party = ["core", "lexical", "morphological", "semantic", "syntactic"]
 
 [tool.deptry.per_rule_ignores]
 # einops is a runtime need of remote checkpoint code; the rest are tools CI invokes.

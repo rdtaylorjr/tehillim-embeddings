@@ -1,0 +1,51 @@
+"""Full (typ:function:det) phrase-signature inventory histogram: H5.8's S+det representation."""
+
+from __future__ import annotations
+
+import numpy as np
+
+from core.columns import PsalmColumns
+from core.ngram import pooled_ngram_psalm_vectors, unigram_histogram
+from core.support import collapse_rare
+from core.vocabulary import index_map
+from syntactic.corpus import PhrasePsalm
+from syntactic.signature import psalm_full_signatures
+
+
+def _collapsed_full_signatures(
+    psalm: PhrasePsalm, external_counts: dict[str, int], k: int
+) -> tuple[tuple[str, ...], ...]:
+    """One psalm's full-signature sequences, sub-threshold entries collapsed to RARE."""
+    return tuple(
+        tuple(collapse_rare(signature, external_counts, k) for signature in half_verse)
+        for half_verse in psalm_full_signatures(psalm)
+    )
+
+
+def phrase_full_signature_vectors(
+    psalms: list[PhrasePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
+) -> dict[int, np.ndarray]:
+    """Full typ:function:det signature inventory histogram, RARE-collapsed at the unigram level."""
+    index_of = index_map(vocabulary)
+    dim = len(vocabulary)
+    vectors: dict[int, np.ndarray] = {}
+    for psalm in psalms:
+        collapsed = _collapsed_full_signatures(psalm, external_counts, k)
+        for node, half_verse_sigs in zip(psalm.half_verse_nodes, collapsed, strict=True):
+            vectors[node] = unigram_histogram(half_verse_sigs, index_of, dim)
+    return vectors
+
+
+def phrase_full_signature_psalm_vectors(
+    psalms: list[PhrasePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
+) -> dict[int, np.ndarray]:
+    """Psalm-broadcast full-signature inventory histogram, atom-count-weighted pooling."""
+    columns = [
+        PsalmColumns(
+            psalm.number,
+            psalm.half_verse_nodes,
+            _collapsed_full_signatures(psalm, external_counts, k),
+        )
+        for psalm in psalms
+    ]
+    return pooled_ngram_psalm_vectors(columns, (1,), vocabulary, order_by_node=None)

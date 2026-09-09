@@ -8,7 +8,7 @@ import pathlib
 import pytest
 
 SRC = pathlib.Path(__file__).resolve().parent.parent / "src"
-DOMAINS = ("core", "lexical", "morphology", "semantic", "syntax")
+DOMAINS = ("core", "lexical", "morphological", "semantic", "syntactic")
 
 
 def _modules() -> list[pathlib.Path]:

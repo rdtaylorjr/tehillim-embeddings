@@ -12,12 +12,12 @@ from lexical.corpus import LexicalPsalm
 from lexical.scripts import generate_shuffle_control as lexical_psalm_script
 from lexical.scripts import generate_shuffle_control_half_verse as lexical_half_verse_script
 from lexical.scripts.shuffle_driver import SeedContext, write_seed
-from morphology.corpus import MorphologicalPsalm
-from morphology.scripts import generate_deploy_shuffle_control as morph_deploy_script
-from morphology.scripts import generate_shuffle_control as morph_script
-from syntax.corpus import PhrasePsalm
-from syntax.scripts import generate_deploy_shuffle_control as syntax_deploy_script
-from syntax.scripts import generate_shuffle_control as syntax_script
+from morphological.corpus import MorphologicalPsalm
+from morphological.scripts import generate_deploy_shuffle_control as morph_deploy_script
+from morphological.scripts import generate_shuffle_control as morph_script
+from syntactic.corpus import PhrasePsalm
+from syntactic.scripts import generate_deploy_shuffle_control as syntactic_deploy_script
+from syntactic.scripts import generate_shuffle_control as syntactic_script
 
 CONFIG_ROOT = Path(__file__).resolve().parent.parent / "config"
 
@@ -124,8 +124,8 @@ _SCRIPTS = [
     lexical_half_verse_script,
     morph_script,
     morph_deploy_script,
-    syntax_script,
-    syntax_deploy_script,
+    syntactic_script,
+    syntactic_deploy_script,
 ]
 
 
@@ -143,8 +143,8 @@ _REQUIRED_ARGS = {
     lexical_half_verse_script: [],
     morph_script: ["--family", "pos", "--representation", "1_2gram"],
     morph_deploy_script: [],
-    syntax_script: ["--unit", "typ", "--representation", "1_2gram"],
-    syntax_deploy_script: [],
+    syntactic_script: ["--unit", "typ", "--representation", "1_2gram"],
+    syntactic_deploy_script: [],
 }
 
 
@@ -262,7 +262,9 @@ class TestMorphologyMains:
         )
 
         name = shuffle_construction_name("1_2gram", 1)
-        assert dataset_path(tmp_path, "sp", name, domain="morphology", unit_key="feature").exists()
+        assert dataset_path(
+            tmp_path, "sp", name, domain="morphological", unit_key="feature"
+        ).exists()
 
     def test_signature_family_reads_its_support_table_and_writes_datasets(self, tmp_path):
         morph_script.main(
@@ -285,7 +287,7 @@ class TestMorphologyMains:
 
         name = shuffle_construction_name("1_2gram", 1)
         assert dataset_path(
-            tmp_path, "morph_signature", name, domain="morphology", unit_key="feature"
+            tmp_path, "morph_signature", name, domain="morphological", unit_key="feature"
         ).exists()
 
     def test_deploy_writes_named_datasets(self, tmp_path):
@@ -296,13 +298,13 @@ class TestMorphologyMains:
 
         name = shuffle_construction_name("posmean", 2)
         assert dataset_path(
-            tmp_path, "morph_suffix", name, domain="morphology", unit_key="feature"
+            tmp_path, "morph_suffix", name, domain="morphological", unit_key="feature"
         ).exists()
 
 
 class TestSyntaxMains:
     def test_typ_unit_writes_named_datasets(self, tmp_path):
-        syntax_script.main(
+        syntactic_script.main(
             [
                 "--unit",
                 "typ",
@@ -322,11 +324,11 @@ class TestSyntaxMains:
 
         name = shuffle_construction_name("1_2gram", 1)
         assert dataset_path(
-            tmp_path, "typ", name, domain="syntax", unit_key="feature", level="phrase"
+            tmp_path, "typ", name, domain="syntactic", unit_key="feature", level="phrase"
         ).exists()
 
     def test_signature_unit_reads_its_support_table(self, tmp_path):
-        syntax_script.main(
+        syntactic_script.main(
             [
                 "--unit",
                 "signature",
@@ -346,11 +348,11 @@ class TestSyntaxMains:
 
         name = shuffle_construction_name("1_2gram", 1)
         assert dataset_path(
-            tmp_path, "signature", name, domain="syntax", unit_key="feature", level="phrase"
+            tmp_path, "signature", name, domain="syntactic", unit_key="feature", level="phrase"
         ).exists()
 
     def test_deploy_writes_named_datasets(self, tmp_path):
-        syntax_deploy_script.main(
+        syntactic_deploy_script.main(
             [
                 "--output-root",
                 str(tmp_path),
@@ -366,5 +368,5 @@ class TestSyntaxMains:
 
         name = shuffle_construction_name("posmean", 1)
         assert dataset_path(
-            tmp_path, "signature", name, domain="syntax", unit_key="feature", level="phrase"
+            tmp_path, "signature", name, domain="syntactic", unit_key="feature", level="phrase"
         ).exists()
