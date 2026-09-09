@@ -20,7 +20,7 @@ semantic = [
     "openai>=1.0",
     "cohere>=5.0",
     # Imported by the trust_remote_code checkpoints' own modelling code, never by this repo.
-    "einops>=0.7",
+    "einops>=0.8.2",
 ]
 dev = [
     "embeddings[semantic]",
