@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pyarrow.parquet as pq
 
-from lexical.export import dataset_path, write_dataset, write_sparse_dataset
+from core.export import dataset_path, write_dataset, write_sparse_dataset
 
 
 class TestDatasetPath:
@@ -31,10 +31,10 @@ class TestDatasetPath:
         assert path == expected
 
     def test_uses_a_different_dataset_type_when_given(self, tmp_path):
-        path = dataset_path(tmp_path, "sp", "sp_unigram", domain="morphology", unit_key="unit")
+        path = dataset_path(tmp_path, "sp", "sp_unigram", domain="morphological", unit_key="unit")
         expected = (
             tmp_path
-            / "domain=morphology"
+            / "domain=morphological"
             / "unit=sp"
             / "construction=sp_unigram"
             / "part-0.parquet"
@@ -54,8 +54,8 @@ class TestWriteDataset:
         table = pq.read_table(dataset_path(tmp_path, "homograph", "binary", unit_key="unit"))
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert set(by_node) == {100, 101}
-        assert np.allclose(by_node[100], vectors[100])
-        assert np.allclose(by_node[101], vectors[101])
+        assert np.array_equal(by_node[100], vectors[100])
+        assert np.array_equal(by_node[101], vectors[101])
 
     def test_stores_float32_regardless_of_input_dtype(self, tmp_path):
         vectors = {100: np.array([1.0, 0.0], dtype=np.float64)}
@@ -96,11 +96,11 @@ class TestWriteDataset:
         vectors = {100: np.array([1.0], dtype=np.float32)}
 
         write_dataset(
-            tmp_path, "sp", "sp_unigram", vectors, "d", domain="morphology", unit_key="unit"
+            tmp_path, "sp", "sp_unigram", vectors, "d", domain="morphological", unit_key="unit"
         )
 
         assert dataset_path(
-            tmp_path, "sp", "sp_unigram", domain="morphology", unit_key="unit"
+            tmp_path, "sp", "sp_unigram", domain="morphological", unit_key="unit"
         ).exists()
 
 

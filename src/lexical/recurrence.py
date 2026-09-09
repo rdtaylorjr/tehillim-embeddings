@@ -1,72 +1,46 @@
-"""Per-colon ICF lexical-recurrence: mean similarity to other colons, binned by spacing."""
+"""Per-half-verse ICF recurrence: mean similarity to others, binned by spacing."""
 
 from __future__ import annotations
 
 import numpy as np
 
-from lexical.corpus import LexicalPsalm
+from core.columns import PsalmColumns
+from core.similarity import full_cosine_similarity_matrix, half_verse_vector, lag_bin_index
+from core.vocabulary import index_map
 from lexical.vectorize import icf_vector
-from lexical.vocabulary import VocabularyKey, cola_for_key
-
-
-def normalized_lag(n: int) -> np.ndarray:
-    """delta_ij = |i-j| / (n-1) for every i<j pair among n cola, in triu_indices(n, k=1) order."""
-    rows, cols = np.triu_indices(n, k=1)
-    return np.asarray(np.abs(rows - cols) / (n - 1))
-
-
-def lag_bin_index(delta: np.ndarray, k: int) -> np.ndarray:
-    """Which of k equal-width [0, 1] lag-distance bins each normalized separation falls into."""
-    return np.asarray(np.minimum((delta * k).astype(int), k - 1))
-
-
-def _colon_vector(
-    colon: tuple[str, ...], index_of: dict[str, int], weights: np.ndarray, dim: int
-) -> np.ndarray:
-    indices = np.fromiter((index_of[v] for v in set(colon) if v in index_of), dtype=np.int64)
-    vector = np.zeros(dim, dtype=np.float32)
-    vector[indices] = weights[indices]
-    return vector
-
-
-def _full_cosine_similarity_matrix(vectors: np.ndarray) -> np.ndarray:
-    """cos(x_i, x_j) for every (i, j) pair, full symmetric matrix; 0 for a zero-norm colon."""
-    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-    safe_norms = np.where(norms == 0, 1.0, norms)
-    normalized = vectors / safe_norms
-    return np.asarray(normalized @ normalized.T)
 
 
 def spacing_profile_vectors(
-    psalms: list[LexicalPsalm],
+    columns: list[PsalmColumns],
     vocabulary: tuple[str, ...],
-    key: VocabularyKey,
     icf_weights: dict[str, float],
     k: int,
     order_by_psalm: dict[int, np.ndarray] | None = None,
 ) -> dict[int, np.ndarray]:
-    """Per-colon [r_1,...,r_k]: mean ICF-weighted similarity to every other colon, by lag bin."""
+    """Per-half-verse [r_1,...,r_k]: mean ICF-weighted similarity to every other, by lag bin."""
     weights = icf_vector(vocabulary, icf_weights)
-    index_of = {value: i for i, value in enumerate(vocabulary)}
+    index_of = index_map(vocabulary)
     dim = len(vocabulary)
 
     vectors: dict[int, np.ndarray] = {}
-    for psalm in psalms:
-        cola = cola_for_key(psalm, key)
-        n = len(cola)
+    for psalm in columns:
+        half_verses = psalm.half_verses
+        n = len(half_verses)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
 
         if n < 2:
-            for node in psalm.colon_nodes:
+            for node in psalm.nodes:
                 vectors[node] = np.zeros(k, dtype=np.float32)
             continue
 
-        ordered = [cola[i] for i in order]
-        colon_vectors = np.stack([_colon_vector(hv, index_of, weights, dim) for hv in ordered])
-        similarity = _full_cosine_similarity_matrix(colon_vectors)
+        ordered = [half_verses[i] for i in order]
+        half_verse_vectors = np.stack(
+            [half_verse_vector(hv, index_of, weights, dim) for hv in ordered]
+        )
+        similarity = full_cosine_similarity_matrix(half_verse_vectors)
         positions = np.arange(n)
 
-        for position, colon_index in enumerate(order):
+        for position, half_verse_index in enumerate(order):
             others = positions != position
             delta = np.abs(positions[others] - position) / (n - 1)
             bins = lag_bin_index(delta, k)
@@ -76,5 +50,5 @@ def spacing_profile_vectors(
             profile = np.zeros(k, dtype=np.float64)
             nonzero = counts > 0
             profile[nonzero] = sums[nonzero] / counts[nonzero]
-            vectors[psalm.colon_nodes[colon_index]] = profile.astype(np.float32)
+            vectors[psalm.nodes[half_verse_index]] = profile.astype(np.float32)
     return vectors

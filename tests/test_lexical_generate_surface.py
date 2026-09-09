@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from lexical.export import dataset_path
+from core.export import dataset_path
 from lexical.generate_surface import generate_surface
 from lexical.surface_corpus import SurfacePsalm
 
@@ -34,10 +34,10 @@ _FULL_WEIGHTS = (
 def _psalm(*, number, consonantal, nodes):
     return SurfacePsalm(
         number=number,
-        colon_consonantal=consonantal,
-        colon_vocalized=consonantal,
-        colon_cantillation=consonantal,
-        colon_nodes=nodes,
+        half_verse_consonantal=consonantal,
+        half_verse_vocalized=consonantal,
+        half_verse_cantillation=consonantal,
+        half_verse_nodes=nodes,
     )
 
 
@@ -50,7 +50,7 @@ def _psalms():
 
 def _icf_weights_by_tier():
     weights = {"א": 1.5, "ב": 2.0, "ג": 0.5}
-    return {tier: weights for tier in _TIERS}
+    return dict.fromkeys(_TIERS, weights)
 
 
 class TestGenerateSurface:
@@ -89,7 +89,7 @@ class TestGenerateSurface:
         )
         assert len(table["vector"].to_pylist()[0]) == 6
 
-    def test_psalm_variant_broadcasts_the_same_vector_to_every_colon(self, tmp_path):
+    def test_psalm_variant_broadcasts_the_same_vector_to_every_half_verse(self, tmp_path):
         generate_surface(_psalms(), tmp_path, _icf_weights_by_tier())
 
         table = pq.read_table(

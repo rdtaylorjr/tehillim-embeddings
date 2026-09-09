@@ -4,14 +4,15 @@ import numpy as np
 
 from lexical.corpus import LexicalPsalm
 from lexical.psalm_zoning import psalm_position_mean_vectors
+from lexical.vocabulary import columns_for_key
 
 
 def _psalm(*, number, lexemes, forms, nodes):
     return LexicalPsalm(
         number=number,
-        colon_lexemes=lexemes,
-        colon_forms=forms,
-        colon_nodes=nodes,
+        half_verse_lexemes=lexemes,
+        half_verse_forms=forms,
+        half_verse_nodes=nodes,
     )
 
 
@@ -22,7 +23,7 @@ class TestPsalmPositionalCentroidVectors:
         psalms = [_psalm(number=1, lexemes=(("A",), ("B",)), forms=((), ()), nodes=(100, 101))]
 
         vectors = psalm_position_mean_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights
         )
 
         assert len(vectors[100]) == 6
@@ -40,13 +41,13 @@ class TestPsalmPositionalCentroidVectors:
         ]
 
         vectors = psalm_position_mean_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights
         )
 
         b = vectors[100][:3]
         assert np.allclose(b, [2.0, 3.0, 0.0])
 
-    def test_single_occurrence_lexeme_has_centroid_equal_to_its_own_colon_position(self):
+    def test_single_occurrence_lexeme_has_centroid_equal_to_its_own_half_verse_position(self):
         vocabulary = ("A",)
         icf_weights = {"A": 4.0}
         psalms = [
@@ -59,14 +60,14 @@ class TestPsalmPositionalCentroidVectors:
         ]
 
         vectors = psalm_position_mean_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights
         )
 
         m = vectors[100][1]
         expected_mu = 0.125
         assert np.isclose(m, 4.0 * (2 * expected_mu - 1))
 
-    def test_lexeme_present_in_every_colon_is_centered_near_zero(self):
+    def test_lexeme_present_in_every_half_verse_is_centered_near_zero(self):
         vocabulary = ("A",)
         icf_weights = {"A": 4.0}
         psalms = [
@@ -79,7 +80,7 @@ class TestPsalmPositionalCentroidVectors:
         ]
 
         vectors = psalm_position_mean_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights
         )
 
         m = vectors[100][1]
@@ -98,7 +99,7 @@ class TestPsalmPositionalCentroidVectors:
         ]
 
         vectors = psalm_position_mean_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights
         )
 
         m_early, m_late = vectors[100][2], vectors[100][3]
@@ -111,13 +112,13 @@ class TestPsalmPositionalCentroidVectors:
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=((),), nodes=(100,))]
 
         vectors = psalm_position_mean_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights
         )
 
         assert vectors[100][1] == 0.0
         assert vectors[100][3] == 0.0
 
-    def test_broadcasts_the_same_psalm_level_vector_to_every_colon_node(self):
+    def test_broadcasts_the_same_psalm_level_vector_to_every_half_verse_node(self):
         vocabulary = ("A", "B")
         icf_weights = {"A": 1.0, "B": 1.0}
         psalms = [
@@ -130,7 +131,7 @@ class TestPsalmPositionalCentroidVectors:
         ]
 
         vectors = psalm_position_mean_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights
         )
 
         assert np.array_equal(vectors[100], vectors[101])
@@ -149,12 +150,11 @@ class TestPsalmPositionalCentroidVectors:
         ]
 
         natural = psalm_position_mean_vectors(
-            psalms, vocabulary, key="lex", icf_weights=icf_weights
+            columns_for_key(psalms, "lex"), vocabulary, icf_weights=icf_weights
         )
         shuffled = psalm_position_mean_vectors(
-            psalms,
+            columns_for_key(psalms, "lex"),
             vocabulary,
-            key="lex",
             icf_weights=icf_weights,
             order_by_psalm={1: np.array([3, 1, 2, 0])},
         )
@@ -168,7 +168,7 @@ class TestPsalmPositionalCentroidVectors:
         psalms = [_psalm(number=1, lexemes=(("A",),), forms=(("A0",),), nodes=(100,))]
 
         vectors = psalm_position_mean_vectors(
-            psalms, vocabulary, key="lex0", icf_weights=icf_weights
+            columns_for_key(psalms, "lex0"), vocabulary, icf_weights=icf_weights
         )
 
         assert len(vectors[100]) == 2
