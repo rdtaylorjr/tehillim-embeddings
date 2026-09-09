@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from morphology import signature_vectorize as morphology_vectorize
-from syntax import signature_vectorize as syntax_vectorize
+from morphological import signature_vectorize as morphological_vectorize
+from syntactic import signature_vectorize as syntactic_vectorize
 
-MODULES = [morphology_vectorize, syntax_vectorize]
-IDS = ["morphology", "syntax"]
+MODULES = [morphological_vectorize, syntactic_vectorize]
+IDS = ["morphological", "syntactic"]
 
 
 @pytest.mark.parametrize("module", MODULES, ids=IDS)

@@ -157,7 +157,7 @@ Regenerate a linguistic family into a separate directory, or run the full verifi
 ```
 
 The lexical command does not rebuild morphology or syntax. Their generators and external-support
-CSV inputs are in `src/morphology`, `src/syntax`, and `config`. A full corpus rebuild requires an
+CSV inputs are in `src/morphological`, `src/syntactic`, and `config`. A full corpus rebuild requires an
 explicit invocation plan for those modules.
 
 Semantic generation uses `python -m semantic.generate --output-root /path/to/output`. It downloads

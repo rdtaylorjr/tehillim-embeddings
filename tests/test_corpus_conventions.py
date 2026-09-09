@@ -11,9 +11,9 @@ SRC = pathlib.Path(__file__).resolve().parent.parent / "src"
 CORPUS_MODULES = [
     "lexical/corpus.py",
     "lexical/surface_corpus.py",
-    "morphology/corpus.py",
+    "morphological/corpus.py",
     "semantic/corpus.py",
-    "syntax/corpus.py",
+    "syntactic/corpus.py",
 ]
 
 

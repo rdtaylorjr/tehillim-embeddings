@@ -31,10 +31,10 @@ class TestDatasetPath:
         assert path == expected
 
     def test_uses_a_different_dataset_type_when_given(self, tmp_path):
-        path = dataset_path(tmp_path, "sp", "sp_unigram", domain="morphology", unit_key="unit")
+        path = dataset_path(tmp_path, "sp", "sp_unigram", domain="morphological", unit_key="unit")
         expected = (
             tmp_path
-            / "domain=morphology"
+            / "domain=morphological"
             / "unit=sp"
             / "construction=sp_unigram"
             / "part-0.parquet"
@@ -96,11 +96,11 @@ class TestWriteDataset:
         vectors = {100: np.array([1.0], dtype=np.float32)}
 
         write_dataset(
-            tmp_path, "sp", "sp_unigram", vectors, "d", domain="morphology", unit_key="unit"
+            tmp_path, "sp", "sp_unigram", vectors, "d", domain="morphological", unit_key="unit"
         )
 
         assert dataset_path(
-            tmp_path, "sp", "sp_unigram", domain="morphology", unit_key="unit"
+            tmp_path, "sp", "sp_unigram", domain="morphological", unit_key="unit"
         ).exists()
 
 
