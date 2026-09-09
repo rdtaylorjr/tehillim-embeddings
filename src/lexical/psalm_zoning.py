@@ -4,37 +4,36 @@ from __future__ import annotations
 
 import numpy as np
 
-from lexical.corpus import LexicalPsalm
-from lexical.positional import colon_positions
+from core.columns import PsalmColumns
+from core.position import half_verse_positions
+from core.vocabulary import index_map
 from lexical.vectorize import icf_vector
-from lexical.vocabulary import VocabularyKey, cola_for_key
 
 
 def psalm_position_mean_vectors(
-    psalms: list[LexicalPsalm],
+    columns: list[PsalmColumns],
     vocabulary: tuple[str, ...],
-    key: VocabularyKey,
     icf_weights: dict[str, float],
     order_by_psalm: dict[int, np.ndarray] | None = None,
 ) -> dict[int, np.ndarray]:
-    """Psalm-level [b; m]: b = ICF if present anywhere, m = ICF x (2 * mean colon position - 1)."""
+    """Psalm-level: b = ICF if present anywhere, m = ICF x (2 * mean half-verse position - 1)."""
     weights = icf_vector(vocabulary, icf_weights)
-    index_of = {value: i for i, value in enumerate(vocabulary)}
+    index_of = index_map(vocabulary)
     dim = len(vocabulary)
 
     vectors: dict[int, np.ndarray] = {}
-    for psalm in psalms:
-        cola = cola_for_key(psalm, key)
-        n = len(cola)
+    for psalm in columns:
+        half_verses = psalm.half_verses
+        n = len(half_verses)
         order = order_by_psalm[psalm.number] if order_by_psalm is not None else np.arange(n)
-        ordered = [cola[i] for i in order]
-        t = colon_positions(n)
+        ordered = [half_verses[i] for i in order]
+        t = half_verse_positions(n)
 
         flat_index_parts = []
         flat_t_parts = []
-        for position, colon in enumerate(ordered):
+        for position, half_verse in enumerate(ordered):
             indices = np.fromiter(
-                (index_of[v] for v in set(colon) if v in index_of), dtype=np.int64
+                (index_of[v] for v in set(half_verse) if v in index_of), dtype=np.int64
             )
             flat_index_parts.append(indices)
             flat_t_parts.append(np.full(len(indices), t[position]))
@@ -50,6 +49,6 @@ def psalm_position_mean_vectors(
         m = weights * present * (2 * mean_position - 1)
 
         psalm_vector = np.concatenate([b, m]).astype(np.float32)
-        for node in psalm.colon_nodes:
+        for node in psalm.nodes:
             vectors[node] = psalm_vector
     return vectors

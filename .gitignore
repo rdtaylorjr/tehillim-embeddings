@@ -1,5 +1,4 @@
-# OS generated files #
-######################
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -7,8 +6,10 @@
 .Trashes
 Thumbs.db
 
-# Python #
-##########
+*claude*
+AGENTS.md
+
+# Python
 __pycache__/
 *.pyc
 .venv/
@@ -16,6 +17,7 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.idea/
 .coverage
+coverage.json
 htmlcov/
-*claude*

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import os
 import sys
 from collections.abc import Callable
@@ -11,10 +10,12 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from core.cli import run_generator
+from core.export import write_vectors
 from semantic import api_models
 from semantic.api_models import API_KEY_ENV_VARS
-from semantic.export import dataset_path, node_vectors, write_dataset
-from semantic.local_models import _select_cola, compute_colon_embeddings
+from semantic.export import node_vectors, path_to_write
+from semantic.local_models import compute_half_verse_embeddings, select_half_verses
 from semantic.registry import (
     MODEL_REGISTRY,
     dataset_description,
@@ -23,7 +24,7 @@ from semantic.registry import (
 )
 
 if TYPE_CHECKING:
-    from semantic.corpus import Psalm
+    from semantic.corpus import Corpus, SemanticPsalm
 
 _API_SLUGS = {"gemini", "cohere", "openai", "voyage"}
 
@@ -37,42 +38,41 @@ _REAL_FETCHERS: dict[str, Callable[..., np.ndarray]] = {
 
 
 def generate_local(
-    psalms: list[Psalm],
+    psalms: list[SemanticPsalm],
     output_root: Path,
     slug: str,
     *,
     variation: str | None = None,
     device: str | None = None,
     torch_dtype: str | None = None,
-    compute: Callable[..., dict[int, np.ndarray]] = compute_colon_embeddings,
+    compute: Callable[..., dict[int, np.ndarray]] = compute_half_verse_embeddings,
 ) -> list[str]:
     """Generates every not-yet-written variation for one local model slug, or only `variation`."""
     technical_name, model_slug, _ = MODEL_REGISTRY[slug]
     written: list[str] = []
-    for variation_name, vocalized, niqqud_only, variation_description in variations_for_model(slug):
+    for variation_name, variation_description in variations_for_model(slug):
         if variation is not None and variation_name != variation:
             continue
         name = dataset_name(slug, variation_name)
-        if dataset_path(output_root, model_slug, variation_name).exists():
+        path = path_to_write(output_root, model_slug, variation_name)
+        if path is None:
             continue
-        print(f"computing {name} from {technical_name}...", file=sys.stderr)
         embeddings = compute(
             psalms,
             technical_name,
-            vocalized=vocalized,
-            niqqud_only=niqqud_only,
+            tier=variation_name,
             device=device,
             torch_dtype=torch_dtype,
         )
         values = node_vectors(embeddings, psalms)
         description = dataset_description(slug, variation_description)
-        write_dataset(output_root, model_slug, variation_name, values, description)
+        write_vectors(path, values, description)
         written.append(name)
     return written
 
 
 def generate_api(
-    psalms: list[Psalm],
+    psalms: list[SemanticPsalm],
     output_root: Path,
     slug: str,
     *,
@@ -87,9 +87,10 @@ def generate_api(
 
     model_slug = MODEL_REGISTRY[slug][1]
     written: list[str] = []
-    for variation, vocalized, niqqud_only, variation_description in variations_for_model(slug):
+    for variation, variation_description in variations_for_model(slug):
         name = dataset_name(slug, variation)
-        if dataset_path(output_root, model_slug, variation).exists():
+        path = path_to_write(output_root, model_slug, variation)
+        if path is None:
             continue
 
         env_var = API_KEY_ENV_VARS[slug]
@@ -100,9 +101,9 @@ def generate_api(
         texts: list[str] = []
         spans: list[tuple[int, int, int]] = []
         for psalm in psalms:
-            cola = _select_cola(psalm, vocalized=vocalized, niqqud_only=niqqud_only)
+            half_verses = select_half_verses(psalm, variation)
             start = len(texts)
-            texts.extend(cola)
+            texts.extend(half_verses)
             spans.append((psalm.number, start, len(texts)))
 
         print(f"fetching {name} from {slug}...", file=sys.stderr)
@@ -110,28 +111,36 @@ def generate_api(
         embeddings = {number: vectors[start:end] for number, start, end in spans}
         values = node_vectors(embeddings, psalms)
         description = dataset_description(slug, variation_description)
-        write_dataset(output_root, model_slug, variation, values, description)
+        write_vectors(path, values, description)
         written.append(name)
     return written
 
 
-def main() -> None:
-    """Generates every missing dataset for every registered model."""
-    from semantic.corpus import Corpus
-
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-root", type=Path, required=True)
-    output_root = parser.parse_args().output_root
-    psalms = Corpus.load().psalms()
-
+def generate(psalms: list[SemanticPsalm], output_root: Path) -> list[str]:
+    """Writes every missing dataset for every registered model, hosted API and local alike."""
     written: list[str] = []
     for slug in MODEL_REGISTRY:
         if slug in _API_SLUGS:
             written.extend(generate_api(psalms, output_root, slug))
         else:
             written.extend(generate_local(psalms, output_root, slug))
+    return written
 
-    print(f"wrote {len(written)} dataset files", file=sys.stderr)
+
+def load_corpus() -> Corpus:
+    """Imported at call time because the semantic corpus pulls in the local model stack."""
+    from semantic.corpus import Corpus
+
+    return Corpus.load()
+
+
+def main(
+    argv: list[str] | None = None,
+    *,
+    corpus_factory: Callable[[], Corpus] = load_corpus,
+) -> None:
+    """Generates every missing dataset for every registered model."""
+    run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)
 
 
 if __name__ == "__main__":
