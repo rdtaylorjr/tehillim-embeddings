@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from syntactic.corpus import Corpus
+from syntactic.corpus import PHRASE, Corpus, phrase_corpus
 
 
 class TestCorpusLoad:
@@ -15,7 +15,7 @@ class TestCorpusLoad:
             seen["path"], seen["features"] = path, features
             return "api"
 
-        corpus = Corpus.load(tmp_path / "missing", loader=_loader)
+        corpus = Corpus.load(PHRASE, tmp_path / "missing", loader=_loader)
 
         assert seen["path"] == tmp_path / "missing"
         assert "otype" in seen["features"]
@@ -24,7 +24,7 @@ class TestCorpusLoad:
 
 @pytest.mark.integration
 def test_extracts_all_150_psalms_with_phrase_typ_aligned_to_half_verses():
-    corpus = Corpus.load()
+    corpus = phrase_corpus()
     psalms = corpus.psalms()
 
     assert len(psalms) == 150
@@ -57,7 +57,7 @@ def test_extracts_all_150_psalms_with_phrase_typ_aligned_to_half_verses():
 
 @pytest.mark.integration
 def test_a_real_half_verses_phrase_typ_sequence_matches_a_manual_tf_query():
-    corpus = Corpus.load()
+    corpus = phrase_corpus()
     psalm_1 = next(p for p in corpus.psalms() if p.number == 1)
     api = corpus.api
     half_verse_node = psalm_1.half_verse_nodes[0]
@@ -71,7 +71,7 @@ def test_a_real_half_verses_phrase_typ_sequence_matches_a_manual_tf_query():
 def test_phrase_typ_values_match_the_verified_thirteen_value_bhsa_inventory():
     from syntactic.vocabulary import TYP_VOCABULARY
 
-    corpus = Corpus.load()
+    corpus = phrase_corpus()
     observed = {value for p in corpus.psalms() for hv in p.half_verse_typ for value in hv}
 
     assert observed == set(TYP_VOCABULARY)
@@ -79,7 +79,7 @@ def test_phrase_typ_values_match_the_verified_thirteen_value_bhsa_inventory():
 
 @pytest.mark.integration
 def test_a_real_half_verses_phrase_function_sequence_matches_a_manual_tf_query():
-    corpus = Corpus.load()
+    corpus = phrase_corpus()
     psalm_1 = next(p for p in corpus.psalms() if p.number == 1)
     api = corpus.api
     half_verse_node = psalm_1.half_verse_nodes[0]
@@ -96,7 +96,7 @@ def test_a_real_half_verses_phrase_function_sequence_matches_a_manual_tf_query()
 def test_phrase_function_values_observed_in_psalms_are_a_subset_of_the_frozen_inventory():
     from syntactic.vocabulary import FUNCTION_VOCABULARY
 
-    corpus = Corpus.load()
+    corpus = phrase_corpus()
     observed = {value for p in corpus.psalms() for hv in p.half_verse_function for value in hv}
 
     assert observed <= set(FUNCTION_VOCABULARY)
@@ -104,7 +104,7 @@ def test_phrase_function_values_observed_in_psalms_are_a_subset_of_the_frozen_in
 
 @pytest.mark.integration
 def test_phrase_det_n_words_and_phrase_bookkeeping_match_a_manual_tf_query():
-    corpus = Corpus.load()
+    corpus = phrase_corpus()
     psalm_1 = next(p for p in corpus.psalms() if p.number == 1)
     api = corpus.api
     F, L = api.F, api.L  # noqa: N806
@@ -124,7 +124,7 @@ def test_phrase_det_n_words_and_phrase_bookkeeping_match_a_manual_tf_query():
 
 @pytest.mark.integration
 def test_phrase_rela_matches_a_manual_tf_query_and_whole_bhsa_inventory_includes_para():
-    corpus = Corpus.load()
+    corpus = phrase_corpus()
     psalm_1 = next(p for p in corpus.psalms() if p.number == 1)
     api = corpus.api
     half_verse_node = psalm_1.half_verse_nodes[0]
@@ -139,7 +139,7 @@ def test_phrase_rela_matches_a_manual_tf_query_and_whole_bhsa_inventory_includes
 
 @pytest.mark.integration
 def test_subphrase_rela_matches_a_manual_tf_query_and_whole_bhsa_inventory_includes_par():
-    corpus = Corpus.load()
+    corpus = phrase_corpus()
     psalm_1 = next(p for p in corpus.psalms() if p.number == 1)
     api = corpus.api
     half_verse_node = psalm_1.half_verse_nodes[0]
@@ -156,13 +156,13 @@ def test_subphrase_rela_matches_a_manual_tf_query_and_whole_bhsa_inventory_inclu
 def test_load_accepts_an_explicit_path():
     from syntactic.corpus import DEFAULT_BHSA_CLONE
 
-    corpus = Corpus.load(Path(DEFAULT_BHSA_CLONE))
+    corpus = phrase_corpus(Path(DEFAULT_BHSA_CLONE))
     assert len(corpus.psalms()) == 150
 
 
 @pytest.mark.integration
 def test_api_property_exposes_the_whole_corpus_not_just_psalms():
-    corpus = Corpus.load()
+    corpus = phrase_corpus()
     psalms_atom_count = sum(len(typ) for p in corpus.psalms() for typ in p.half_verse_typ)
 
     whole_bible_atom_count = len(corpus.api.F.otype.s("phrase_atom"))

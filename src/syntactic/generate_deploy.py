@@ -10,7 +10,7 @@ from core.cli import run_signature_generator
 from core.export import dataset_path, write_dataset
 from core.support import build_signature_vocabulary
 from syntactic import DATASET_TYPE, SIGNATURE_UNIT
-from syntactic.corpus import Corpus, PhrasePsalm
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.deploy import signature_deploy_vectors
 from syntactic.signature_support import MIN_EXTERNAL_SUPPORT_K
 
@@ -53,7 +53,7 @@ def generate(
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Generates the phrase_signature posmean dataset if missing."""
     run_signature_generator(

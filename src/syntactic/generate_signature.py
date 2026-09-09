@@ -12,7 +12,7 @@ from core.ngram import concatenated_1_2_3gram_dim
 from core.parallel import map_constructions
 from core.support import build_signature_vocabulary
 from syntactic import DATASET_TYPE, SIGNATURE_UNIT
-from syntactic.corpus import Corpus, PhrasePsalm
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.signature_support import MIN_EXTERNAL_SUPPORT_K
 from syntactic.signature_vectorize import DENSE_BUILDERS, SPARSE_BUILDERS
 
@@ -76,7 +76,7 @@ def generate(
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Generates every missing phrase_signature dataset."""
     run_signature_generator(

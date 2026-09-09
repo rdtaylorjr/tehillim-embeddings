@@ -7,7 +7,7 @@ from pathlib import Path
 
 from core.cli import run_generator
 from syntactic.complexity import phrase_complexity_psalm_vectors, phrase_complexity_vectors
-from syntactic.corpus import Corpus, PhrasePsalm
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.skeleton import generate_skeleton
 
 _UNIT = "complexity"
@@ -27,13 +27,14 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
             ("core_psalm", phrase_complexity_psalm_vectors),
         ),
         _DESCRIPTION,
+        level="phrase",
     )
 
 
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Generates every missing complexity dataset."""
     run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)

@@ -288,6 +288,40 @@ class TestLoadApiVerifiesTheFeaturesItWasAskedFor:
 
         assert api is complete
 
+    def test_accepts_a_required_edge_feature_that_loads_onto_e_rather_than_f(self, tmp_path):
+        """Text-Fabric puts edge features such as `mother` on E, so demanding F would reject one."""
+        complete = SimpleNamespace(
+            F=SimpleNamespace(otype=object()),
+            E=SimpleNamespace(mother=object()),
+            TF=SimpleNamespace(load=lambda *a, **k: None),
+        )
+
+        with pytest.warns(RuntimeWarning):
+            api = load_api(
+                tmp_path / "absent",
+                "otype mother",
+                use_fn=lambda *a, **k: SimpleNamespace(api=complete),
+            )
+
+        assert api is complete
+
+    def test_still_rejects_a_feature_present_on_neither_f_nor_e(self, tmp_path):
+        partial = SimpleNamespace(
+            F=SimpleNamespace(otype=object()),
+            E=SimpleNamespace(mother=object()),
+            TF=SimpleNamespace(load=lambda *a, **k: None),
+        )
+
+        with (
+            pytest.raises(RuntimeError, match="did not load required features"),
+            pytest.warns(RuntimeWarning),
+        ):
+            load_api(
+                tmp_path / "absent",
+                "otype mother book",
+                use_fn=lambda *a, **k: SimpleNamespace(api=partial),
+            )
+
 
 class TestUseFallbackReportsWhyItFailed:
     """The local path names its reason, so the remote path must not lose one either."""

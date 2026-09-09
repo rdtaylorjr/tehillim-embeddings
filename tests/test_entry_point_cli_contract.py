@@ -65,4 +65,4 @@ def test_no_entry_point_declares_a_shared_option_itself(name: str, option: str) 
 
 def test_every_entry_point_was_discovered() -> None:
     """A shrinking list would silently stop holding the contract, so the count is asserted."""
-    assert len(ENTRY_POINTS) == 27
+    assert len(ENTRY_POINTS) == 37

@@ -22,7 +22,7 @@ from core.shuffle import (
 )
 from core.support import build_signature_vocabulary, load_external_signature_counts
 from syntactic import DATASET_TYPE, SIGNATURE_UNIT
-from syntactic.corpus import Corpus, PhrasePsalm
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.function_ngram import (
     phrase_function_1_2_3gram_psalm_sparse_vectors,
     phrase_function_1_2_3gram_sparse_vectors,
@@ -255,7 +255,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Generates the shuffle-null control datasets for one phrase representation."""
     args = build_parser().parse_args(argv)

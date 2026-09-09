@@ -73,6 +73,11 @@ def _load_local(path: Path, required_features: str, fabric: Callable[..., Any]) 
     return _as_api(loaded)
 
 
+def _is_loaded(api: Any, name: str) -> bool:
+    """Text-Fabric puts node features on F and edge features on E, so a name can be on either."""
+    return hasattr(api.F, name) or hasattr(getattr(api, "E", None), name)
+
+
 def load_api(
     path: Path | None = None,
     required_features: str = "",
@@ -114,7 +119,7 @@ def load_api(
             f"Text-Fabric failed to load BHSA from {location} "
             f"or via use(checkout={checkout!r}): {use_reason!r}"
         )
-    missing = [name for name in required_features.split() if not hasattr(api.F, name)]
+    missing = [name for name in required_features.split() if not _is_loaded(api, name)]
     if missing:
         raise RuntimeError(f"Text-Fabric did not load required features: {missing}")
     return api

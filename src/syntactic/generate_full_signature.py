@@ -9,7 +9,7 @@ from core.cli import run_signature_generator
 from core.export import path_to_write, write_vectors
 from core.support import build_signature_vocabulary
 from syntactic import DATASET_TYPE
-from syntactic.corpus import Corpus, PhrasePsalm
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.full_signature_vectorize import (
     phrase_full_signature_psalm_vectors,
     phrase_full_signature_vectors,
@@ -53,7 +53,7 @@ def generate(
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Generates every missing phrase_full_signature dataset."""
     run_signature_generator(

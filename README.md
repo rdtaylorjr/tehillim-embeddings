@@ -71,7 +71,13 @@ The repository preserves several comparison conditions in the generated data.
   outside Psalms collapse to `<RARE>`. The threshold was fixed from external support counts before
   benchmark scoring.
 - `rela=Para` at phrase-atom level and `rela=par` at subphrase level are masked to `NA` before
-  syntax vectorization. These values would disclose the parallelism target evaluated elsewhere.
+  syntax vectorization, as a precaution against disclosing the parallelism target evaluated
+  elsewhere. An audit of both against that target measured `Para` as unassociated, appearing on
+  both members of 0 of 1,598 annotation groups against a within-psalm permutation null, p=1.0.
+  It measured `par` as associated, 21 groups against a null mean of 9.73, p=0.0010. Removing
+  `par` rather than masking it moves its correlation with the group structure only from 0.607
+  to 0.568, so the association survives the quarantine through structural correlates and
+  qualifies results for `phrase_subphrase_rela`.
 - Order-sensitive lexical placement and recurrence features receive within-psalm half-verse-order
   shuffles. Morphological and syntactic n-grams receive within-half-verse word or phrase-atom-order
   shuffles. Each permutation is deterministic from its seed and node or psalm identifier. The

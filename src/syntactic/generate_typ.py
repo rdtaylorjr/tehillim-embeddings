@@ -12,7 +12,7 @@ from core.cli import run_generator
 from core.export import path_to_write, write_sparse_vectors, write_vectors
 from core.parallel import map_constructions
 from syntactic import DATASET_TYPE
-from syntactic.corpus import Corpus, PhrasePsalm
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.typ_ngram import (
     phrase_typ_1_2_3gram_psalm_sparse_vectors,
     phrase_typ_1_2_3gram_sparse_vectors,
@@ -102,7 +102,7 @@ def generate(
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Generates every missing phrase-type dataset."""
     run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)

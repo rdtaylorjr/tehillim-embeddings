@@ -18,7 +18,7 @@ from core.parallel import map_seeds
 from core.shuffle import shuffle_construction_name, shuffled_order_by_psalm
 from core.support import build_signature_vocabulary, load_external_signature_counts
 from syntactic import DATASET_TYPE, SIGNATURE_UNIT
-from syntactic.corpus import Corpus, PhrasePsalm
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.deploy import signature_deploy_vectors
 from syntactic.generate_deploy import CONSTRUCTION
 from syntactic.signature_support import MIN_EXTERNAL_SUPPORT_K
@@ -92,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Generates the shuffle-null control datasets for phrase_signature_posmean."""
     args = build_parser().parse_args(argv)
