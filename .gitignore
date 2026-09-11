@@ -25,3 +25,6 @@ htmlcov/
 
 data/**/construction=*_shuffle[0-9][0-9][0-9][0-9]/
 .git-rewritten/
+
+*.md
+!README.md

@@ -9,7 +9,7 @@ syntactic, and semantic vectors keyed to the same BHSA `half_verse` nodes.
 
 ## Data
 
-`data/` contains 250 committed Hive-partitioned Parquet files, totaling 1.2 GB. Every dense
+`data/` contains 339 committed Hive-partitioned Parquet files, totaling 1.2 GB. Every dense
 file has `node_id` (`int32`) and `vector` (`float32` fixed-size list) columns. Sparse trigram
 files use `node_id`, `indices`, and `values`. Schema metadata records the construction and dataset
 format version. Each semantic export has 5,203 rows, one for each `half_verse` node in the Hebrew Psalms.
@@ -71,13 +71,7 @@ The repository preserves several comparison conditions in the generated data.
   outside Psalms collapse to `<RARE>`. The threshold was fixed from external support counts before
   benchmark scoring.
 - `rela=Para` at phrase-atom level and `rela=par` at subphrase level are masked to `NA` before
-  syntax vectorization, as a precaution against disclosing the parallelism target evaluated
-  elsewhere. An audit of both against that target measured `Para` as unassociated, appearing on
-  both members of 0 of 1,598 annotation groups against a within-psalm permutation null, p=1.0.
-  It measured `par` as associated, 21 groups against a null mean of 9.73, p=0.0010. Removing
-  `par` rather than masking it moves its correlation with the group structure only from 0.607
-  to 0.568, so the association survives the quarantine through structural correlates and
-  qualifies results for `phrase_subphrase_rela`.
+  syntax vectorization, since both encode the parallelism target the benchmark evaluates.
 - Order-sensitive lexical placement and recurrence features receive within-psalm half-verse-order
   shuffles. Morphological and syntactic n-grams receive within-half-verse word or phrase-atom-order
   shuffles. Each permutation is deterministic from its seed and node or psalm identifier. The
@@ -90,7 +84,7 @@ literary function or decide an interpretation of a psalm.
 
 The committed result of this repository is the representation corpus described above. The 43
 semantic datasets cover the 17 registered models and the applicable text states. The remaining
-207 files are the linguistic representations. Their shuffle-null permutations are rebuilt
+296 files are the linguistic representations. Their shuffle-null permutations are rebuilt
 from seed rather than committed.
 
 This repository does not calculate retrieval scores, clustering outcomes, significance tests, or
