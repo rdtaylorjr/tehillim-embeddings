@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from core.corpus import DEFAULT_BHSA_CLONE, BaseCorpus, load_api
+from core.corpus import DEFAULT_BHSA_CLONE, BaseCorpus, shared_api
 
 __all__ = ["DEFAULT_BHSA_CLONE", "Corpus", "MorphologicalPsalm"]
 
@@ -38,7 +38,9 @@ class Corpus(BaseCorpus[MorphologicalPsalm]):
     """A loaded BHSA Text-Fabric corpus, scoped to half-verse morphology feature extraction."""
 
     @classmethod
-    def load(cls, tf_path: Path | None = None, *, loader: Callable[..., Any] = load_api) -> Corpus:
+    def load(
+        cls, tf_path: Path | None = None, *, loader: Callable[..., Any] = shared_api
+    ) -> Corpus:
         """Loads BHSA from `tf_path`, else $TEHILLIM_BHSA_PATH, else `DEFAULT_BHSA_CLONE`."""
         return cls(loader(tf_path, _REQUIRED_FEATURES))
 

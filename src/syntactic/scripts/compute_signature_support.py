@@ -7,7 +7,7 @@ from typing import Any
 
 from core.cli import run_support_builder
 from core.corpus import PSALMS_BOOK_NAME
-from syntactic.corpus import Corpus
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.signature import build_phrase_signature
 
 
@@ -28,7 +28,7 @@ def build_external_signature_counts(api: Any) -> dict[str, int]:
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Writes `phrase_signature_external_support.csv` under the given config root."""
     run_support_builder(

@@ -71,5 +71,6 @@ def test_every_psalm_type_is_a_frozen_slotted_dataclass(module: str, node: ast.C
     assert keywords == {"frozen": True, "slots": True}
 
 
-def test_all_five_domains_were_discovered() -> None:
-    assert len(PSALM_CLASSES) == len(CORPUS_MODULES)
+def test_every_corpus_module_contributes_a_psalm_type() -> None:
+    """A module carries one type per level it reads, so syntactic has both phrase and clause."""
+    assert {module for module, _ in PSALM_CLASSES} == set(CORPUS_MODULES)

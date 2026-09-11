@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+from functools import partial
+
 import numpy as np
 
 from core.columns import PsalmColumns
-from core.ngram import pooled_ngram_psalm_vectors, unigram_histogram
+from core.ngram import (
+    ngram_psalm_vectors,
+    ngram_vectors,
+    pooled_ngram_psalm_vectors,
+    unigram_histogram,
+)
 from core.support import collapse_rare
 from morphological.corpus import MorphologicalPsalm
 from morphological.signature import psalm_signatures
@@ -57,26 +64,16 @@ def psalm_suffix_signatures(psalm: MorphologicalPsalm) -> tuple[tuple[str, ...],
     )
 
 
-def suffix_inventory_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.ndarray]:
-    """`M_S`: normalized suffix-signature proportions, over `SUFFIX_VOCABULARY`."""
-    index_of = {value: i for i, value in enumerate(SUFFIX_VOCABULARY)}
-    dim = len(SUFFIX_VOCABULARY)
-    vectors: dict[int, np.ndarray] = {}
-    for psalm in psalms:
-        for node, half_verse_sigs in zip(
-            psalm.half_verse_nodes, psalm_suffix_signatures(psalm), strict=True
-        ):
-            vectors[node] = unigram_histogram(half_verse_sigs, index_of, dim)
-    return vectors
-
-
-def suffix_inventory_psalm_vectors(psalms: list[MorphologicalPsalm]) -> dict[int, np.ndarray]:
-    """Psalm-broadcast `suffix_inventory_vectors`, word-count-weighted pooling."""
-    columns: list[PsalmColumns] = [
-        PsalmColumns(psalm.number, psalm.half_verse_nodes, psalm_suffix_signatures(psalm))
-        for psalm in psalms
-    ]
-    return pooled_ngram_psalm_vectors(columns, (1,), SUFFIX_VOCABULARY, order_by_node=None)
+#: `M_S`: normalized suffix-signature proportions over `SUFFIX_VOCABULARY`, and its psalm pool.
+suffix_1gram_vectors = partial(
+    ngram_vectors, columns_of=psalm_suffix_signatures, vocabulary=SUFFIX_VOCABULARY, orders=(1,)
+)
+suffix_1gram_psalm_vectors = partial(
+    ngram_psalm_vectors,
+    columns_of=psalm_suffix_signatures,
+    vocabulary=SUFFIX_VOCABULARY,
+    orders=(1,),
+)
 
 
 def _collapsed_signatures(
@@ -132,7 +129,7 @@ def host_plus_suffix_psalm_vectors(
     host_vectors = pooled_ngram_psalm_vectors(
         host_columns, (1,), signature_vocabulary, order_by_node=None
     )
-    suffix_vectors = suffix_inventory_psalm_vectors(psalms)
+    suffix_vectors = suffix_1gram_psalm_vectors(psalms)
     return {
         node: np.concatenate([host_vectors[node], suffix_vectors[node]]) for node in host_vectors
     }

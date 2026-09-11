@@ -1,58 +1,38 @@
-"""Shared driver for the phrase skeleton generators, each a per-node and psalm pair."""
+"""Binds the syntactic domain to the shared dataset writer, for the per-node and psalm pairs."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import numpy as np
-
-from core.export import path_to_write, write_vectors
-from core.parallel import map_constructions
+from core.dataset_family import Builder, Construction, generate_family
 from syntactic import DATASET_TYPE
-from syntactic.corpus import PhrasePsalm
 
-Builder = Callable[[list[PhrasePsalm]], dict[int, np.ndarray]]
-
-
-@dataclass(frozen=True, slots=True)
-class _SkeletonContext:
-    """Everything one construction needs, pickled once per worker rather than once per build."""
-
-    psalms: tuple[PhrasePsalm, ...]
-    output_root: Path
-    unit: str
-    description: str
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
-def write_construction(context: _SkeletonContext, item: tuple[str, Builder]) -> str | None:
-    """Writes one construction's dataset, or returns None when it is already written."""
-    construction, builder = item
-    path = path_to_write(
-        context.output_root,
-        context.unit,
-        construction,
-        domain=DATASET_TYPE,
-        unit_key="feature",
-        level="phrase",
-    )
-    if path is None:
-        return None
-    description = f"{context.description}, construction={construction}."
-    write_vectors(path, builder(list(context.psalms)), description)
-    return f"{context.unit}_{construction}"
-
-
-def generate_skeleton(
-    psalms: list[PhrasePsalm],
+def generate_skeleton[RecordT](
+    psalms: list[RecordT],
     output_root: Path,
     unit: str,
-    constructions: Sequence[tuple[str, Builder]],
+    constructions: Sequence[tuple[str, Builder[RecordT]]],
     description: str,
     *,
+    level: str,
     max_workers: int | None = None,
 ) -> list[str]:
     """Writes each not-yet-written `<unit>` construction, returns the qualified names written."""
-    context = _SkeletonContext(tuple(psalms), output_root, unit, description)
-    return map_constructions(write_construction, context, constructions, max_workers=max_workers)
+    family = [
+        (name, Construction(build=builder, description=f"{description}, construction={name}."))
+        for name, builder in constructions
+    ]
+    return generate_family(
+        psalms,
+        output_root,
+        family,
+        unit=unit,
+        domain=DATASET_TYPE,
+        level=level,
+        max_workers=max_workers,
+    )

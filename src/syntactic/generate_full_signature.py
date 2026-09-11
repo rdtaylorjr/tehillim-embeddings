@@ -1,4 +1,4 @@
-"""Computes and writes the full (typ:function:det) signature inventory: H5.8's S+det test."""
+"""Computes and writes the phrase_full_signature family: 1gram, 1_2gram, and 1_2_3gram."""
 
 from __future__ import annotations
 
@@ -6,60 +6,48 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_signature_generator
-from core.export import path_to_write, write_vectors
-from core.support import build_signature_vocabulary
+from core.supported_dataset import SupportedDataset, generate_supported_dataset
 from syntactic import DATASET_TYPE
-from syntactic.corpus import Corpus, PhrasePsalm
-from syntactic.full_signature_vectorize import (
-    phrase_full_signature_psalm_vectors,
-    phrase_full_signature_vectors,
-)
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
+from syntactic.full_signature_vectorize import DENSE_BUILDERS, SPARSE_BUILDERS
 from syntactic.signature_support import MIN_EXTERNAL_SUPPORT_K_FULL
 
-_UNIT = "full_signature"
+_SUPPORT_FILE = "phrase_full_signature_external_support.csv"
+
+DATASET: SupportedDataset[PhrasePsalm] = SupportedDataset(
+    unit="full_signature",
+    domain=DATASET_TYPE,
+    level="phrase",
+    dense=DENSE_BUILDERS,
+    sparse=SPARSE_BUILDERS,
+    description="Full typ:function:det signature histogram (RARE-collapsed, k={k})",
+)
 
 
 def generate(
-    psalms: list[PhrasePsalm], output_root: Path, external_counts: dict[str, int], k: int
+    psalms: list[PhrasePsalm],
+    output_root: Path,
+    external_counts: dict[str, int],
+    k: int,
+    *,
+    max_workers: int | None = None,
 ) -> list[str]:
-    """Writes both not-yet-written phrase_full_signature constructions, returns the names."""
-    vocabulary = build_signature_vocabulary(external_counts, k)
-
-    written: list[str] = []
-    for construction, builder in (
-        ("inventory", phrase_full_signature_vectors),
-        ("inventory_psalm", phrase_full_signature_psalm_vectors),
-    ):
-        path = path_to_write(
-            output_root,
-            _UNIT,
-            construction,
-            domain=DATASET_TYPE,
-            unit_key="feature",
-            level="phrase",
-        )
-        if path is None:
-            continue
-        vectors = builder(psalms, vocabulary, external_counts, k)
-        description = (
-            f"Full typ:function:det signature histogram (RARE-collapsed, k={k}), "
-            f"construction={construction}."
-        )
-        write_vectors(path, vectors, description)
-        written.append(f"{_UNIT}_{construction}")
-    return written
+    """Writes every not-yet-written phrase_full_signature construction, returns the names."""
+    return generate_supported_dataset(
+        DATASET, psalms, output_root, external_counts, k, max_workers=max_workers
+    )
 
 
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Generates every missing phrase_full_signature dataset."""
     run_signature_generator(
         __doc__,
         generate,
-        "phrase_full_signature_external_support.csv",
+        _SUPPORT_FILE,
         MIN_EXTERNAL_SUPPORT_K_FULL,
         argv,
         corpus_factory=corpus_factory,

@@ -1,6 +1,6 @@
 [project]
 name = "embeddings"
-version = "0.6.0"
+version = "0.7.0"
 description = "Generates and exports feature representations for the Hebrew Psalms as BHSA-node-keyed Parquet datasets."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -91,6 +91,7 @@ max-args = 8
 "src/semantic/local_models.py" = ["T201", "ANN401", "PLR0913"]
 # Text-Fabric names features at runtime and torch ships no types, so Any is accurate here.
 "src/core/corpus.py" = ["ANN401"]
+"src/syntactic/corpus.py" = ["ANN401"]
 "src/core/cli.py" = ["ANN401", "T201"]
 "src/lexical/frequency.py" = ["ANN401"]
 "src/lexical/surface_frequency.py" = ["ANN401"]

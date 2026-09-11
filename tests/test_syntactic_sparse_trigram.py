@@ -2,30 +2,27 @@
 
 from __future__ import annotations
 
+from functools import partial
+
 import numpy as np
 import pytest
 
+from core.ngram import (
+    ngram_psalm_vectors,
+    ngram_vectors,
+    sparse_ngram_psalm_vectors,
+    sparse_ngram_vectors,
+)
 from core.shuffle import shuffled_within_half_verse_order
 from core.support import build_signature_vocabulary
 from syntactic.corpus import PhrasePsalm
-from syntactic.function_ngram import (
-    phrase_function_1_2_3gram_psalm_sparse_vectors,
-    phrase_function_1_2_3gram_psalm_vectors,
-    phrase_function_1_2_3gram_sparse_vectors,
-    phrase_function_1_2_3gram_vectors,
-)
 from syntactic.signature_vectorize import (
     phrase_signature_1_2_3gram_psalm_sparse_vectors,
     phrase_signature_1_2_3gram_psalm_vectors,
     phrase_signature_1_2_3gram_sparse_vectors,
     phrase_signature_1_2_3gram_vectors,
 )
-from syntactic.typ_ngram import (
-    phrase_typ_1_2_3gram_psalm_sparse_vectors,
-    phrase_typ_1_2_3gram_psalm_vectors,
-    phrase_typ_1_2_3gram_sparse_vectors,
-    phrase_typ_1_2_3gram_vectors,
-)
+from syntactic.vocabulary import FUNCTION_VOCABULARY, TYP_VOCABULARY, function_columns, typ_columns
 
 
 def _psalms():
@@ -58,15 +55,41 @@ def _densify(sparse, dim):
 
 
 UNIT_PAIRS = [
-    ("typ", phrase_typ_1_2_3gram_vectors, phrase_typ_1_2_3gram_sparse_vectors),
-    ("function", phrase_function_1_2_3gram_vectors, phrase_function_1_2_3gram_sparse_vectors),
-]
-PSALM_PAIRS = [
-    ("typ", phrase_typ_1_2_3gram_psalm_vectors, phrase_typ_1_2_3gram_psalm_sparse_vectors),
+    (
+        "typ",
+        partial(ngram_vectors, columns_of=typ_columns, vocabulary=TYP_VOCABULARY, orders=(1, 2, 3)),
+        partial(sparse_ngram_vectors, columns_of=typ_columns, vocabulary=TYP_VOCABULARY),
+    ),
     (
         "function",
-        phrase_function_1_2_3gram_psalm_vectors,
-        phrase_function_1_2_3gram_psalm_sparse_vectors,
+        partial(
+            ngram_vectors,
+            columns_of=function_columns,
+            vocabulary=FUNCTION_VOCABULARY,
+            orders=(1, 2, 3),
+        ),
+        partial(sparse_ngram_vectors, columns_of=function_columns, vocabulary=FUNCTION_VOCABULARY),
+    ),
+]
+PSALM_PAIRS = [
+    (
+        "typ",
+        partial(
+            ngram_psalm_vectors, columns_of=typ_columns, vocabulary=TYP_VOCABULARY, orders=(1, 2, 3)
+        ),
+        partial(sparse_ngram_psalm_vectors, columns_of=typ_columns, vocabulary=TYP_VOCABULARY),
+    ),
+    (
+        "function",
+        partial(
+            ngram_psalm_vectors,
+            columns_of=function_columns,
+            vocabulary=FUNCTION_VOCABULARY,
+            orders=(1, 2, 3),
+        ),
+        partial(
+            sparse_ngram_psalm_vectors, columns_of=function_columns, vocabulary=FUNCTION_VOCABULARY
+        ),
     ),
 ]
 
@@ -101,8 +124,8 @@ class TestUnitTrigramSparseMatchesDense:
         psalms = _psalms()
         order = {100: np.array([2, 1, 0])}
 
-        dense = dense_builder(psalms, order)
-        sparse = sparse_builder(psalms, order)
+        dense = dense_builder(psalms, order_by_node=order)
+        sparse = sparse_builder(psalms, order_by_node=order)
 
         assert np.array_equal(_densify(sparse[100], len(dense[100])), dense[100])
 
@@ -171,8 +194,8 @@ class TestSparseMatchesDenseUnderAShufflePermutation:
             psalms, seed, half_verses=lambda psalm: psalm.half_verse_typ
         )
 
-        dense = dense_builder(psalms, order)
-        sparse = sparse_builder(psalms, order)
+        dense = dense_builder(psalms, order_by_node=order)
+        sparse = sparse_builder(psalms, order_by_node=order)
 
         for node in (100, 101):
             assert np.array_equal(_densify(sparse[node], len(dense[node])), dense[node])
@@ -187,8 +210,8 @@ class TestSparseMatchesDenseUnderAShufflePermutation:
             psalms, seed, half_verses=lambda psalm: psalm.half_verse_typ
         )
 
-        dense = dense_builder(psalms, order)
-        sparse = sparse_builder(psalms, order)
+        dense = dense_builder(psalms, order_by_node=order)
+        sparse = sparse_builder(psalms, order_by_node=order)
 
         for node in (100, 101):
             assert np.array_equal(_densify(sparse[node], len(dense[node])), dense[node])

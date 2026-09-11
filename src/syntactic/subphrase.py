@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from syntactic.corpus import PhrasePsalm
+
 QUARANTINED_SUBPHRASE_RELA = ("par",)
 
 SAFE_SUBPHRASE_RELA_VOCABULARY: tuple[str, ...] = ("NA", "adj", "atr", "dem", "mod", "rec")
@@ -15,3 +20,10 @@ def mask_par(rela: str) -> str:
 def half_verse_safe_subphrase_rela(half_verse_rela: tuple[str, ...]) -> tuple[str, ...]:
     """Applies `mask_par` to every subphrase in one half-verse."""
     return tuple(mask_par(value) for value in half_verse_rela)
+
+
+def safe_subphrase_rela_columns(psalm: PhrasePsalm) -> tuple[tuple[str, ...], ...]:
+    """The subphrase-relation sequence per half-verse, `par` masked before any counting."""
+    return tuple(
+        half_verse_safe_subphrase_rela(column) for column in psalm.half_verse_subphrase_rela
+    )

@@ -5,8 +5,9 @@ from __future__ import annotations
 import numpy as np
 
 from core.deploy import psalm_deploy_vectors
+from core.support import collapsed_sequences
 from syntactic.corpus import PhrasePsalm
-from syntactic.signature_vectorize import collapsed_signatures
+from syntactic.signature import psalm_signatures
 
 
 def signature_deploy_vectors(
@@ -20,6 +21,6 @@ def signature_deploy_vectors(
 
     def collapsed(psalm: PhrasePsalm) -> tuple[tuple[str, ...], ...]:
         """One half-verse's signatures with sub-threshold ones collapsed to RARE."""
-        return collapsed_signatures(psalm, external_counts, k)
+        return collapsed_sequences(psalm_signatures(psalm), external_counts, k)
 
     return psalm_deploy_vectors(psalms, vocabulary, collapsed, order_by_psalm)

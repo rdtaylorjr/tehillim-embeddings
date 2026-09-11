@@ -9,7 +9,7 @@ syntactic, and semantic vectors keyed to the same BHSA `half_verse` nodes.
 
 ## Data
 
-`data/` contains 24,226 committed Hive-partitioned Parquet files, totaling 3.6 GB. Every dense
+`data/` contains 339 committed Hive-partitioned Parquet files, totaling 1.2 GB. Every dense
 file has `node_id` (`int32`) and `vector` (`float32` fixed-size list) columns. Sparse trigram
 files use `node_id`, `indices`, and `values`. Schema metadata records the construction and dataset
 format version. Each semantic export has 5,203 rows, one for each `half_verse` node in the Hebrew Psalms.
@@ -71,7 +71,7 @@ The repository preserves several comparison conditions in the generated data.
   outside Psalms collapse to `<RARE>`. The threshold was fixed from external support counts before
   benchmark scoring.
 - `rela=Para` at phrase-atom level and `rela=par` at subphrase level are masked to `NA` before
-  syntax vectorization. These values would disclose the parallelism target evaluated elsewhere.
+  syntax vectorization, since both encode the parallelism target the benchmark evaluates.
 - Order-sensitive lexical placement and recurrence features receive within-psalm half-verse-order
   shuffles. Morphological and syntactic n-grams receive within-half-verse word or phrase-atom-order
   shuffles. Each permutation is deterministic from its seed and node or psalm identifier. The
@@ -84,7 +84,8 @@ literary function or decide an interpretation of a psalm.
 
 The committed result of this repository is the representation corpus described above. The 43
 semantic datasets cover the 17 registered models and the applicable text states. The remaining
-24,183 files include linguistic representations and their controlled permutations.
+296 files are the linguistic representations. Their shuffle-null permutations are rebuilt
+from seed rather than committed.
 
 This repository does not calculate retrieval scores, clustering outcomes, significance tests, or
 claims about Hebrew poetic categories. [`tehillim-benchmark`](https://github.com/rdtaylorjr/tehillim-benchmark)

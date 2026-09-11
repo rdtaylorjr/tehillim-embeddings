@@ -6,7 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_generator
-from syntactic.corpus import Corpus, PhrasePsalm
+from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.marginal import typ_function_marginal_psalm_vectors, typ_function_marginal_vectors
 from syntactic.skeleton import generate_skeleton
 
@@ -25,13 +25,14 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
             ("typ_function_psalm", typ_function_marginal_psalm_vectors),
         ),
         _DESCRIPTION,
+        level="phrase",
     )
 
 
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = Corpus.load,
+    corpus_factory: Callable[[], Corpus[PhrasePsalm]] = phrase_corpus,
 ) -> None:
     """Generates every missing marginal dataset."""
     run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)

@@ -38,15 +38,19 @@ def _external_counts():
 
 
 class TestGenerate:
-    def test_writes_both_constructions(self, tmp_path):
+    def test_writes_every_declared_construction(self, tmp_path):
         written = generate(_psalms(), tmp_path, _external_counts(), k=1000)
 
         assert set(written) == {
-            "full_signature_inventory",
-            "full_signature_inventory_psalm",
+            "full_signature_1gram",
+            "full_signature_1gram_psalm",
+            "full_signature_1_2gram",
+            "full_signature_1_2gram_psalm",
+            "full_signature_1_2_3gram",
+            "full_signature_1_2_3gram_psalm",
         }
-        assert dataset_path(tmp_path, "full_signature", "inventory").exists()
-        assert dataset_path(tmp_path, "full_signature", "inventory_psalm").exists()
+        assert dataset_path(tmp_path, "full_signature", "1gram").exists()
+        assert dataset_path(tmp_path, "full_signature", "1_2_3gram").exists()
 
     def test_skips_variants_whose_dataset_already_exists(self, tmp_path):
         generate(_psalms(), tmp_path, _external_counts(), k=1000)

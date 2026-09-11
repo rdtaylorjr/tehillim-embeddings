@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from morphological.corpus import MorphologicalPsalm
+
 SP_VOCABULARY: tuple[str, ...] = (
     "adjv",
     "advb",
@@ -72,3 +77,8 @@ PRS_GN_VOCABULARY: tuple[str, ...] = ("NA", "f", "m", "unknown")
 PRS_NU_VOCABULARY: tuple[str, ...] = ("NA", "pl", "sg")
 
 PRS_PS_VOCABULARY: tuple[str, ...] = ("NA", "p1", "p2", "p3")
+
+
+def sp_columns(psalm: MorphologicalPsalm) -> tuple[tuple[str, ...], ...]:
+    """The part-of-speech sequence per half-verse, which the sp n-grams read."""
+    return psalm.half_verse_sp

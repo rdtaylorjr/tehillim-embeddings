@@ -23,12 +23,23 @@ def _psalms():
 
 
 class TestGenerate:
-    def test_writes_both_constructions(self, tmp_path):
+    def test_writes_every_declared_construction(self, tmp_path):
         written = generate(_psalms(), tmp_path)
 
-        assert set(written) == {"rela_1gram", "rela_1gram_psalm"}
+        assert set(written) == {
+            "rela_1gram",
+            "rela_1gram_psalm",
+            "rela_1_2gram",
+            "rela_1_2gram_psalm",
+            "rela_1_2_3gram",
+            "rela_1_2_3gram_psalm",
+        }
         assert dataset_path(tmp_path, "rela", "1gram").exists()
         assert dataset_path(tmp_path, "rela", "1gram_psalm").exists()
+        assert dataset_path(tmp_path, "rela", "1_2gram").exists()
+        assert dataset_path(tmp_path, "rela", "1_2gram_psalm").exists()
+        assert dataset_path(tmp_path, "rela", "1_2_3gram").exists()
+        assert dataset_path(tmp_path, "rela", "1_2_3gram_psalm").exists()
 
     def test_skips_variants_whose_dataset_already_exists(self, tmp_path):
         generate(_psalms(), tmp_path)

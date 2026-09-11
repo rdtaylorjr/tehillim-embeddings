@@ -12,6 +12,7 @@ from core.corpus import (
     BaseCorpus,
     bhsa_clone_location,
     load_api,
+    shared_api,
 )
 
 
@@ -288,6 +289,40 @@ class TestLoadApiVerifiesTheFeaturesItWasAskedFor:
 
         assert api is complete
 
+    def test_accepts_a_required_edge_feature_that_loads_onto_e_rather_than_f(self, tmp_path):
+        """Text-Fabric puts edge features such as `mother` on E, so demanding F would reject one."""
+        complete = SimpleNamespace(
+            F=SimpleNamespace(otype=object()),
+            E=SimpleNamespace(mother=object()),
+            TF=SimpleNamespace(load=lambda *a, **k: None),
+        )
+
+        with pytest.warns(RuntimeWarning):
+            api = load_api(
+                tmp_path / "absent",
+                "otype mother",
+                use_fn=lambda *a, **k: SimpleNamespace(api=complete),
+            )
+
+        assert api is complete
+
+    def test_still_rejects_a_feature_present_on_neither_f_nor_e(self, tmp_path):
+        partial = SimpleNamespace(
+            F=SimpleNamespace(otype=object()),
+            E=SimpleNamespace(mother=object()),
+            TF=SimpleNamespace(load=lambda *a, **k: None),
+        )
+
+        with (
+            pytest.raises(RuntimeError, match="did not load required features"),
+            pytest.warns(RuntimeWarning),
+        ):
+            load_api(
+                tmp_path / "absent",
+                "otype mother book",
+                use_fn=lambda *a, **k: SimpleNamespace(api=partial),
+            )
+
 
 class TestUseFallbackReportsWhyItFailed:
     """The local path names its reason, so the remote path must not lose one either."""
@@ -322,3 +357,95 @@ class TestUseFallbackReportsWhyItFailed:
                 use_fn=_hanging_use,
                 timeout_seconds=0.05,
             )
+
+
+class TestSharedApi:
+    """One BHSA load per feature set, so a sweep over families pays for each corpus once."""
+
+    def setup_method(self) -> None:
+        shared_api.cache_clear()
+
+    def teardown_method(self) -> None:
+        shared_api.cache_clear()
+
+    def test_a_second_request_for_the_same_features_reuses_the_first_load(self) -> None:
+        loads: list[tuple[Path | None, str]] = []
+
+        def _loader(path: Path | None, features: str) -> object:
+            loads.append((path, features))
+            return SimpleNamespace(name=len(loads))
+
+        first = shared_api(None, "otype book", loader=_loader)
+        second = shared_api(None, "otype book", loader=_loader)
+
+        assert first is second
+        assert loads == [(None, "otype book")]
+
+    def test_a_different_feature_set_loads_separately(self) -> None:
+        loads: list[str] = []
+
+        def _loader(path: Path | None, features: str) -> object:
+            loads.append(features)
+            return SimpleNamespace(features=features)
+
+        wide = shared_api(None, "otype book typ", loader=_loader)
+        narrow = shared_api(None, "otype book", loader=_loader)
+
+        assert wide is not narrow
+        assert loads == ["otype book typ", "otype book"]
+
+    def test_a_different_path_loads_separately(self) -> None:
+        loads: list[Path | None] = []
+
+        def _loader(path: Path | None, features: str) -> object:
+            loads.append(path)
+            return SimpleNamespace(path=path)
+
+        shared_api(Path("/a"), "otype", loader=_loader)
+        shared_api(Path("/b"), "otype", loader=_loader)
+
+        assert loads == [Path("/a"), Path("/b")]
+
+    def test_only_the_most_recent_feature_set_is_held(self) -> None:
+        """Holding every loaded corpus swaps a long sweep to disk, costing more than a reload."""
+        loads: list[str] = []
+
+        def _loader(path: Path | None, features: str) -> object:
+            loads.append(features)
+            return SimpleNamespace(features=features)
+
+        shared_api(None, "a", loader=_loader)
+        shared_api(None, "b", loader=_loader)
+        shared_api(None, "a", loader=_loader)
+
+        assert loads == ["a", "b", "a"]
+
+    def test_consecutive_requests_for_one_feature_set_still_load_once(self) -> None:
+        """Callers group by corpus, so the bound holds while a group runs."""
+        loads: list[str] = []
+
+        def _loader(path: Path | None, features: str) -> object:
+            loads.append(features)
+            return SimpleNamespace(features=features)
+
+        for _ in range(5):
+            shared_api(None, "a", loader=_loader)
+
+        assert loads == ["a"]
+
+    def test_a_failed_load_is_not_cached(self) -> None:
+        """Caching a failure would turn one bad load into a permanently broken process."""
+        attempts: list[int] = []
+
+        def _loader(path: Path | None, features: str) -> object:
+            attempts.append(1)
+            if len(attempts) == 1:
+                raise RuntimeError("cold clone")
+            return SimpleNamespace(ok=True)
+
+        with pytest.raises(RuntimeError, match="cold clone"):
+            shared_api(None, "otype", loader=_loader)
+        recovered = shared_api(None, "otype", loader=_loader)
+
+        assert recovered.ok is True
+        assert len(attempts) == 2
