@@ -37,17 +37,21 @@ def _psalms():
 
 
 class TestGenerate:
-    def test_writes_atomic_and_sp_plus_variants_for_all_nine_features(self, tmp_path):
+    def test_writes_every_construction_for_all_nine_features(self, tmp_path):
         written = generate(_psalms(), tmp_path)
 
         expected = set()
         for feature in _FEATURES:
             expected.update(
                 {
-                    f"morph_{feature}_atomic",
-                    f"morph_{feature}_atomic_psalm",
+                    f"morph_{feature}_1gram",
+                    f"morph_{feature}_1gram_psalm",
                     f"morph_{feature}_sp_plus",
                     f"morph_{feature}_sp_plus_psalm",
+                    f"morph_{feature}_1_2gram",
+                    f"morph_{feature}_1_2gram_psalm",
+                    f"morph_{feature}_1_2_3gram",
+                    f"morph_{feature}_1_2_3gram_psalm",
                 }
             )
         expected.update({"morph_full_all", "morph_full_all_psalm"})
@@ -57,8 +61,8 @@ class TestGenerate:
         generate(_psalms(), tmp_path)
 
         for feature in _FEATURES:
-            assert dataset_path(tmp_path, f"morph_{feature}", "atomic").exists()
-            assert dataset_path(tmp_path, f"morph_{feature}", "atomic_psalm").exists()
+            assert dataset_path(tmp_path, f"morph_{feature}", "1gram").exists()
+            assert dataset_path(tmp_path, f"morph_{feature}", "1gram_psalm").exists()
             assert dataset_path(tmp_path, f"morph_{feature}", "sp_plus").exists()
             assert dataset_path(tmp_path, f"morph_{feature}", "sp_plus_psalm").exists()
         assert dataset_path(tmp_path, "morph_full", "all").exists()

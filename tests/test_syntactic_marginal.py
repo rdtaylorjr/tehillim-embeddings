@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.ngram import unigram_histogram
+from core.vocabulary import index_map
 from syntactic.corpus import PhrasePsalm
-from syntactic.function_ngram import phrase_function_unigram_histogram
 from syntactic.marginal import (
     typ_function_marginal_psalm_vectors,
     typ_function_marginal_vectors,
 )
-from syntactic.typ_ngram import phrase_typ_unigram_histogram
 from syntactic.vocabulary import FUNCTION_VOCABULARY, TYP_VOCABULARY
 
+_TYP_INDEX = index_map(TYP_VOCABULARY)
+_FUNCTION_INDEX = index_map(FUNCTION_VOCABULARY)
 _TYP_DIM = len(TYP_VOCABULARY)
 _FUNCTION_DIM = len(FUNCTION_VOCABULARY)
 
@@ -32,8 +34,8 @@ class TestTypFunctionMarginalVectors:
         vector = typ_function_marginal_vectors(psalms)[100]
         expected = np.concatenate(
             [
-                phrase_typ_unigram_histogram(("NP", "VP")),
-                phrase_function_unigram_histogram(("Subj", "Pred")),
+                unigram_histogram(("NP", "VP"), _TYP_INDEX, _TYP_DIM),
+                unigram_histogram(("Subj", "Pred"), _FUNCTION_INDEX, _FUNCTION_DIM),
             ]
         )
         assert np.allclose(vector, expected)

@@ -8,10 +8,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from core.columns import PsalmColumns
-from core.ngram import pooled_ngram_psalm_vectors, reorder
+from core.ngram import ngram_psalm_vectors, ngram_vectors, pooled_ngram_psalm_vectors, reorder
 from syntactic.assignment import majority_mask
 from syntactic.clause_columns import colon_sequences
-from syntactic.clause_ngram import dense_ngram_psalm_vectors, dense_ngram_vectors
 
 if TYPE_CHECKING:
     from syntactic.corpus import ClausePsalm
@@ -19,10 +18,9 @@ if TYPE_CHECKING:
 __all__ = [
     "TAB_TRANSITION_VOCABULARY",
     "TAB_VOCABULARY",
+    "clause_tab_1gram_psalm_vectors",
+    "clause_tab_1gram_vectors",
     "clause_tab_columns",
-    "clause_tab_depth_columns",
-    "clause_tab_inventory_psalm_vectors",
-    "clause_tab_inventory_vectors",
     "clause_tab_transition_columns",
     "clause_tab_transition_psalm_vectors",
     "tab_label",
@@ -65,7 +63,7 @@ def tab_transition_label(change: int) -> str:
     return f"{change:+d}" if change else "0"
 
 
-def _depth_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
+def depth_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
     """Uncapped per-colon depth sequences as strings, so a contour step measures the real change."""
     assignment = psalm.clause_atom_assignment
     return colon_sequences(
@@ -79,7 +77,7 @@ def _depth_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
 def clause_tab_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
     """One capped-depth sequence per colon, under the majority rule."""
     return tuple(
-        tuple(tab_label(int(depth)) for depth in column) for column in _depth_columns(psalm)
+        tuple(tab_label(int(depth)) for depth in column) for column in depth_columns(psalm)
     )
 
 
@@ -93,35 +91,24 @@ def clause_tab_transition_columns(
             tab_transition_label(int(later) - int(earlier))
             for earlier, later in pairwise(reorder(column, node, order_by_node))
         )
-        for node, column in zip(psalm.half_verse_nodes, _depth_columns(psalm), strict=True)
+        for node, column in zip(psalm.half_verse_nodes, depth_columns(psalm), strict=True)
     )
 
 
-def clause_tab_inventory_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
+def clause_tab_1gram_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
     """One `clause_tab_inventory` histogram per colon node."""
-    return dense_ngram_vectors(psalms, clause_tab_columns, TAB_VOCABULARY, (1,))
+    return ngram_vectors(psalms, clause_tab_columns, TAB_VOCABULARY, (1,))
 
 
-def clause_tab_inventory_psalm_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
+def clause_tab_1gram_psalm_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `clause_tab_inventory`."""
-    return dense_ngram_psalm_vectors(psalms, clause_tab_columns, TAB_VOCABULARY, (1,))
+    return ngram_psalm_vectors(psalms, clause_tab_columns, TAB_VOCABULARY, (1,))
 
 
-def clause_tab_transition_psalm_vectors(
-    psalms: list[ClausePsalm], order_by_node: dict[int, np.ndarray] | None = None
-) -> dict[int, np.ndarray]:
+def clause_tab_transition_psalm_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast depth contour: colon level is omitted, 65 percent of colons have no step."""
     columns = [
-        PsalmColumns(
-            psalm.number,
-            psalm.half_verse_nodes,
-            clause_tab_transition_columns(psalm, order_by_node),
-        )
+        PsalmColumns(psalm.number, psalm.half_verse_nodes, clause_tab_transition_columns(psalm))
         for psalm in psalms
     ]
     return pooled_ngram_psalm_vectors(columns, (1,), TAB_TRANSITION_VOCABULARY, order_by_node=None)
-
-
-def clause_tab_depth_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
-    """Uncapped depth sequences, the length the shuffle permutation is built over."""
-    return _depth_columns(psalm)

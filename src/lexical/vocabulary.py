@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 from core.columns import PsalmColumns
+from core.vocabulary import sorted_distinct
 from lexical.corpus import LexicalPsalm
 
 VocabularyKey = Literal["lex", "lex0"]
@@ -25,10 +26,6 @@ def columns_for_key(psalms: list[LexicalPsalm], key: VocabularyKey) -> list[Psal
 
 def build_vocabulary(psalms: list[LexicalPsalm], key: VocabularyKey) -> tuple[str, ...]:
     """Sorted distinct lex or lex0 values across every half-verse of every psalm."""
-    values = {
-        value
-        for psalm in psalms
-        for half_verse in half_verses_for_key(psalm, key)
-        for value in half_verse
-    }
-    return tuple(sorted(values))
+    return sorted_distinct(
+        half_verse for psalm in psalms for half_verse in half_verses_for_key(psalm, key)
+    )

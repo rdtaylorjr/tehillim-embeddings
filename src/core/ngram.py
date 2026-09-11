@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
+from functools import partial
 from typing import TYPE_CHECKING
 
 import numpy as np
 
 from core.columns import PsalmColumns
+from core.shuffle import NumberedPsalm
+from core.support import collapsed_sequences
 from core.vocabulary import index_map
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
 HalfVerse = tuple[str, ...]
+
+#: Reads one psalm's per-node categorical sequences, whichever feature the caller is vectorizing.
+type ColumnsOf[PsalmT] = Callable[[PsalmT], tuple[HalfVerse, ...]]
 
 
 def reorder(values: HalfVerse, node: int, order_by_node: dict[int, np.ndarray] | None) -> HalfVerse:
@@ -22,7 +28,25 @@ def reorder(values: HalfVerse, node: int, order_by_node: dict[int, np.ndarray] |
     order = order_by_node.get(node)
     if order is None:
         return values
+    if len(order) != len(values):
+        raise ValueError(
+            f"node {node} has a permutation of length {len(order)} "
+            f"for a sequence of length {len(values)}"
+        )
     return tuple(values[i] for i in order)
+
+
+def permuted_columns(
+    columns: tuple[HalfVerse, ...],
+    nodes: tuple[int, ...],
+    order_by_node: dict[int, np.ndarray] | None,
+) -> tuple[HalfVerse, ...]:
+    """Each node's sequence under its permutation, while the sequence is still the real one."""
+    if order_by_node is None:
+        return columns
+    return tuple(
+        reorder(column, node, order_by_node) for node, column in zip(nodes, columns, strict=True)
+    )
 
 
 def _indices(values: HalfVerse, index_of: dict[str, int]) -> np.ndarray:
@@ -197,3 +221,139 @@ def sparse_pooled_1_2_3gram(
         for node in nodes:
             vectors[node] = (combined_idx, combined_val)
     return vectors
+
+
+_HISTOGRAMS = {1: unigram_histogram, 2: bigram_histogram, 3: trigram_histogram}
+
+
+def ngram_vectors[PsalmT: NumberedPsalm](
+    psalms: Sequence[PsalmT],
+    columns_of: ColumnsOf[PsalmT],
+    vocabulary: tuple[str, ...],
+    orders: tuple[int, ...],
+    order_by_node: dict[int, np.ndarray] | None = None,
+) -> dict[int, np.ndarray]:
+    """One concatenated n-gram histogram per node, over the given orders."""
+    index_of = index_map(vocabulary)
+    dim = len(vocabulary)
+    vectors: dict[int, np.ndarray] = {}
+    for psalm in psalms:
+        for node, column in zip(psalm.half_verse_nodes, columns_of(psalm), strict=True):
+            ordered = reorder(column, node, order_by_node)
+            blocks = [_HISTOGRAMS[order](ordered, index_of, dim) for order in orders]
+            vectors[node] = np.concatenate(blocks) if len(blocks) > 1 else blocks[0]
+    return vectors
+
+
+def ngram_psalm_vectors[PsalmT: NumberedPsalm](
+    psalms: Sequence[PsalmT],
+    columns_of: ColumnsOf[PsalmT],
+    vocabulary: tuple[str, ...],
+    orders: tuple[int, ...],
+    order_by_node: dict[int, np.ndarray] | None = None,
+) -> dict[int, np.ndarray]:
+    """Psalm-broadcast n-grams: raw counts summed across the psalm, normalized once per order."""
+    return pooled_ngram_psalm_vectors(
+        _psalm_columns(psalms, columns_of), orders, vocabulary, order_by_node=order_by_node
+    )
+
+
+def sparse_ngram_vectors[PsalmT: NumberedPsalm](
+    psalms: Sequence[PsalmT],
+    columns_of: ColumnsOf[PsalmT],
+    vocabulary: tuple[str, ...],
+    order_by_node: dict[int, np.ndarray] | None = None,
+) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+    """Sparse `[unigram; bigram; trigram]` per node, never materializing the dense width."""
+    index_of = index_map(vocabulary)
+    dim = len(vocabulary)
+    vectors: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+    for psalm in psalms:
+        for node, column in zip(psalm.half_verse_nodes, columns_of(psalm), strict=True):
+            vectors[node] = sparse_1_2_3gram(reorder(column, node, order_by_node), index_of, dim)
+    return vectors
+
+
+def sparse_ngram_psalm_vectors[PsalmT: NumberedPsalm](
+    psalms: Sequence[PsalmT],
+    columns_of: ColumnsOf[PsalmT],
+    vocabulary: tuple[str, ...],
+    order_by_node: dict[int, np.ndarray] | None = None,
+) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+    """Psalm-broadcast sparse `[unigram; bigram; trigram]`, pooled across the psalm's nodes."""
+    return sparse_pooled_1_2_3gram(
+        _psalm_columns(psalms, columns_of), vocabulary, order_by_node=order_by_node
+    )
+
+
+def _psalm_columns[PsalmT: NumberedPsalm](
+    psalms: Sequence[PsalmT], columns_of: ColumnsOf[PsalmT]
+) -> list[PsalmColumns]:
+    """The column view the psalm-pooled builders read, one record per psalm."""
+    return [
+        PsalmColumns(psalm.number, psalm.half_verse_nodes, columns_of(psalm)) for psalm in psalms
+    ]
+
+
+def _collapsed_columns_of[PsalmT](
+    signatures_of: Callable[[PsalmT], tuple[HalfVerse, ...]],
+    external_counts: dict[str, int],
+    k: int,
+    psalm: PsalmT,
+) -> tuple[HalfVerse, ...]:
+    """One psalm's signature sequences, read then RARE-collapsed against the support table."""
+    return collapsed_sequences(signatures_of(psalm), external_counts, k)
+
+
+def signature_vectors[PsalmT: NumberedPsalm](
+    signatures_of: Callable[[PsalmT], tuple[HalfVerse, ...]],
+    orders: tuple[int, ...],
+    psalms: Sequence[PsalmT],
+    vocabulary: tuple[str, ...],
+    external_counts: dict[str, int],
+    k: int,
+    order_by_node: dict[int, np.ndarray] | None = None,
+) -> dict[int, np.ndarray]:
+    """N-grams over signature sequences, sub-threshold values collapsed to RARE first."""
+    columns_of = partial(_collapsed_columns_of, signatures_of, external_counts, k)
+    return ngram_vectors(psalms, columns_of, vocabulary, orders, order_by_node)
+
+
+def signature_psalm_vectors[PsalmT: NumberedPsalm](
+    signatures_of: Callable[[PsalmT], tuple[HalfVerse, ...]],
+    orders: tuple[int, ...],
+    psalms: Sequence[PsalmT],
+    vocabulary: tuple[str, ...],
+    external_counts: dict[str, int],
+    k: int,
+    order_by_node: dict[int, np.ndarray] | None = None,
+) -> dict[int, np.ndarray]:
+    """Psalm-broadcast n-grams over RARE-collapsed signature sequences."""
+    columns_of = partial(_collapsed_columns_of, signatures_of, external_counts, k)
+    return ngram_psalm_vectors(psalms, columns_of, vocabulary, orders, order_by_node)
+
+
+def sparse_signature_vectors[PsalmT: NumberedPsalm](
+    signatures_of: Callable[[PsalmT], tuple[HalfVerse, ...]],
+    psalms: Sequence[PsalmT],
+    vocabulary: tuple[str, ...],
+    external_counts: dict[str, int],
+    k: int,
+    order_by_node: dict[int, np.ndarray] | None = None,
+) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+    """Sparse trigram concatenation over RARE-collapsed signature sequences."""
+    columns_of = partial(_collapsed_columns_of, signatures_of, external_counts, k)
+    return sparse_ngram_vectors(psalms, columns_of, vocabulary, order_by_node)
+
+
+def sparse_signature_psalm_vectors[PsalmT: NumberedPsalm](
+    signatures_of: Callable[[PsalmT], tuple[HalfVerse, ...]],
+    psalms: Sequence[PsalmT],
+    vocabulary: tuple[str, ...],
+    external_counts: dict[str, int],
+    k: int,
+    order_by_node: dict[int, np.ndarray] | None = None,
+) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+    """Psalm-broadcast sparse trigram concatenation over RARE-collapsed signature sequences."""
+    columns_of = partial(_collapsed_columns_of, signatures_of, external_counts, k)
+    return sparse_ngram_psalm_vectors(psalms, columns_of, vocabulary, order_by_node)

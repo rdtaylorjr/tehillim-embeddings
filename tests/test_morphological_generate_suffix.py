@@ -41,12 +41,18 @@ def _external_counts():
 
 
 class TestGenerate:
-    def test_writes_all_four_morph_suffix_variants(self, tmp_path):
+    def test_writes_every_morph_suffix_construction(self, tmp_path):
+        """Suffix carries the n-gram orders every other sequence feature carries."""
         written = generate(_psalms(), tmp_path, _external_counts(), k=1000)
 
+        assert len(written) == 8
         for construction in (
-            "inventory",
-            "inventory_psalm",
+            "1gram",
+            "1gram_psalm",
+            "1_2gram",
+            "1_2gram_psalm",
+            "1_2_3gram",
+            "1_2_3gram_psalm",
             "host_plus_suffix",
             "host_plus_suffix_psalm",
         ):

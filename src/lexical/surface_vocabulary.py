@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from core.columns import PsalmColumns
 from core.text import TextTier
+from core.vocabulary import sorted_distinct
 from lexical.surface_corpus import SurfacePsalm
 
 #: Written out rather than resolved by name so a renamed field fails type checking.
@@ -31,10 +32,6 @@ def columns_for_tier(psalms: list[SurfacePsalm], tier: TextTier) -> list[PsalmCo
 
 def build_surface_vocabulary(psalms: list[SurfacePsalm], tier: TextTier) -> tuple[str, ...]:
     """Sorted distinct surface word forms across every half-verse of every psalm, at one tier."""
-    values = {
-        value
-        for psalm in psalms
-        for half_verse in half_verses_for_tier(psalm, tier)
-        for value in half_verse
-    }
-    return tuple(sorted(values))
+    return sorted_distinct(
+        half_verse for psalm in psalms for half_verse in half_verses_for_tier(psalm, tier)
+    )

@@ -7,11 +7,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from syntactic.clause_ngram import (
-    collapsed_columns,
-    dense_ngram_psalm_vectors,
-    dense_ngram_vectors,
-)
+from core.ngram import ngram_psalm_vectors, ngram_vectors
+from syntactic.clause_ngram import collapsed_columns
 from syntactic.clause_rela_vectorize import clause_rela_columns, safe_clause_mask
 
 if TYPE_CHECKING:
@@ -47,13 +44,13 @@ def clause_marginal_vectors(
     psalms: list[ClausePsalm], typ: MarginalSide, rela: MarginalSide
 ) -> dict[int, np.ndarray]:
     """`[clause_typ_1gram; clause_rela_1gram]` per colon node, each side normalized separately."""
-    typ_vectors = dense_ngram_vectors(
+    typ_vectors = ngram_vectors(
         psalms,
         lambda psalm: clause_typ_at_clause_level_columns(psalm, typ.external_counts, typ.k),
         typ.vocabulary,
         (1,),
     )
-    rela_vectors = dense_ngram_vectors(
+    rela_vectors = ngram_vectors(
         psalms,
         lambda psalm: clause_rela_columns(psalm, rela.external_counts, rela.k),
         rela.vocabulary,
@@ -66,13 +63,13 @@ def clause_marginal_psalm_vectors(
     psalms: list[ClausePsalm], typ: MarginalSide, rela: MarginalSide
 ) -> dict[int, np.ndarray]:
     """Psalm-broadcast `[clause_typ_1gram; clause_rela_1gram]`."""
-    typ_vectors = dense_ngram_psalm_vectors(
+    typ_vectors = ngram_psalm_vectors(
         psalms,
         lambda psalm: clause_typ_at_clause_level_columns(psalm, typ.external_counts, typ.k),
         typ.vocabulary,
         (1,),
     )
-    rela_vectors = dense_ngram_psalm_vectors(
+    rela_vectors = ngram_psalm_vectors(
         psalms,
         lambda psalm: clause_rela_columns(psalm, rela.external_counts, rela.k),
         rela.vocabulary,

@@ -2,32 +2,27 @@
 
 from __future__ import annotations
 
-import numpy as np
+from functools import partial
 
-from core.columns import PsalmColumns
-from core.ngram import pooled_ngram_psalm_vectors, unigram_histogram
-from syntactic.corpus import PhrasePsalm
-from syntactic.vocabulary import DET_VOCABULARY
+from core.ngram import ngram_psalm_vectors, ngram_vectors
+from syntactic.vocabulary import DET_VOCABULARY, det_columns
 
-_INDEX_OF = {value: i for i, value in enumerate(DET_VOCABULARY)}
-_DIM = len(DET_VOCABULARY)
+phrase_det_1gram_vectors = partial(
+    ngram_vectors, columns_of=det_columns, vocabulary=DET_VOCABULARY, orders=(1,)
+)
+phrase_det_1gram_psalm_vectors = partial(
+    ngram_psalm_vectors, columns_of=det_columns, vocabulary=DET_VOCABULARY, orders=(1,)
+)
 
-
-def phrase_det_unigram_histogram(half_verse_det: tuple[str, ...]) -> np.ndarray:
-    """Normalized determined/undetermined/NA proportions over one half-verse: count(det) / m."""
-    return unigram_histogram(half_verse_det, _INDEX_OF, _DIM)
-
-
-def phrase_det_1gram_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
-    """One `phrase_det_1gram` histogram per half-verse node."""
-    vectors: dict[int, np.ndarray] = {}
-    for psalm in psalms:
-        for node, half_verse_det in zip(psalm.half_verse_nodes, psalm.half_verse_det, strict=True):
-            vectors[node] = phrase_det_unigram_histogram(half_verse_det)
-    return vectors
-
-
-def phrase_det_1gram_psalm_vectors(psalms: list[PhrasePsalm]) -> dict[int, np.ndarray]:
-    """Psalm-broadcast `phrase_det_1gram`: atom-count-weighted pooling across every half-verse."""
-    columns = [PsalmColumns(p.number, p.half_verse_nodes, p.half_verse_det) for p in psalms]
-    return pooled_ngram_psalm_vectors(columns, (1,), DET_VOCABULARY, order_by_node=None)
+phrase_det_1_2gram_vectors = partial(
+    ngram_vectors, columns_of=det_columns, vocabulary=DET_VOCABULARY, orders=(1, 2)
+)
+phrase_det_1_2gram_psalm_vectors = partial(
+    ngram_psalm_vectors, columns_of=det_columns, vocabulary=DET_VOCABULARY, orders=(1, 2)
+)
+phrase_det_1_2_3gram_vectors = partial(
+    ngram_vectors, columns_of=det_columns, vocabulary=DET_VOCABULARY, orders=(1, 2, 3)
+)
+phrase_det_1_2_3gram_psalm_vectors = partial(
+    ngram_psalm_vectors, columns_of=det_columns, vocabulary=DET_VOCABULARY, orders=(1, 2, 3)
+)

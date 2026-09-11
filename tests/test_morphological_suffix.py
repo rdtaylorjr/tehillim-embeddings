@@ -12,8 +12,8 @@ from morphological.suffix import (
     host_plus_suffix_psalm_vectors,
     host_plus_suffix_vectors,
     psalm_suffix_signatures,
-    suffix_inventory_psalm_vectors,
-    suffix_inventory_vectors,
+    suffix_1gram_psalm_vectors,
+    suffix_1gram_vectors,
 )
 
 
@@ -115,19 +115,19 @@ class TestPsalmSuffixSignatures:
 class TestSuffixInventoryVectors:
     def test_dimension_matches_the_suffix_vocabulary(self):
         psalms = [_one_word_psalm(1, 100)]
-        vector = suffix_inventory_vectors(psalms)[100]
+        vector = suffix_1gram_vectors(psalms)[100]
         assert vector.shape == (len(SUFFIX_VOCABULARY),)
 
     def test_a_none_suffix_word_puts_all_mass_on_the_none_token(self):
         psalms = [_one_word_psalm(1, 100)]
-        vector = suffix_inventory_vectors(psalms)[100]
+        vector = suffix_1gram_vectors(psalms)[100]
         none_index = SUFFIX_VOCABULARY.index(NONE_SUFFIX_TOKEN)
         assert vector[none_index] == 1.0
         assert vector.sum() == 1.0
 
     def test_a_real_suffix_puts_all_mass_on_its_own_token(self):
         psalms = [_one_word_psalm(1, 100, prs_gn="m", prs_nu="pl", prs_ps="p3")]
-        vector = suffix_inventory_vectors(psalms)[100]
+        vector = suffix_1gram_vectors(psalms)[100]
         expected_index = SUFFIX_VOCABULARY.index("p3|m|pl")
         assert vector[expected_index] == 1.0
         assert vector.sum() == 1.0
@@ -149,7 +149,7 @@ class TestSuffixInventoryPsalmVectors:
             prs_nu=(("NA",), ("NA",)),
             prs_ps=(("NA",), ("p3",)),
         )
-        vectors = suffix_inventory_psalm_vectors([psalm])
+        vectors = suffix_1gram_psalm_vectors([psalm])
         none_index = SUFFIX_VOCABULARY.index(NONE_SUFFIX_TOKEN)
         p3_index = SUFFIX_VOCABULARY.index("p3")
         np.testing.assert_allclose(vectors[100], vectors[101])
@@ -176,7 +176,7 @@ class TestHostPlusSuffixVectors:
 
         combined = host_plus_suffix_vectors(psalms, vocabulary, external_counts, k=1000)[100]
         expected_host = morph_signature_vectors(psalms, vocabulary, external_counts, k=1000)[100]
-        expected_suffix = suffix_inventory_vectors(psalms)[100]
+        expected_suffix = suffix_1gram_vectors(psalms)[100]
 
         np.testing.assert_array_equal(combined[: len(vocabulary)], expected_host)
         np.testing.assert_array_equal(combined[len(vocabulary) :], expected_suffix)
@@ -207,7 +207,7 @@ class TestHostPlusSuffixPsalmVectors:
 
         vectors = host_plus_suffix_psalm_vectors([psalm], vocabulary, external_counts, k=1000)
         expected_host = morph_signature_psalm_vectors([psalm], vocabulary, external_counts, k=1000)
-        expected_suffix = suffix_inventory_psalm_vectors([psalm])
+        expected_suffix = suffix_1gram_psalm_vectors([psalm])
 
         np.testing.assert_allclose(vectors[100], vectors[101])
         np.testing.assert_array_equal(vectors[100][: len(vocabulary)], expected_host[100])

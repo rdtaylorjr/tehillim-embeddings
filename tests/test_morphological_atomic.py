@@ -4,8 +4,8 @@ import numpy as np
 
 from morphological.atomic import (
     atomic_histogram,
-    atomic_psalm_vectors,
-    atomic_vectors,
+    feature_1gram_psalm_vectors,
+    feature_1gram_vectors,
     full_morphology_psalm_vectors,
     full_morphology_vectors,
     sp_plus_feature_psalm_vectors,
@@ -71,12 +71,12 @@ class TestAtomicHistogram:
 class TestAtomicVectors:
     def test_dimension_matches_the_features_vocabulary(self):
         psalms = [_psalm(number=1, nodes=(100,), vs=(("qal", "NA"),))]
-        vectors = atomic_vectors(psalms, "vs")
+        vectors = feature_1gram_vectors(psalms, "vs")
         assert vectors[100].shape == (_FEATURE_DIMS["vs"],)
 
     def test_a_half_verse_of_all_nouns_is_entirely_na_for_a_verb_only_feature(self):
         psalms = [_psalm(number=1, nodes=(100,), vt=(("NA", "NA", "NA"),))]
-        vector = atomic_vectors(psalms, "vt")[100]
+        vector = feature_1gram_vectors(psalms, "vt")[100]
         na_index = VT_VOCABULARY.index("NA")
         assert np.isclose(vector[na_index], 1.0)
 
@@ -84,12 +84,12 @@ class TestAtomicVectors:
 class TestAtomicPsalmVectors:
     def test_broadcasts_the_identical_vector_to_every_half_verse_node(self):
         psalms = [_psalm(number=1, nodes=(200, 201), gn=(("m",), ("f",)))]
-        vectors = atomic_psalm_vectors(psalms, "gn")
+        vectors = feature_1gram_psalm_vectors(psalms, "gn")
         assert np.array_equal(vectors[200], vectors[201])
 
     def test_pools_raw_word_counts_across_half_verses_before_normalizing_once(self):
         psalms = [_psalm(number=1, nodes=(300, 301), gn=(("m",), ("f", "f", "NA")))]
-        vector = atomic_psalm_vectors(psalms, "gn")[300]
+        vector = feature_1gram_psalm_vectors(psalms, "gn")[300]
         m_index, f_index, na_index = (GN_VOCABULARY.index(v) for v in ("m", "f", "NA"))
         assert np.isclose(vector[m_index], 0.25)
         assert np.isclose(vector[f_index], 0.5)

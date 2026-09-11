@@ -52,6 +52,11 @@ _FULL_WEIGHTS = (
     "icf_spacing4_psalm",
     "icf_spacing8_psalm",
     "icf_position_mean_psalm",
+    "binary_psalm",
+    "count_psalm",
+    "log_count_psalm",
+    "icf_psalm",
+    "tf_icf_psalm",
 )
 
 

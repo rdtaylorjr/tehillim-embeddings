@@ -10,6 +10,9 @@ import pytest
 SRC = pathlib.Path(__file__).resolve().parent.parent / "src"
 DOMAINS = ("core", "lexical", "morphological", "semantic", "syntactic")
 
+#: The registry sits above the domains, so composing them is what it exists to do.
+COMPOSITION = ("families",)
+
 
 def _modules() -> list[pathlib.Path]:
     return sorted(p for p in SRC.rglob("*.py") if "egg-info" not in p.parts)
@@ -41,7 +44,7 @@ def test_no_representation_domain_imports_another_representation_domain(
 ) -> None:
     """Only core is shared; a domain reaching sideways would couple two representations."""
     domain = path.relative_to(SRC).parts[0]
-    if domain == "core":
+    if domain == "core" or domain in COMPOSITION:
         return
     sideways = sorted(
         {

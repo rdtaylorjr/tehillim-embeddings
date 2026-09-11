@@ -34,3 +34,13 @@ def write_external_signature_counts(path: Path, counts: dict[str, int]) -> None:
         #: Descending count then name, so a vocabulary's keepers head the file and reruns match.
         ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
         writer.writerows(ranked)
+
+
+def collapsed_sequences(
+    sequences: tuple[tuple[str, ...], ...], external_counts: dict[str, int], k: int
+) -> tuple[tuple[str, ...], ...]:
+    """Per-node sequences with every sub-threshold value collapsed to RARE."""
+    return tuple(
+        tuple(collapse_rare(value, external_counts, k) for value in node_values)
+        for node_values in sequences
+    )

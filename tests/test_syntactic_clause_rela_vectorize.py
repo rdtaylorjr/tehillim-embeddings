@@ -8,8 +8,8 @@ from syntactic.assignment import Assignment
 from syntactic.clause_rela_vectorize import (
     clause_rela_1gram_vectors,
     clause_rela_columns,
+    clause_signature_1gram_vectors,
     clause_signature_columns,
-    clause_signature_inventory_vectors,
     safe_clause_mask,
 )
 from syntactic.corpus import ClausePsalm
@@ -102,4 +102,4 @@ class TestVectors:
         vocabulary = ("NmCl:NA", RARE_TOKEN)
         psalm = _psalm((10, 11), ("NmCl",), ("NA",), [0], [0], [1.0])
 
-        assert set(clause_signature_inventory_vectors([psalm], vocabulary, COUNTS, K)) == {10, 11}
+        assert set(clause_signature_1gram_vectors([psalm], vocabulary, COUNTS, K)) == {10, 11}

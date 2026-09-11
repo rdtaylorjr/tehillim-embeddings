@@ -9,7 +9,7 @@ from typing import Any, Protocol
 
 import numpy as np
 
-from core.corpus import DEFAULT_BHSA_CLONE, BaseCorpus, load_api
+from core.corpus import DEFAULT_BHSA_CLONE, BaseCorpus, shared_api
 from syntactic.assignment import Assignment, assign_nodes_to_units
 
 __all__ = [
@@ -195,7 +195,7 @@ class Corpus[RecordT](BaseCorpus[RecordT]):
         extractor: LevelExtractor[RecordT],
         tf_path: Path | None = None,
         *,
-        loader: Callable[..., Any] = load_api,
+        loader: Callable[..., Any] = shared_api,
     ) -> Corpus[RecordT]:
         """Loads BHSA from `tf_path`, else $TEHILLIM_BHSA_PATH, else `DEFAULT_BHSA_CLONE`."""
         return cls(loader(tf_path, extractor.required_features), extractor)

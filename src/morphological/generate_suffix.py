@@ -1,65 +1,65 @@
-"""Computes and writes the morph_suffix family: suffix inventory, and host-signature-plus-suffix."""
+"""Computes and writes the morph_suffix family: suffix n-grams, and host-signature-plus-suffix."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
-import numpy as np
-
 from core.cli import run_signature_generator
-from core.export import path_to_write, write_vectors
-from core.parallel import map_constructions
+from core.dataset_family import Construction, generate_family
+from core.ngram_dataset import NgramDataset, generate_ngram_dataset
 from core.support import build_signature_vocabulary
 from morphological import DATASET_TYPE, SUFFIX_UNIT
 from morphological.corpus import Corpus, MorphologicalPsalm
 from morphological.signature_support import MIN_EXTERNAL_SUPPORT_K
 from morphological.suffix import (
+    SUFFIX_VOCABULARY,
     host_plus_suffix_psalm_vectors,
     host_plus_suffix_vectors,
-    suffix_inventory_psalm_vectors,
-    suffix_inventory_vectors,
+    psalm_suffix_signatures,
 )
 
-#: Keyed by construction so a worker resolves its builder by name, which a lambda cannot pickle.
-_BUILDERS = ("inventory", "inventory_psalm", "host_plus_suffix", "host_plus_suffix_psalm")
+_DESCRIPTION = "Pronominal-suffix representation"
+
+DATASET: NgramDataset[MorphologicalPsalm] = NgramDataset(
+    unit=SUFFIX_UNIT,
+    domain=DATASET_TYPE,
+    columns_of=psalm_suffix_signatures,
+    vocabulary=SUFFIX_VOCABULARY,
+    constructions={
+        "1gram": (1,),
+        "1_2gram": (1, 2),
+        "1_2_3gram": (1, 2, 3),
+        "1gram_psalm": (1,),
+        "1_2gram_psalm": (1, 2),
+        "1_2_3gram_psalm": (1, 2, 3),
+    },
+    sparse=frozenset({"1_2_3gram", "1_2_3gram_psalm"}),
+    description=_DESCRIPTION,
+)
 
 
-@dataclass(frozen=True, slots=True)
-class _Context:
-    """Everything one construction needs, pickled once per worker rather than once per build."""
-
-    psalms: tuple[MorphologicalPsalm, ...]
-    output_root: Path
-    signature_vocabulary: tuple[str, ...]
-    external_counts: dict[str, int]
-    k: int
-
-
-def _build(context: _Context, construction: str) -> dict[int, np.ndarray]:
-    """One construction's vectors, resolved by name inside the worker that will write them."""
-    psalms = list(context.psalms)
-    if construction == "inventory":
-        return suffix_inventory_vectors(psalms)
-    if construction == "inventory_psalm":
-        return suffix_inventory_psalm_vectors(psalms)
-    args = (psalms, context.signature_vocabulary, context.external_counts, context.k)
-    if construction == "host_plus_suffix":
-        return host_plus_suffix_vectors(*args)
-    return host_plus_suffix_psalm_vectors(*args)
-
-
-def write_construction(context: _Context, construction: str) -> str | None:
-    """Writes one construction's dataset, or returns None when it is already written."""
-    path = path_to_write(
-        context.output_root, SUFFIX_UNIT, construction, domain=DATASET_TYPE, unit_key="feature"
-    )
-    if path is None:
-        return None
-    description = f"Pronominal-suffix representation, construction={construction}."
-    write_vectors(path, _build(context, construction), description)
-    return f"morph_suffix_{construction}"
+def _host_constructions(
+    external_counts: dict[str, int], k: int
+) -> list[tuple[str, Construction[MorphologicalPsalm]]]:
+    """The two constructions that bundle the RARE-collapsed host signature with its suffix."""
+    vocabulary = build_signature_vocabulary(external_counts, k)
+    return [
+        (
+            name,
+            Construction(
+                build=partial(
+                    builder, signature_vocabulary=vocabulary, external_counts=external_counts, k=k
+                ),
+                description=f"{_DESCRIPTION}, construction={name}.",
+            ),
+        )
+        for name, builder in (
+            ("host_plus_suffix", host_plus_suffix_vectors),
+            ("host_plus_suffix_psalm", host_plus_suffix_psalm_vectors),
+        )
+    ]
 
 
 def generate(
@@ -71,14 +71,16 @@ def generate(
     max_workers: int | None = None,
 ) -> list[str]:
     """Writes every not-yet-written morph_suffix construction, returns the names written."""
-    context = _Context(
-        psalms=tuple(psalms),
-        output_root=output_root,
-        signature_vocabulary=build_signature_vocabulary(external_counts, k),
-        external_counts=external_counts,
-        k=k,
+    return generate_ngram_dataset(
+        DATASET, psalms, output_root, max_workers=max_workers
+    ) + generate_family(
+        psalms,
+        output_root,
+        _host_constructions(external_counts, k),
+        unit=SUFFIX_UNIT,
+        domain=DATASET_TYPE,
+        max_workers=max_workers,
     )
-    return map_constructions(write_construction, context, _BUILDERS, max_workers=max_workers)
 
 
 def main(

@@ -55,8 +55,8 @@ class TestGenerate:
         written = generate(_psalms(), tmp_path, _external_counts(), k=1000)
 
         for construction in (
-            "inventory",
-            "inventory_psalm",
+            "1gram",
+            "1gram_psalm",
             "1_2gram",
             "1_2gram_psalm",
             "1_2_3gram",

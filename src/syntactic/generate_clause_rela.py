@@ -8,6 +8,10 @@ from pathlib import Path
 from core.cli import run_signature_generator
 from syntactic.clause_generator import ClauseFamily, generate_family
 from syntactic.clause_rela_vectorize import (
+    clause_rela_1_2_3gram_psalm_vectors,
+    clause_rela_1_2_3gram_vectors,
+    clause_rela_1_2gram_psalm_vectors,
+    clause_rela_1_2gram_vectors,
     clause_rela_1gram_psalm_vectors,
     clause_rela_1gram_vectors,
 )
@@ -20,6 +24,10 @@ FAMILY = ClauseFamily(
     dense={
         "1gram": clause_rela_1gram_vectors,
         "1gram_psalm": clause_rela_1gram_psalm_vectors,
+        "1_2gram": clause_rela_1_2gram_vectors,
+        "1_2gram_psalm": clause_rela_1_2gram_psalm_vectors,
+        "1_2_3gram": clause_rela_1_2_3gram_vectors,
+        "1_2_3gram_psalm": clause_rela_1_2_3gram_psalm_vectors,
     },
     sparse={},
 )

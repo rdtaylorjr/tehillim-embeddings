@@ -9,7 +9,7 @@ syntactic, and semantic vectors keyed to the same BHSA `half_verse` nodes.
 
 ## Data
 
-`data/` contains 24,226 committed Hive-partitioned Parquet files, totaling 3.6 GB. Every dense
+`data/` contains 250 committed Hive-partitioned Parquet files, totaling 1.2 GB. Every dense
 file has `node_id` (`int32`) and `vector` (`float32` fixed-size list) columns. Sparse trigram
 files use `node_id`, `indices`, and `values`. Schema metadata records the construction and dataset
 format version. Each semantic export has 5,203 rows, one for each `half_verse` node in the Hebrew Psalms.
@@ -90,7 +90,8 @@ literary function or decide an interpretation of a psalm.
 
 The committed result of this repository is the representation corpus described above. The 43
 semantic datasets cover the 17 registered models and the applicable text states. The remaining
-24,183 files include linguistic representations and their controlled permutations.
+207 files are the linguistic representations. Their shuffle-null permutations are rebuilt
+from seed rather than committed.
 
 This repository does not calculate retrieval scores, clustering outcomes, significance tests, or
 claims about Hebrew poetic categories. [`tehillim-benchmark`](https://github.com/rdtaylorjr/tehillim-benchmark)

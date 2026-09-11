@@ -7,8 +7,8 @@ from syntactic.assignment import Assignment
 from syntactic.clause_tab import (
     TAB_TRANSITION_VOCABULARY,
     TAB_VOCABULARY,
+    clause_tab_1gram_vectors,
     clause_tab_columns,
-    clause_tab_inventory_vectors,
     clause_tab_transition_columns,
     clause_tab_transition_psalm_vectors,
     tab_label,
@@ -85,11 +85,37 @@ class TestColumns:
         assert clause_tab_transition_columns(psalm) == (("+2",),)
 
 
+class TestTransitionPermutation:
+    """The order lands on the depths, since permuting differences reorders no real sequence."""
+
+    def test_the_permutation_moves_the_contour(self):
+        psalm = _psalm((10,), (3, 4, 2), [0, 1, 2], [0, 0, 0], [1.0, 1.0, 1.0])
+
+        permuted = clause_tab_transition_columns(psalm, {10: np.array([2, 0, 1])})
+
+        assert clause_tab_transition_columns(psalm) == (("+1", "-2"),)
+        assert permuted == (("+1", "+1"),)
+
+    def test_the_permutation_keeps_every_step_the_real_contour_had(self):
+        """A permutation sized at transition length would truncate the depths and drop steps."""
+        psalm = _psalm((10,), (3, 4, 2), [0, 1, 2], [0, 0, 0], [1.0, 1.0, 1.0])
+
+        permuted = clause_tab_transition_columns(psalm, {10: np.array([2, 0, 1])})
+
+        assert len(permuted[0]) == len(clause_tab_transition_columns(psalm)[0])
+
+    def test_a_permutation_sized_at_the_transitions_is_refused(self):
+        psalm = _psalm((10,), (3, 4, 2), [0, 1, 2], [0, 0, 0], [1.0, 1.0, 1.0])
+
+        with pytest.raises(ValueError, match="permutation of length 2"):
+            clause_tab_transition_columns(psalm, {10: np.array([1, 0])})
+
+
 class TestVectors:
     def test_an_inventory_histogram_is_the_depth_proportions(self):
         psalm = _psalm((10,), (4, 4, 5), [0, 1, 2], [0, 0, 0], [1.0, 1.0, 1.0])
 
-        vector = clause_tab_inventory_vectors([psalm])[10]
+        vector = clause_tab_1gram_vectors([psalm])[10]
 
         assert vector[TAB_VOCABULARY.index("4")] == pytest.approx(2 / 3)
         assert vector[TAB_VOCABULARY.index("5")] == pytest.approx(1 / 3)
@@ -97,7 +123,7 @@ class TestVectors:
     def test_the_inventory_width_is_the_capped_vocabulary(self):
         psalm = _psalm((10,), (0,), [0], [0], [1.0])
 
-        assert clause_tab_inventory_vectors([psalm])[10].shape == (len(TAB_VOCABULARY),)
+        assert clause_tab_1gram_vectors([psalm])[10].shape == (len(TAB_VOCABULARY),)
 
     def test_the_transition_vector_is_psalm_broadcast(self):
         psalm = _psalm((10, 11), (1, 2, 5), [0, 1, 2], [0, 0, 1], [1.0, 1.0, 1.0])

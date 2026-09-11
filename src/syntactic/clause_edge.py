@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from core.ngram import ngram_psalm_vectors, ngram_vectors
 from syntactic.assignment import majority_mask
 from syntactic.clause_columns import colon_sequences
-from syntactic.clause_ngram import dense_ngram_psalm_vectors, dense_ngram_vectors
 
 if TYPE_CHECKING:
     from syntactic.corpus import ClausePsalm
@@ -80,11 +80,9 @@ def edge_reaches_outside_colon(psalm: ClausePsalm) -> np.ndarray:
 
 def clause_edge_distance_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
     """One `edge_distance` histogram per colon node, over the closed span vocabulary."""
-    return dense_ngram_vectors(psalms, clause_edge_distance_columns, EDGE_DISTANCE_VOCABULARY, (1,))
+    return ngram_vectors(psalms, clause_edge_distance_columns, EDGE_DISTANCE_VOCABULARY, (1,))
 
 
 def clause_edge_distance_psalm_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
     """Psalm-broadcast `edge_distance`, pooled across the psalm's colons."""
-    return dense_ngram_psalm_vectors(
-        psalms, clause_edge_distance_columns, EDGE_DISTANCE_VOCABULARY, (1,)
-    )
+    return ngram_psalm_vectors(psalms, clause_edge_distance_columns, EDGE_DISTANCE_VOCABULARY, (1,))

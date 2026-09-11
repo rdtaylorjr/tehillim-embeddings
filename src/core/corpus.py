@@ -8,6 +8,7 @@ import threading
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -123,6 +124,18 @@ def load_api(
     if missing:
         raise RuntimeError(f"Text-Fabric did not load required features: {missing}")
     return api
+
+
+#: One entry, because a loaded corpus is gigabytes and callers group their families by corpus.
+@lru_cache(maxsize=1)
+def shared_api(
+    path: Path | None = None,
+    required_features: str = "",
+    *,
+    loader: Callable[..., Any] = load_api,
+) -> Any:
+    """One loaded API per (path, feature set), so a sweep over families loads BHSA once each."""
+    return loader(path, required_features)
 
 
 class BaseCorpus[PsalmT](ABC):

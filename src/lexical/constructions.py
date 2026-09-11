@@ -10,6 +10,13 @@ from core.columns import PsalmColumns
 from lexical.positional import positional_icf_vectors
 from lexical.psalm_position import psalm_positional_icf_vectors
 from lexical.psalm_recurrence import psalm_spacing_profile_vectors
+from lexical.psalm_vectorize import (
+    psalm_binary_presence_vectors,
+    psalm_icf_weighted_vectors,
+    psalm_log_count_vectors,
+    psalm_term_frequency_vectors,
+    psalm_tf_icf_vectors,
+)
 from lexical.psalm_zoning import psalm_position_mean_vectors
 from lexical.recurrence import spacing_profile_vectors
 from lexical.vectorize import (
@@ -53,6 +60,11 @@ FULL_WEIGHTS = (
     "icf_spacing4_psalm",
     "icf_spacing8_psalm",
     "icf_position_mean_psalm",
+    "binary_psalm",
+    "count_psalm",
+    "log_count_psalm",
+    "icf_psalm",
+    "tf_icf_psalm",
 )
 
 _POSITIONAL_K = {"icf_position2": 2, "icf_position4": 4, "icf_position8": 8}
@@ -70,6 +82,17 @@ _BUILDERS: dict[
     "log_count": lambda columns, vocabulary, _icf: log_count_vectors(columns, vocabulary),
     "icf": icf_weighted_vectors,
     "tf_icf": tf_icf_vectors,
+    "binary_psalm": lambda columns, vocabulary, _icf: psalm_binary_presence_vectors(
+        columns, vocabulary
+    ),
+    "count_psalm": lambda columns, vocabulary, _icf: psalm_term_frequency_vectors(
+        columns, vocabulary
+    ),
+    "log_count_psalm": lambda columns, vocabulary, _icf: psalm_log_count_vectors(
+        columns, vocabulary
+    ),
+    "icf_psalm": psalm_icf_weighted_vectors,
+    "tf_icf_psalm": psalm_tf_icf_vectors,
     "icf_position_mean": position_mean_vectors,
     "icf_position_mean_psalm": psalm_position_mean_vectors,
     **{

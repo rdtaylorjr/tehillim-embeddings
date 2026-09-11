@@ -9,20 +9,24 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from core.support import build_signature_vocabulary, load_external_signature_counts
-from syntactic.clause_ngram import (
-    ColumnsOf,
-    dense_ngram_psalm_vectors,
-    dense_ngram_vectors,
-    sparse_1_2_3gram_psalm_vectors,
-    sparse_1_2_3gram_vectors,
+from core.ngram import (
+    ngram_psalm_vectors,
+    ngram_vectors,
+    sparse_ngram_psalm_vectors,
+    sparse_ngram_vectors,
 )
+from core.support import build_signature_vocabulary, load_external_signature_counts
+from syntactic.clause_ngram import ColumnsOf
 from syntactic.clause_rela_vectorize import clause_signature_columns
 from syntactic.clause_support import (
     MIN_EXTERNAL_SUPPORT_K_CLAUSE_ATOM_TYP,
     MIN_EXTERNAL_SUPPORT_K_CLAUSE_SIGNATURE,
 )
-from syntactic.clause_tab import TAB_TRANSITION_VOCABULARY, clause_tab_transition_columns
+from syntactic.clause_tab import (
+    TAB_TRANSITION_VOCABULARY,
+    clause_tab_transition_columns,
+    depth_columns,
+)
 from syntactic.clause_typ_ngram import clause_typ_columns
 
 if TYPE_CHECKING:
@@ -54,8 +58,9 @@ _TABLE_DRIVEN = {
     ),
 }
 
+#: A transition is a difference, so its permutation indexes the depths the differences come from.
 _CLOSED = {
-    "tab": (TAB_TRANSITION_VOCABULARY, clause_tab_transition_columns),
+    "tab": (TAB_TRANSITION_VOCABULARY, clause_tab_transition_columns, depth_columns),
 }
 
 ORDERED_UNITS: tuple[str, ...] = (*sorted(_TABLE_DRIVEN), *sorted(_CLOSED))
@@ -68,6 +73,8 @@ class OrderedFamily:
     unit: str
     vocabulary: tuple[str, ...]
     columns_of: ColumnsOf
+    #: The sequence a permutation indexes, which is the vectorized one unless it is derived.
+    permute_columns: ColumnsOf
     dense: tuple[str, ...]
     sparse: tuple[str, ...]
 
@@ -81,14 +88,16 @@ def resolve_family(unit: str, config_root: Path) -> OrderedFamily:
             unit=unit,
             vocabulary=build_signature_vocabulary(counts, k),
             columns_of=partial(columns, external_counts=counts, k=k),
+            permute_columns=partial(columns, external_counts=counts, k=k),
             dense=("1_2gram", "1_2gram_psalm"),
             sparse=_SPARSE_CONSTRUCTIONS,
         )
-    vocabulary, columns_of = _CLOSED[unit]
+    vocabulary, columns_of, permute_columns = _CLOSED[unit]
     return OrderedFamily(
         unit=unit,
         vocabulary=vocabulary,
         columns_of=columns_of,
+        permute_columns=permute_columns,
         dense=("transition_psalm",),
         sparse=(),
     )
@@ -101,10 +110,9 @@ def dense_vectors(
     order_by_node: dict[int, np.ndarray] | None,
 ) -> dict[int, np.ndarray]:
     """One dense construction's vectors, pooled across the psalm when its name says so."""
-    build = dense_ngram_psalm_vectors if construction.endswith("_psalm") else dense_ngram_vectors
-    return build(
-        psalms, family.columns_of, family.vocabulary, _DENSE_ORDERS[construction], order_by_node
-    )
+    build = ngram_psalm_vectors if construction.endswith("_psalm") else ngram_vectors
+    columns_of = partial(family.columns_of, order_by_node=order_by_node)
+    return build(psalms, columns_of, family.vocabulary, _DENSE_ORDERS[construction])
 
 
 def sparse_vectors(
@@ -114,9 +122,6 @@ def sparse_vectors(
     order_by_node: dict[int, np.ndarray] | None,
 ) -> dict[int, tuple[np.ndarray, np.ndarray]]:
     """One sparse construction's vectors, pooled across the psalm when its name says so."""
-    build = (
-        sparse_1_2_3gram_psalm_vectors
-        if construction.endswith("_psalm")
-        else sparse_1_2_3gram_vectors
-    )
-    return build(psalms, family.columns_of, family.vocabulary, order_by_node)
+    build = sparse_ngram_psalm_vectors if construction.endswith("_psalm") else sparse_ngram_vectors
+    columns_of = partial(family.columns_of, order_by_node=order_by_node)
+    return build(psalms, columns_of, family.vocabulary)

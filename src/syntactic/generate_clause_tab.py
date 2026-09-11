@@ -7,8 +7,8 @@ from pathlib import Path
 
 from core.cli import run_generator
 from syntactic.clause_tab import (
-    clause_tab_inventory_psalm_vectors,
-    clause_tab_inventory_vectors,
+    clause_tab_1gram_psalm_vectors,
+    clause_tab_1gram_vectors,
     clause_tab_transition_psalm_vectors,
 )
 from syntactic.corpus import ClausePsalm, Corpus, clause_corpus
@@ -26,8 +26,8 @@ def generate(psalms: list[ClausePsalm], output_root: Path) -> list[str]:
         output_root,
         _UNIT,
         (
-            ("inventory", clause_tab_inventory_vectors),
-            ("inventory_psalm", clause_tab_inventory_psalm_vectors),
+            ("1gram", clause_tab_1gram_vectors),
+            ("1gram_psalm", clause_tab_1gram_psalm_vectors),
             ("transition_psalm", clause_tab_transition_psalm_vectors),
         ),
         _DESCRIPTION,

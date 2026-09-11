@@ -3,14 +3,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from core.ngram import ngram_psalm_vectors, ngram_vectors, sparse_ngram_vectors
 from core.support import RARE_TOKEN
 from syntactic.assignment import Assignment
-from syntactic.clause_ngram import (
-    collapsed_columns,
-    dense_ngram_psalm_vectors,
-    dense_ngram_vectors,
-    sparse_1_2_3gram_vectors,
-)
+from syntactic.clause_ngram import collapsed_columns
 from syntactic.corpus import ClausePsalm
 
 VOCAB = ("A", "B", RARE_TOKEN)
@@ -67,14 +63,14 @@ class TestDenseNgramVectors:
     def test_a_unigram_vector_is_the_value_proportions(self):
         psalm = _psalm((10,), ("A", "A", "B"), [0, 1, 2], [0, 0, 0], [1.0, 1.0, 1.0])
 
-        vector = dense_ngram_vectors([psalm], _columns, VOCAB, (1,))[10]
+        vector = ngram_vectors([psalm], _columns, VOCAB, (1,))[10]
 
         assert vector.tolist() == pytest.approx([2 / 3, 1 / 3, 0.0])
 
     def test_concatenating_two_orders_stacks_their_blocks(self):
         psalm = _psalm((10,), ("A", "B"), [0, 1], [0, 0], [1.0, 1.0])
 
-        vector = dense_ngram_vectors([psalm], _columns, VOCAB, (1, 2))[10]
+        vector = ngram_vectors([psalm], _columns, VOCAB, (1, 2))[10]
 
         assert vector.shape == (len(VOCAB) + len(VOCAB) ** 2,)
         assert vector[: len(VOCAB)].tolist() == pytest.approx([0.5, 0.5, 0.0])
@@ -82,7 +78,7 @@ class TestDenseNgramVectors:
     def test_a_bigram_block_records_the_adjacent_pair(self):
         psalm = _psalm((10,), ("A", "B"), [0, 1], [0, 0], [1.0, 1.0])
 
-        vector = dense_ngram_vectors([psalm], _columns, VOCAB, (2,))[10]
+        vector = ngram_vectors([psalm], _columns, VOCAB, (2,))[10]
 
         a_then_b = VOCAB.index("A") * len(VOCAB) + VOCAB.index("B")
         assert vector[a_then_b] == pytest.approx(1.0)
@@ -90,19 +86,19 @@ class TestDenseNgramVectors:
     def test_a_colon_with_one_clause_has_no_bigram(self):
         psalm = _psalm((10,), ("A",), [0], [0], [1.0])
 
-        assert dense_ngram_vectors([psalm], _columns, VOCAB, (2,))[10].sum() == pytest.approx(0.0)
+        assert ngram_vectors([psalm], _columns, VOCAB, (2,))[10].sum() == pytest.approx(0.0)
 
     def test_every_colon_node_gets_a_vector(self):
         psalm = _psalm((10, 11), ("A",), [0], [0], [1.0])
 
-        assert set(dense_ngram_vectors([psalm], _columns, VOCAB, (1,))) == {10, 11}
+        assert set(ngram_vectors([psalm], _columns, VOCAB, (1,))) == {10, 11}
 
 
 class TestDenseNgramPsalmVectors:
     def test_pooling_spans_the_psalms_colons(self):
         psalm = _psalm((10, 11), ("A", "A", "B"), [0, 1, 2], [0, 0, 1], [1.0, 1.0, 1.0])
 
-        vectors = dense_ngram_psalm_vectors([psalm], _columns, VOCAB, (1,))
+        vectors = ngram_psalm_vectors([psalm], _columns, VOCAB, (1,))
 
         assert vectors[10].tolist() == vectors[11].tolist()
         assert vectors[10].tolist() == pytest.approx([2 / 3, 1 / 3, 0.0])
@@ -112,7 +108,7 @@ class TestSparseVectors:
     def test_a_sparse_vector_carries_only_realized_indices(self):
         psalm = _psalm((10,), ("A", "B"), [0, 1], [0, 0], [1.0, 1.0])
 
-        indices, values = sparse_1_2_3gram_vectors([psalm], _columns, VOCAB)[10]
+        indices, values = sparse_ngram_vectors([psalm], _columns, VOCAB)[10]
 
         assert indices.size == values.size
         assert values.size > 0
@@ -121,7 +117,7 @@ class TestSparseVectors:
     def test_an_empty_colon_carries_nothing(self):
         psalm = _psalm((10, 11), ("A",), [0], [0], [1.0])
 
-        indices, values = sparse_1_2_3gram_vectors([psalm], _columns, VOCAB)[11]
+        indices, values = sparse_ngram_vectors([psalm], _columns, VOCAB)[11]
 
         assert indices.size == 0
         assert values.size == 0
@@ -133,8 +129,8 @@ class TestOrderShuffleContract:
         psalm = _psalm((10,), ("A", "B", "B"), [0, 1, 2], [0, 0, 0], [1.0, 1.0, 1.0])
         order = {10: np.array([2, 0, 1])}
 
-        plain = dense_ngram_vectors([psalm], _columns, VOCAB, (1,))[10]
-        shuffled = dense_ngram_vectors([psalm], _columns, VOCAB, (1,), order)[10]
+        plain = ngram_vectors([psalm], _columns, VOCAB, (1,))[10]
+        shuffled = ngram_vectors([psalm], _columns, VOCAB, (1,), order)[10]
 
         assert shuffled.tolist() == pytest.approx(plain.tolist())
 
@@ -142,15 +138,15 @@ class TestOrderShuffleContract:
         psalm = _psalm((10,), ("A", "B"), [0, 1], [0, 0], [1.0, 1.0])
         order = {10: np.array([1, 0])}
 
-        plain = dense_ngram_vectors([psalm], _columns, VOCAB, (2,))[10]
-        shuffled = dense_ngram_vectors([psalm], _columns, VOCAB, (2,), order)[10]
+        plain = ngram_vectors([psalm], _columns, VOCAB, (2,))[10]
+        shuffled = ngram_vectors([psalm], _columns, VOCAB, (2,), order)[10]
 
         assert not np.allclose(plain, shuffled)
 
     def test_a_colon_absent_from_the_order_map_keeps_its_corpus_order(self):
         psalm = _psalm((10,), ("A", "B"), [0, 1], [0, 0], [1.0, 1.0])
 
-        plain = dense_ngram_vectors([psalm], _columns, VOCAB, (2,))[10]
-        partial = dense_ngram_vectors([psalm], _columns, VOCAB, (2,), {})[10]
+        plain = ngram_vectors([psalm], _columns, VOCAB, (2,))[10]
+        partial = ngram_vectors([psalm], _columns, VOCAB, (2,), {})[10]
 
         assert partial.tolist() == pytest.approx(plain.tolist())
