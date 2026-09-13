@@ -28,7 +28,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.6",
     "mypy>=1.10",
-    "deptry>=0.16",
+    "deptry>=0.25.1",
     "vulture>=2.11",
 ]
 
