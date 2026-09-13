@@ -10,6 +10,9 @@ from contextlib import AbstractContextManager
 from functools import partial
 from typing import Any
 
+#: Fresh interpreters per worker: a forked worker copies the parent's loaded corpus page by page.
+WORKER_CONTEXT = multiprocessing.get_context("spawn")
+
 
 def in_worker_process() -> bool:
     """True when this process is itself a pool worker, whose parent already claimed the cores."""
@@ -36,7 +39,7 @@ def map_items[ContextT, ItemT, ResultT](
     if workers == 1 or in_worker_process():
         return [worker(context, item) for item in item_list]
     chunksize = -(-len(item_list) // workers)
-    with executor_factory(max_workers=workers) as pool:
+    with executor_factory(max_workers=workers, mp_context=WORKER_CONTEXT) as pool:
         return list(pool.map(partial(worker, context), item_list, chunksize=chunksize))
 
 

@@ -20,8 +20,9 @@ class _SerialExecutor:
 
     instances: ClassVar[list[_SerialExecutor]] = []
 
-    def __init__(self, max_workers: int | None = None) -> None:
+    def __init__(self, max_workers: int | None = None, mp_context: object = None) -> None:
         self.max_workers = max_workers
+        self.mp_context = mp_context
         self.chunksizes: list[int] = []
         _SerialExecutor.instances.append(self)
 
@@ -162,3 +163,12 @@ class TestMapItems:
         )
 
         assert result == ["a", "b"]
+
+
+def test_workers_are_spawned_rather_than_forked() -> None:
+    """A forked worker inherits the parent's loaded corpus and copies it page by page."""
+    from core.parallel import WORKER_CONTEXT
+
+    map_seeds(_double, 1, [1, 2], executor_factory=_SerialExecutor, max_workers=2)
+    assert _SerialExecutor.instances[-1].mp_context is WORKER_CONTEXT
+    assert WORKER_CONTEXT.get_start_method() == "spawn"
