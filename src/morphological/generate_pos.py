@@ -7,6 +7,7 @@ from pathlib import Path
 
 from core.cli import run_generator
 from core.ngram_dataset import NgramDataset, generate_ngram_dataset
+from core.spec import GeneratorSpec, partition_dirs
 from morphological import DATASET_TYPE
 from morphological.corpus import Corpus, MorphologicalPsalm
 from morphological.vocabulary import SP_VOCABULARY, sp_columns
@@ -26,6 +27,11 @@ DATASET = NgramDataset(
         "1_2_3gram_psalm": (1, 2, 3),
     },
     description="POS-only grammatical skeleton",
+)
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(DATASET_TYPE, "feature", DATASET.unit, tuple(DATASET.constructions)),
 )
 
 

@@ -6,13 +6,24 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_generator
+from core.spec import GeneratorSpec, partition_dirs
+from syntactic import DATASET_TYPE
 from syntactic.clause_tree import clause_tree_summary_psalm_vectors
 from syntactic.corpus import ClausePsalm, Corpus, clause_corpus
 from syntactic.skeleton import generate_skeleton
 
 _UNIT = "tree"
-#: Colon level is omitted deliberately: 65 percent of colons hold under two clause atoms.
+#: Half-verse level is omitted deliberately: 65 percent of half-verses hold under two clause atoms.
 _DESCRIPTION = "Clause-atom dependency-forest shape, psalm scale"
+
+_CONSTRUCTIONS = (("summary_psalm", clause_tree_summary_psalm_vectors),)
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(
+        DATASET_TYPE, "feature", _UNIT, tuple(name for name, _ in _CONSTRUCTIONS), level="clause"
+    ),
+)
 
 
 def generate(psalms: list[ClausePsalm], output_root: Path) -> list[str]:
@@ -21,7 +32,7 @@ def generate(psalms: list[ClausePsalm], output_root: Path) -> list[str]:
         psalms,
         output_root,
         _UNIT,
-        (("summary_psalm", clause_tree_summary_psalm_vectors),),
+        _CONSTRUCTIONS,
         _DESCRIPTION,
         level="clause",
     )

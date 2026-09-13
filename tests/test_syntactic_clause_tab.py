@@ -62,7 +62,7 @@ class TestTabTransitionLabel:
 
 
 class TestColumns:
-    def test_depths_group_into_their_colon(self):
+    def test_depths_group_into_their_half_verse(self):
         psalm = _psalm((10, 11), (3, 4, 7), [0, 1, 2], [0, 0, 1], [1.0, 1.0, 1.0])
 
         assert clause_tab_columns(psalm) == (("3", "4"), ("7",))
@@ -72,7 +72,7 @@ class TestColumns:
 
         assert clause_tab_transition_columns(psalm) == (("+1", "-2"),)
 
-    def test_a_single_atom_colon_yields_no_transition(self):
+    def test_a_single_atom_half_verse_yields_no_transition(self):
         psalm = _psalm((10,), (5,), [0], [0], [1.0])
 
         assert clause_tab_transition_columns(psalm) == ((),)

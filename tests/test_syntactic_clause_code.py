@@ -107,7 +107,7 @@ class TestRetainedCodes:
 
 class TestShippableScopes:
     def test_the_code_family_ships_for_genre_only(self):
-        """Excluding the target construct costs 9.07 percent of colons, so parallelism is out."""
+        """Excluding the target construct costs 9.07 percent of half-verses: parallelism is out."""
         assert SHIPPABLE_SCOPES == (Scope.GENRE,)
 
     def test_parallelism_is_deliberately_absent_rather_than_merely_unlisted(self):
@@ -128,8 +128,8 @@ def test_the_measured_cost_that_makes_the_code_family_genre_only_still_holds():
             for index, code in enumerate(psalm.clause_atom_code)
             if band_of(code) not in FORBIDDEN_FOR_PARALLELISM | TARGET_ADJACENT
         }
-        for colon in range(len(psalm.half_verse_nodes)):
-            touching = set(assignment.node_index[assignment.unit_index == colon].tolist())
+        for half_verse in range(len(psalm.half_verse_nodes)):
+            touching = set(assignment.node_index[assignment.unit_index == half_verse].tolist())
             if touching and not touching & kept:
                 emptied += 1
 

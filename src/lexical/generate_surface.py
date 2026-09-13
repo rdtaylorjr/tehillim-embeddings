@@ -9,6 +9,7 @@ from pathlib import Path
 
 from core.cli import add_output_root_argument, report_generated
 from core.export import dataset_path, write_dataset
+from core.spec import GeneratorSpec, partition_dirs
 from core.text import TextTier
 from lexical.constructions import FULL_WEIGHTS, vectors_for_weight
 from lexical.frequency import icf_weights as compute_icf_weights
@@ -18,6 +19,15 @@ from lexical.surface_frequency import surface_token_frequencies
 from lexical.surface_vocabulary import build_surface_vocabulary, columns_for_tier
 
 _TIERS: tuple[TextTier, ...] = ("consonantal", "vocalized", "cantillation")
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=tuple(
+        p
+        for tier in _TIERS
+        for p in partition_dirs("lexical", "unit", "word", FULL_WEIGHTS, text=tier)
+    ),
+)
 
 
 def generate_surface(

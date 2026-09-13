@@ -29,7 +29,7 @@ class MarginalSide:
 def clause_typ_at_clause_level_columns(
     psalm: ClausePsalm, external_counts: dict[str, int], k: int
 ) -> tuple[tuple[str, ...], ...]:
-    """Clause-level type sequences per colon, under the same firewall the relation side uses."""
+    """Clause-level type sequences per half-verse, under the relation side's firewall."""
     return collapsed_columns(
         psalm.clause_typ,
         psalm.clause_assignment,
@@ -43,7 +43,7 @@ def clause_typ_at_clause_level_columns(
 def clause_marginal_vectors(
     psalms: list[ClausePsalm], typ: MarginalSide, rela: MarginalSide
 ) -> dict[int, np.ndarray]:
-    """`[clause_typ_1gram; clause_rela_1gram]` per colon node, each side normalized separately."""
+    """`[clause_typ_1gram; clause_rela_1gram]` per half-verse node, each side normalized alone."""
     typ_vectors = ngram_vectors(
         psalms,
         lambda psalm: clause_typ_at_clause_level_columns(psalm, typ.external_counts, typ.k),

@@ -10,6 +10,7 @@ from core.cli import run_signature_generator
 from core.export import path_to_write, write_sparse_vectors, write_vectors
 from core.ngram import concatenated_1_2_3gram_dim
 from core.parallel import map_constructions
+from core.spec import GeneratorSpec, partition_dirs
 from core.support import build_signature_vocabulary
 from morphological import ATOMIC_UNIT, DATASET_TYPE, SIGNATURE_UNIT
 from morphological.corpus import Corpus, MorphologicalPsalm
@@ -29,6 +30,14 @@ def _signature_description(k: int, construction: str) -> str:
 
 #: The atomic baseline is written alongside the signatures, keyed the same way for one dispatch.
 ATOMIC_BUILDERS = {"core": morph_atomic_vectors, "core_psalm": morph_atomic_psalm_vectors}
+SUPPORT_FILENAME = "morph_signature_external_support.csv"
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(DATASET_TYPE, "feature", ATOMIC_UNIT, tuple(ATOMIC_BUILDERS))
+    + partition_dirs(DATASET_TYPE, "feature", SIGNATURE_UNIT, (*DENSE_BUILDERS, *SPARSE_BUILDERS)),
+    support=(SUPPORT_FILENAME,),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,7 +108,7 @@ def main(
     run_signature_generator(
         __doc__,
         generate,
-        "morph_signature_external_support.csv",
+        SUPPORT_FILENAME,
         MIN_EXTERNAL_SUPPORT_K,
         argv,
         corpus_factory=corpus_factory,

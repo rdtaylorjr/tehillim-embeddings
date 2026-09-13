@@ -8,6 +8,7 @@ from pathlib import Path
 
 from core.cli import run_signature_generator
 from core.export import dataset_path, write_dataset
+from core.spec import GeneratorSpec, partition_dirs
 from core.support import build_signature_vocabulary
 from syntactic import DATASET_TYPE, SIGNATURE_UNIT
 from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
@@ -15,6 +16,15 @@ from syntactic.deploy import signature_deploy_vectors
 from syntactic.signature_support import MIN_EXTERNAL_SUPPORT_K
 
 CONSTRUCTION = "posmean"
+_SUPPORT_FILE = "phrase_signature_external_support.csv"
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(
+        DATASET_TYPE, "feature", SIGNATURE_UNIT, (CONSTRUCTION,), level="phrase"
+    ),
+    support=(_SUPPORT_FILE,),
+)
 
 
 def generate(
@@ -59,7 +69,7 @@ def main(
     run_signature_generator(
         __doc__,
         generate,
-        "phrase_signature_external_support.csv",
+        _SUPPORT_FILE,
         MIN_EXTERNAL_SUPPORT_K,
         argv,
         corpus_factory=corpus_factory,

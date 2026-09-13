@@ -17,7 +17,6 @@ from core.ngram import (
 )
 from core.ngram_dataset import NgramDataset, order_sensitive_constructions
 from core.shuffle import (
-    shuffle_construction_name,
     shuffled_order_by_psalm,
     shuffled_within_half_verse_order,
 )
@@ -153,11 +152,6 @@ def _dataset_path(key: str, output_root: Path, construction: str) -> Path:
     )
 
 
-def dataset_target(key: str, output_root: Path, seed: int) -> Path:
-    """The Hive-partitioned file one family's seed is written at, which its key already names."""
-    return _dataset_path(key, output_root, shuffle_construction_name(key.rsplit("/", 1)[1], seed))
-
-
 def dataset_source(key: str, data_root: Path) -> Path:
     """The unshuffled dataset a family's draws are the null for, under the same partition."""
     return _dataset_path(key, data_root, key.rsplit("/", 1)[1])
@@ -198,7 +192,7 @@ def clause_rela_columns_for(
 def _clause_rela_columns(
     external_counts: dict[str, int], k: int, psalm: ClausePsalm
 ) -> tuple[tuple[str, ...], ...]:
-    """One psalm's RARE-collapsed clause-relation sequences, per colon."""
+    """One psalm's RARE-collapsed clause-relation sequences, per half-verse."""
     return clause_rela_columns(psalm, external_counts, k)
 
 

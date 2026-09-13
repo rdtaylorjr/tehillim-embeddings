@@ -9,6 +9,7 @@ from pathlib import Path
 from core.cli import run_generator
 from core.dataset_family import Construction, generate_family
 from core.ngram import concatenated_1_2_3gram_dim
+from core.spec import GeneratorSpec, partition_dirs
 from morphological import DATASET_TYPE
 from morphological.atomic import (
     SPARSE_TRIGRAM_FEATURES,
@@ -54,6 +55,20 @@ _BUILDERS = (
 _TRIGRAMS = (
     ("1_2_3gram", feature_1_2_3gram_vectors, feature_sparse_trigram_vectors),
     ("1_2_3gram_psalm", feature_1_2_3gram_psalm_vectors, feature_sparse_trigram_psalm_vectors),
+)
+_FEATURE_CONSTRUCTIONS = tuple(name for name, _ in _BUILDERS) + tuple(
+    name for name, *_ in _TRIGRAMS
+)
+_FULL_CONSTRUCTIONS = ("all", "all_psalm")
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=tuple(
+        p
+        for feature in _FEATURES
+        for p in partition_dirs(DATASET_TYPE, "feature", f"morph_{feature}", _FEATURE_CONSTRUCTIONS)
+    )
+    + partition_dirs(DATASET_TYPE, "feature", "morph_full", _FULL_CONSTRUCTIONS),
 )
 
 

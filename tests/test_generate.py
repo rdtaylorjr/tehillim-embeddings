@@ -236,3 +236,92 @@ class TestGenerateApi:
 
         assert calls
         assert all(key == "cohere-key" for key in calls)
+
+
+class TestSemanticSpecs:
+    def test_one_spec_per_registered_model_covering_its_text_variations(self) -> None:
+        """Each model declares exactly the text partitions its tokenizer distinguishes."""
+        from semantic.generate import SPECS
+        from semantic.registry import MODEL_REGISTRY, variations_for_model
+
+        by_slug = {spec.module.rsplit(":", 1)[1]: spec for spec in SPECS}
+        assert set(by_slug) == set(MODEL_REGISTRY)
+        for slug, spec in by_slug.items():
+            model_slug = MODEL_REGISTRY[slug][1]
+            expected = tuple(
+                f"domain=semantic/model={model_slug}/text={tier}"
+                for tier, _ in variations_for_model(slug)
+            )
+            assert spec.partitions == expected
+
+    def test_resource_classes_separate_hosted_large_and_small_models(self) -> None:
+        """Hosted models need an API, Colab-only models a GPU, the rest run on the CPU."""
+        from semantic.generate import SPECS, resource_for
+
+        assert resource_for("gemini") == "api"
+        assert resource_for("kalm-embedding") == "gpu"
+        assert resource_for("berel") is None
+        assert {spec.resource for spec in SPECS} == {"api", "gpu", None}
+
+
+class TestSemanticMainModelFilter:
+    def test_model_flag_generates_only_that_model(self, tmp_path) -> None:
+        """`--model` restricts a run to one registry slug so a driver cell is one model."""
+        from semantic import generate as module
+
+        calls: list[str] = []
+
+        def fake_local(psalms, output_root, slug, **_):
+            calls.append(slug)
+            return [slug]
+
+        def fake_api(psalms, output_root, slug, **_):
+            calls.append(slug)
+            return [slug]
+
+        class FakeCorpus:
+            def psalms(self):
+                return []
+
+        module.main(
+            ["--output-root", str(tmp_path), "--model", "berel"],
+            corpus_factory=FakeCorpus,
+            local=fake_local,
+            api=fake_api,
+        )
+        assert calls == ["berel"]
+
+    def test_without_model_flag_every_model_runs(self, tmp_path) -> None:
+        """No flag keeps the historical behaviour of writing every registered model."""
+        from semantic import generate as module
+        from semantic.registry import MODEL_REGISTRY
+
+        calls: list[str] = []
+
+        def fake(psalms, output_root, slug, **_):
+            calls.append(slug)
+            return [slug]
+
+        class FakeCorpus:
+            def psalms(self):
+                return []
+
+        module.main(
+            ["--output-root", str(tmp_path)], corpus_factory=FakeCorpus, local=fake, api=fake
+        )
+        assert calls == list(MODEL_REGISTRY)
+
+
+class TestLargeModelDtype:
+    def test_large_models_load_in_their_registered_dtype(self, tmp_path) -> None:
+        """A GPU cell passes the notebook's dtype so the vectors match the Colab runs."""
+        from semantic import generate as module
+
+        seen: dict[str, object] = {}
+
+        def fake_local(psalms, output_root, slug, **kwargs):
+            seen[slug] = kwargs.get("torch_dtype")
+            return [slug]
+
+        module.generate([], tmp_path, ("kalm-embedding", "berel"), local=fake_local, api=fake_local)
+        assert seen == {"kalm-embedding": "bfloat16", "berel": None}

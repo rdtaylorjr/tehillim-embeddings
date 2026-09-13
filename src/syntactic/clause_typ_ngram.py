@@ -26,7 +26,7 @@ def clause_typ_columns(
     k: int,
     order_by_node: dict[int, np.ndarray] | None = None,
 ) -> tuple[tuple[str, ...], ...]:
-    """One RARE-collapsed clause-atom type sequence per colon, under the majority rule."""
+    """One RARE-collapsed clause-atom type sequence per half-verse, under the majority rule."""
     return collapsed_columns(
         psalm.clause_atom_typ,
         psalm.clause_atom_assignment,
@@ -46,14 +46,14 @@ def _columns_of(external_counts: dict[str, int], k: int) -> ColumnsOf:
 def clause_typ_1gram_vectors(
     psalms: list[ClausePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, np.ndarray]:
-    """One `clause_typ_1gram` histogram per colon node."""
+    """One `clause_typ_1gram` histogram per half-verse node."""
     return ngram_vectors(psalms, _columns_of(external_counts, k), vocabulary, (1,))
 
 
 def clause_typ_1_2gram_vectors(
     psalms: list[ClausePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, np.ndarray]:
-    """`[clause_typ_1gram; clause_typ_bigram]` per colon node."""
+    """`[clause_typ_1gram; clause_typ_bigram]` per half-verse node."""
     return ngram_vectors(psalms, _columns_of(external_counts, k), vocabulary, (1, 2))
 
 
@@ -74,7 +74,7 @@ def clause_typ_1_2gram_psalm_vectors(
 def clause_typ_1_2_3gram_sparse_vectors(
     psalms: list[ClausePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, tuple[np.ndarray, np.ndarray]]:
-    """Sparse `[unigram; bigram; trigram]` per colon node."""
+    """Sparse `[unigram; bigram; trigram]` per half-verse node."""
     return sparse_ngram_vectors(psalms, _columns_of(external_counts, k), vocabulary)
 
 

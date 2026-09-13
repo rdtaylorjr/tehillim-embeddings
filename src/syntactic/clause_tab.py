@@ -1,4 +1,4 @@
-"""BHSA hierarchical clause-atom depth and its within-colon contour, stage 6F."""
+"""BHSA hierarchical clause-atom depth and its within-half-verse contour, stage 6F."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import numpy as np
 from core.columns import PsalmColumns
 from core.ngram import ngram_psalm_vectors, ngram_vectors, pooled_ngram_psalm_vectors, reorder
 from syntactic.assignment import majority_mask
-from syntactic.clause_columns import colon_sequences
+from syntactic.clause_columns import half_verse_sequences
 
 if TYPE_CHECKING:
     from syntactic.corpus import ClausePsalm
@@ -64,9 +64,9 @@ def tab_transition_label(change: int) -> str:
 
 
 def depth_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
-    """Uncapped per-colon depth sequences as strings, so a contour step measures the real change."""
+    """Uncapped per-half-verse depth sequences as strings, so a contour step is the real change."""
     assignment = psalm.clause_atom_assignment
-    return colon_sequences(
+    return half_verse_sequences(
         tuple(str(depth) for depth in psalm.clause_atom_tab),
         assignment,
         len(psalm.half_verse_nodes),
@@ -75,7 +75,7 @@ def depth_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
 
 
 def clause_tab_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
-    """One capped-depth sequence per colon, under the majority rule."""
+    """One capped-depth sequence per half-verse, under the majority rule."""
     return tuple(
         tuple(tab_label(int(depth)) for depth in column) for column in depth_columns(psalm)
     )
@@ -84,7 +84,7 @@ def clause_tab_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
 def clause_tab_transition_columns(
     psalm: ClausePsalm, order_by_node: dict[int, np.ndarray] | None = None
 ) -> tuple[tuple[str, ...], ...]:
-    """One depth-contour sequence per colon, holding one step fewer than the colon's atoms."""
+    """One depth-contour sequence per half-verse, one step fewer than its clause atoms."""
     #: The permutation applies to the depths, since permuting differences reorders no real text.
     return tuple(
         tuple(
@@ -96,7 +96,7 @@ def clause_tab_transition_columns(
 
 
 def clause_tab_1gram_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
-    """One `clause_tab_inventory` histogram per colon node."""
+    """One `clause_tab_inventory` histogram per half-verse node."""
     return ngram_vectors(psalms, clause_tab_columns, TAB_VOCABULARY, (1,))
 
 
@@ -106,7 +106,7 @@ def clause_tab_1gram_psalm_vectors(psalms: list[ClausePsalm]) -> dict[int, np.nd
 
 
 def clause_tab_transition_psalm_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
-    """Psalm-broadcast depth contour: colon level is omitted, 65 percent of colons have no step."""
+    """Psalm-broadcast depth contour: 65 percent of half-verses have no step, so no unit level."""
     columns = [
         PsalmColumns(psalm.number, psalm.half_verse_nodes, clause_tab_transition_columns(psalm))
         for psalm in psalms

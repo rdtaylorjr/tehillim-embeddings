@@ -6,6 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_signature_generator
+from core.spec import GeneratorSpec, partition_dirs
 from core.supported_dataset import SupportedDataset, generate_supported_dataset
 from syntactic import DATASET_TYPE
 from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
@@ -21,6 +22,18 @@ DATASET: SupportedDataset[PhrasePsalm] = SupportedDataset(
     dense=DENSE_BUILDERS,
     sparse=SPARSE_BUILDERS,
     description="Full typ:function:det signature histogram (RARE-collapsed, k={k})",
+)
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(
+        DATASET_TYPE,
+        "feature",
+        DATASET.unit,
+        (*DATASET.dense, *DATASET.sparse),
+        level=DATASET.level,
+    ),
+    support=(_SUPPORT_FILE,),
 )
 
 

@@ -37,7 +37,7 @@ def _is_unigram(name: str) -> bool:
 
 
 def _reads_order(dataset: NgramDataset | SupportedDataset) -> set[str]:
-    """Constructions concatenating a bigram or higher, which depend on within-colon order."""
+    """Constructions concatenating a bigram or higher, which depend on within-half-verse order."""
     if isinstance(dataset, NgramDataset):
         return {name for name, orders in dataset.constructions.items() if max(orders) >= 2}
     return {name for name in (*dataset.dense, *dataset.sparse) if not _is_unigram(name)}

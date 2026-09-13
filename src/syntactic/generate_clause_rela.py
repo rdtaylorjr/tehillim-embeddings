@@ -6,6 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_signature_generator
+from core.spec import GeneratorSpec, partition_dirs
+from syntactic import DATASET_TYPE
 from syntactic.clause_generator import ClauseFamily, generate_family
 from syntactic.clause_rela_vectorize import (
     clause_rela_1_2_3gram_psalm_vectors,
@@ -32,6 +34,16 @@ FAMILY = ClauseFamily(
     sparse={},
 )
 
+_SUPPORT_FILE = "clause_rela_external_support.csv"
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(
+        DATASET_TYPE, "feature", FAMILY.unit, (*FAMILY.dense, *FAMILY.sparse), level="clause"
+    ),
+    support=(_SUPPORT_FILE,),
+)
+
 
 def generate(
     psalms: list[ClausePsalm], output_root: Path, external_counts: dict[str, int], k: int
@@ -49,7 +61,7 @@ def main(
     run_signature_generator(
         __doc__,
         generate,
-        "clause_rela_external_support.csv",
+        _SUPPORT_FILE,
         MIN_EXTERNAL_SUPPORT_K_CLAUSE_RELA,
         argv,
         corpus_factory=corpus_factory,

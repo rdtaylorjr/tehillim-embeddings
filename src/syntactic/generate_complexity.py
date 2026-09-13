@@ -6,6 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_generator
+from core.spec import GeneratorSpec, partition_dirs
+from syntactic import DATASET_TYPE
 from syntactic.complexity import phrase_complexity_psalm_vectors, phrase_complexity_vectors
 from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.skeleton import generate_skeleton
@@ -15,6 +17,18 @@ _DESCRIPTION = (
     "Structural complexity [n_atoms; n_phrases; mean_words_per_atom; proportion_multi_atom]"
 )
 
+_CONSTRUCTIONS = (
+    ("core", phrase_complexity_vectors),
+    ("core_psalm", phrase_complexity_psalm_vectors),
+)
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(
+        DATASET_TYPE, "feature", _UNIT, tuple(name for name, _ in _CONSTRUCTIONS), level="phrase"
+    ),
+)
+
 
 def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
     """Writes both not-yet-written complexity constructions, returns the names written."""
@@ -22,10 +36,7 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
         psalms,
         output_root,
         _UNIT,
-        (
-            ("core", phrase_complexity_vectors),
-            ("core_psalm", phrase_complexity_psalm_vectors),
-        ),
+        _CONSTRUCTIONS,
         _DESCRIPTION,
         level="phrase",
     )

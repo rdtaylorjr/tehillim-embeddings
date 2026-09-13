@@ -41,7 +41,7 @@ class TestSafeClauseMask:
 
 
 class TestClauseRelaColumns:
-    def test_a_firewalled_clause_never_reaches_a_colon_sequence(self):
+    def test_a_firewalled_clause_never_reaches_a_half_verse_sequence(self):
         psalm = _psalm(
             (10,), ("NmCl",) * 3, ("NA", "Resu", "Coor"), [0, 1, 2], [0, 0, 0], [1.0, 1.0, 1.0]
         )
@@ -92,13 +92,13 @@ class TestVectors:
         assert vector.sum() == pytest.approx(1.0)
         assert vector[vocabulary.index("NA")] == pytest.approx(0.5)
 
-    def test_a_colon_of_only_firewalled_clauses_is_the_zero_vector(self):
+    def test_a_half_verse_of_only_firewalled_clauses_is_the_zero_vector(self):
         vocabulary = ("Coor", "NA", RARE_TOKEN)
         psalm = _psalm((10,), ("NmCl", "NmCl"), ("Resu", "ReVo"), [0, 1], [0, 0], [1.0, 1.0])
 
         assert clause_rela_1gram_vectors([psalm], vocabulary, COUNTS, K)[10].sum() == 0.0
 
-    def test_signature_vectors_cover_every_colon_node(self):
+    def test_signature_vectors_cover_every_half_verse_node(self):
         vocabulary = ("NmCl:NA", RARE_TOKEN)
         psalm = _psalm((10, 11), ("NmCl",), ("NA",), [0], [0], [1.0])
 

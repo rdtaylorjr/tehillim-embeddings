@@ -83,19 +83,19 @@ class TestDenseNgramVectors:
         a_then_b = VOCAB.index("A") * len(VOCAB) + VOCAB.index("B")
         assert vector[a_then_b] == pytest.approx(1.0)
 
-    def test_a_colon_with_one_clause_has_no_bigram(self):
+    def test_a_half_verse_with_one_clause_has_no_bigram(self):
         psalm = _psalm((10,), ("A",), [0], [0], [1.0])
 
         assert ngram_vectors([psalm], _columns, VOCAB, (2,))[10].sum() == pytest.approx(0.0)
 
-    def test_every_colon_node_gets_a_vector(self):
+    def test_every_half_verse_node_gets_a_vector(self):
         psalm = _psalm((10, 11), ("A",), [0], [0], [1.0])
 
         assert set(ngram_vectors([psalm], _columns, VOCAB, (1,))) == {10, 11}
 
 
 class TestDenseNgramPsalmVectors:
-    def test_pooling_spans_the_psalms_colons(self):
+    def test_pooling_spans_the_psalms_half_verses(self):
         psalm = _psalm((10, 11), ("A", "A", "B"), [0, 1, 2], [0, 0, 1], [1.0, 1.0, 1.0])
 
         vectors = ngram_psalm_vectors([psalm], _columns, VOCAB, (1,))
@@ -114,7 +114,7 @@ class TestSparseVectors:
         assert values.size > 0
         assert np.all(values > 0)
 
-    def test_an_empty_colon_carries_nothing(self):
+    def test_an_empty_half_verse_carries_nothing(self):
         psalm = _psalm((10, 11), ("A",), [0], [0], [1.0])
 
         indices, values = sparse_ngram_vectors([psalm], _columns, VOCAB)[11]
@@ -143,7 +143,7 @@ class TestOrderShuffleContract:
 
         assert not np.allclose(plain, shuffled)
 
-    def test_a_colon_absent_from_the_order_map_keeps_its_corpus_order(self):
+    def test_a_half_verse_absent_from_the_order_map_keeps_its_corpus_order(self):
         psalm = _psalm((10,), ("A", "B"), [0, 1], [0, 0], [1.0, 1.0])
 
         plain = ngram_vectors([psalm], _columns, VOCAB, (2,))[10]

@@ -1,0 +1,15 @@
+{
+  "cell": "syntactic.generate_clause_tree",
+  "code_hash": "939f5ce9bb909b40be703ddd489361c12711f1a6c88895629077d12e95194f17",
+  "duration_s": 4.507517,
+  "inputs": {},
+  "outputs": {
+    "data/domain=syntactic/level=clause/feature=tree/construction=summary_psalm/part-0.parquet": "9c096f42326a762a741dd2de5ef7bdd87ac3ce631efe7cd99b95961d55614633"
+  },
+  "parameters": {
+    "args": "--output-root data"
+  },
+  "repository_revision": "a3bf26738b8edf04183818657088cc173be5452d",
+  "rule": "cell__syntactic_generate_clause_tree",
+  "started": "2026-09-13T04:14:02.268395+00:00"
+}

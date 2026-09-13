@@ -106,10 +106,10 @@ class TestClauseExtractionAgainstBhsa:
         assert sum(1 for s in spanned if s == 2) == 219
         assert sum(1 for s in spanned if s == 3) == 3
 
-    def test_containment_only_leaves_the_measured_empty_colon_population(self):
+    def test_containment_only_leaves_the_measured_empty_half_verse_population(self):
         psalms = self.psalms
 
-        def empty_colons(nodes_attr, assignment_attr):
+        def empty_half_verses(nodes_attr, assignment_attr):
             total = 0
             for psalm in psalms:
                 assignment = getattr(psalm, assignment_attr)
@@ -117,10 +117,10 @@ class TestClauseExtractionAgainstBhsa:
                 total += len(psalm.half_verse_nodes) - len(covered)
             return total
 
-        assert empty_colons("clause_nodes", "clause_assignment") == 334
-        assert empty_colons("clause_atom_nodes", "clause_atom_assignment") == 310
+        assert empty_half_verses("clause_nodes", "clause_assignment") == 334
+        assert empty_half_verses("clause_atom_nodes", "clause_atom_assignment") == 310
 
-    def test_weighted_assignment_leaves_no_empty_colon(self):
+    def test_weighted_assignment_leaves_no_empty_half_verse(self):
         psalms = self.psalms
         for psalm in psalms:
             for attr in ("clause_assignment", "clause_atom_assignment"):
@@ -151,9 +151,9 @@ class TestClauseExtractionAgainstBhsa:
         corpus = clause_corpus()
         psalm_1 = next(p for p in corpus.psalms() if p.number == 1)
         api = corpus.api
-        first_colon = psalm_1.half_verse_nodes[0]
+        first_half_verse = psalm_1.half_verse_nodes[0]
 
-        manual = tuple(api.L.d(first_colon, otype="clause_atom"))
+        manual = tuple(api.L.d(first_half_verse, otype="clause_atom"))
         assignment = psalm_1.clause_atom_assignment
         selected = assignment.node_index[
             containment_mask(assignment) & (assignment.unit_index == 0)
