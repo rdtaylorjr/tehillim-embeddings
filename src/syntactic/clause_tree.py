@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 __all__ = ["TREE_SUMMARY_FIELDS", "clause_tree_summary", "mother_positions"]
 
-#: Psalm-level only: 65 percent of colons hold fewer than two clause atoms and have no tree.
+#: Psalm-level only: 65 percent of half-verses hold fewer than two clause atoms and have no tree.
 TREE_SUMMARY_FIELDS: tuple[str, ...] = (
     "n_atoms",
     "n_roots",
@@ -81,7 +81,7 @@ def clause_tree_summary(psalm: ClausePsalm) -> np.ndarray:
 
 
 def clause_tree_summary_psalm_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
-    """Psalm-broadcast tree summary: every colon of a psalm carries its psalm's forest shape."""
+    """Psalm-broadcast tree summary: every half-verse carries its psalm's forest shape."""
     vectors: dict[int, np.ndarray] = {}
     for psalm in psalms:
         summary = clause_tree_summary(psalm)

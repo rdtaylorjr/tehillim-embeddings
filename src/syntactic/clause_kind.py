@@ -1,4 +1,4 @@
-"""Normalized clause-kind inventory per colon: the coarsest clause representation, stage 6A."""
+"""Normalized clause-kind inventory per half-verse: the coarsest clause representation, stage 6A."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from functools import partial
 
 from core.ngram import ngram_psalm_vectors, ngram_vectors
 from syntactic.assignment import majority_mask
-from syntactic.clause_columns import colon_sequences
+from syntactic.clause_columns import half_verse_sequences
 from syntactic.clause_vocabulary import KIND_VOCABULARY
 from syntactic.corpus import ClausePsalm
 
@@ -21,8 +21,8 @@ _DIM = len(KIND_VOCABULARY)
 
 
 def clause_kind_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
-    """One clause-kind sequence per colon, under the majority assignment rule."""
-    return colon_sequences(
+    """One clause-kind sequence per half-verse, under the majority assignment rule."""
+    return half_verse_sequences(
         psalm.clause_kind,
         psalm.clause_assignment,
         len(psalm.half_verse_nodes),

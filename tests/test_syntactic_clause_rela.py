@@ -60,16 +60,16 @@ class TestRetainedRelaIndices:
 
 
 @pytest.mark.integration
-def test_the_firewall_empties_the_measured_and_disclosed_colon_population():
-    """Removal costs these colons, which population disclosure reports rather than hides."""
+def test_the_firewall_empties_the_measured_and_disclosed_half_verse_population():
+    """Removal costs these half-verses, which population disclosure reports rather than hides."""
     from syntactic.corpus import clause_corpus
 
     emptied = 0
     for psalm in clause_corpus().psalms():
         assignment = psalm.clause_assignment
         kept = set(retained_rela_indices(psalm.clause_rela, Scope.PARALLELISM))
-        for colon in range(len(psalm.half_verse_nodes)):
-            touching = assignment.node_index[assignment.unit_index == colon]
+        for half_verse in range(len(psalm.half_verse_nodes)):
+            touching = assignment.node_index[assignment.unit_index == half_verse]
             if touching.size and not (set(touching.tolist()) & kept):
                 emptied += 1
     #: 0.42 percent, affordable where the code firewall's 9.07 percent was not.

@@ -6,6 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_signature_generator
+from core.spec import GeneratorSpec, partition_dirs
 from core.supported_dataset import SupportedDataset, generate_supported_dataset
 from syntactic import DATASET_TYPE
 from syntactic.clause_support import MIN_EXTERNAL_SUPPORT_K_CLAUSE_ATOM_TYP
@@ -20,7 +21,21 @@ DATASET: SupportedDataset[ClausePsalm] = SupportedDataset(
     level="clause",
     dense=DENSE_BUILDERS,
     sparse=SPARSE_BUILDERS,
-    description="Clause-atom type histogram (RARE-collapsed, k={k}, majority colon assignment)",
+    description=(
+        "Clause-atom type histogram (RARE-collapsed, k={k}, majority half-verse assignment)"
+    ),
+)
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(
+        DATASET_TYPE,
+        "feature",
+        DATASET.unit,
+        (*DATASET.dense, *DATASET.sparse),
+        level=DATASET.level,
+    ),
+    support=(_SUPPORT_FILE,),
 )
 
 

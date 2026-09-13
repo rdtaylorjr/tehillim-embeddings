@@ -63,7 +63,7 @@ def write_construction(context: _Context, construction: str) -> str | None:
         return None
     args = (list(context.psalms), context.vocabulary, context.external_counts, context.k)
     description = (
-        f"{family.description} (RARE-collapsed, k={context.k}, majority colon assignment), "
+        f"{family.description} (RARE-collapsed, k={context.k}, majority half-verse assignment), "
         f"construction={construction}."
     )
     dense_builder = family.dense.get(construction)

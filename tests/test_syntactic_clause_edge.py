@@ -9,7 +9,7 @@ from syntactic.clause_edge import (
     NO_MOTHER,
     clause_edge_distance_columns,
     distance_bin,
-    edge_reaches_outside_colon,
+    edge_reaches_outside_half_verse,
 )
 from syntactic.corpus import ClausePsalm
 
@@ -51,12 +51,12 @@ class TestDistanceBin:
 
 class TestClauseEdgeDistanceColumns:
     def test_a_rootless_atom_is_marked_rather_than_dropped(self):
-        """A root carries no edge, and omitting it would shrink the colon's mass."""
+        """A root carries no edge, and omitting it would shrink the half-verse's mass."""
         psalm = _psalm((10,), (None,), [0], [0], [1.0])
 
         assert clause_edge_distance_columns(psalm) == ((NO_MOTHER,),)
 
-    def test_an_edge_is_keyed_to_its_daughters_colon(self):
+    def test_an_edge_is_keyed_to_its_daughters_half_verse(self):
         psalm = _psalm((10, 11), (None, 0), [0, 1], [0, 1], [1.0, 1.0])
 
         assert clause_edge_distance_columns(psalm) == ((NO_MOTHER,), ("1",))
@@ -73,18 +73,18 @@ class TestClauseEdgeDistanceColumns:
         assert clause_edge_distance_columns(psalm)[0][-1] == "5+"
 
 
-class TestEdgeReachesOutsideColon:
-    def test_flags_a_daughter_whose_mother_sits_in_another_colon(self):
+class TestEdgeReachesOutsideHalfVerse:
+    def test_flags_a_daughter_whose_mother_sits_in_another_half_verse(self):
         psalm = _psalm((10, 11), (None, 0), [0, 1], [0, 1], [1.0, 1.0])
 
-        assert edge_reaches_outside_colon(psalm).tolist() == [False, True]
+        assert edge_reaches_outside_half_verse(psalm).tolist() == [False, True]
 
-    def test_a_same_colon_edge_is_not_flagged(self):
+    def test_a_same_half_verse_edge_is_not_flagged(self):
         psalm = _psalm((10,), (None, 0), [0, 1], [0, 0], [1.0, 1.0])
 
-        assert edge_reaches_outside_colon(psalm).tolist() == [False, False]
+        assert edge_reaches_outside_half_verse(psalm).tolist() == [False, False]
 
     def test_a_root_is_never_flagged(self):
         psalm = _psalm((10,), (None,), [0], [0], [1.0])
 
-        assert edge_reaches_outside_colon(psalm).tolist() == [False]
+        assert edge_reaches_outside_half_verse(psalm).tolist() == [False]

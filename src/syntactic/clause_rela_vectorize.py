@@ -42,7 +42,7 @@ def clause_rela_columns(
     k: int,
     order_by_node: dict[int, np.ndarray] | None = None,
 ) -> tuple[tuple[str, ...], ...]:
-    """One RARE-collapsed clause-relation sequence per colon, firewall applied."""
+    """One RARE-collapsed clause-relation sequence per half-verse, firewall applied."""
     return collapsed_columns(
         psalm.clause_rela,
         psalm.clause_assignment,
@@ -61,7 +61,7 @@ def clause_signature_columns(
     k: int,
     order_by_node: dict[int, np.ndarray] | None = None,
 ) -> tuple[tuple[str, ...], ...]:
-    """One RARE-collapsed `typ:rela` sequence per colon, firewall applied."""
+    """One RARE-collapsed `typ:rela` sequence per half-verse, firewall applied."""
     return collapsed_columns(
         clause_signatures(typ=psalm.clause_typ, rela=psalm.clause_rela),
         psalm.clause_assignment,
@@ -87,7 +87,7 @@ def _signature_columns_of(external_counts: dict[str, int], k: int) -> ColumnsOf:
 def clause_rela_1gram_vectors(
     psalms: list[ClausePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, np.ndarray]:
-    """One `clause_rela_1gram` histogram per colon node."""
+    """One `clause_rela_1gram` histogram per half-verse node."""
     return ngram_vectors(psalms, _rela_columns_of(external_counts, k), vocabulary, (1,))
 
 
@@ -101,7 +101,7 @@ def clause_rela_1gram_psalm_vectors(
 def clause_signature_1gram_vectors(
     psalms: list[ClausePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, np.ndarray]:
-    """One `clause_signature` unigram histogram per colon node."""
+    """One `clause_signature` unigram histogram per half-verse node."""
     return ngram_vectors(psalms, _signature_columns_of(external_counts, k), vocabulary, (1,))
 
 
@@ -115,7 +115,7 @@ def clause_signature_1gram_psalm_vectors(
 def clause_signature_1_2gram_vectors(
     psalms: list[ClausePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, np.ndarray]:
-    """`[clause_signature_1gram; clause_signature_bigram]` per colon node."""
+    """`[clause_signature_1gram; clause_signature_bigram]` per half-verse node."""
     return ngram_vectors(psalms, _signature_columns_of(external_counts, k), vocabulary, (1, 2))
 
 
@@ -131,7 +131,7 @@ def clause_signature_1_2gram_psalm_vectors(
 def clause_signature_1_2_3gram_sparse_vectors(
     psalms: list[ClausePsalm], vocabulary: tuple[str, ...], external_counts: dict[str, int], k: int
 ) -> dict[int, tuple[np.ndarray, np.ndarray]]:
-    """Sparse `[unigram; bigram; trigram]` clause signatures per colon node."""
+    """Sparse `[unigram; bigram; trigram]` clause signatures per half-verse node."""
     return sparse_ngram_vectors(psalms, _signature_columns_of(external_counts, k), vocabulary)
 
 
@@ -163,7 +163,7 @@ def clause_rela_1_2gram_vectors(
     k: int,
     order_by_node: dict[int, np.ndarray] | None = None,
 ) -> dict[int, np.ndarray]:
-    """`[clause_rela_1gram; clause_rela_bigram]` per colon node."""
+    """`[clause_rela_1gram; clause_rela_bigram]` per half-verse node."""
     return ngram_vectors(
         psalms, _rela_columns_of(external_counts, k), vocabulary, (1, 2), order_by_node
     )
@@ -189,7 +189,7 @@ def clause_rela_1_2_3gram_vectors(
     k: int,
     order_by_node: dict[int, np.ndarray] | None = None,
 ) -> dict[int, np.ndarray]:
-    """`[clause_rela_1gram; bigram; trigram]` per colon node, dense at this vocabulary size."""
+    """`[clause_rela_1gram; bigram; trigram]` per half-verse node, dense at this vocabulary size."""
     return ngram_vectors(
         psalms, _rela_columns_of(external_counts, k), vocabulary, (1, 2, 3), order_by_node
     )

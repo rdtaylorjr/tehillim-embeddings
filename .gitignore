@@ -28,3 +28,7 @@ data/**/construction=*_shuffle[0-9][0-9][0-9][0-9]/
 
 *.md
 !README.md
+
+# Driver state
+.snakemake/
+logs/

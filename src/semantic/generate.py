@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 from collections.abc import Callable
@@ -10,11 +11,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from core.cli import run_generator
+from core.cli import add_output_root_argument, report_generated
 from core.export import write_vectors
+from core.spec import GeneratorSpec, partition_dirs
 from semantic import api_models
 from semantic.api_models import API_KEY_ENV_VARS
 from semantic.export import node_vectors, path_to_write
+from semantic.large_models import LARGE_MODELS
 from semantic.local_models import compute_half_verse_embeddings, select_half_verses
 from semantic.registry import (
     MODEL_REGISTRY,
@@ -27,6 +30,34 @@ if TYPE_CHECKING:
     from semantic.corpus import Corpus, SemanticPsalm
 
 _API_SLUGS = {"gemini", "cohere", "openai", "voyage"}
+_GPU_SLUGS = {slug for slug, _, _ in LARGE_MODELS}
+#: The dtype each large model loads in, so a driver cell runs it as the Colab notebook did.
+_LARGE_DTYPES = {slug: dtype for slug, _, dtype in LARGE_MODELS}
+
+
+def resource_for(slug: str) -> str | None:
+    """The serial resource a model's cell holds: an API for hosted models, a GPU for large ones."""
+    if slug in _API_SLUGS:
+        return "api"
+    if slug in _GPU_SLUGS:
+        return "gpu"
+    return None
+
+
+def _spec_for(slug: str) -> GeneratorSpec:
+    """One model's cell: its text partitions and the resource its generation holds."""
+    model_slug = MODEL_REGISTRY[slug][1]
+    partitions = tuple(
+        p
+        for tier, _ in variations_for_model(slug)
+        for p in partition_dirs("semantic", "model", model_slug, (), text=tier)
+    )
+    return GeneratorSpec(
+        module=f"{__name__}:{slug}", partitions=partitions, resource=resource_for(slug)
+    )
+
+
+SPECS: tuple[GeneratorSpec, ...] = tuple(_spec_for(slug) for slug in MODEL_REGISTRY)
 
 #: slug -> real fetch function, used when `fetch` isn't passed.
 _REAL_FETCHERS: dict[str, Callable[..., np.ndarray]] = {
@@ -116,14 +147,23 @@ def generate_api(
     return written
 
 
-def generate(psalms: list[SemanticPsalm], output_root: Path) -> list[str]:
-    """Writes every missing dataset for every registered model, hosted API and local alike."""
+def generate(
+    psalms: list[SemanticPsalm],
+    output_root: Path,
+    slugs: tuple[str, ...] = tuple(MODEL_REGISTRY),
+    *,
+    local: Callable[..., list[str]] = generate_local,
+    api: Callable[..., list[str]] = generate_api,
+) -> list[str]:
+    """Writes every missing dataset for the named models, hosted API and local alike."""
     written: list[str] = []
-    for slug in MODEL_REGISTRY:
+    for slug in slugs:
         if slug in _API_SLUGS:
-            written.extend(generate_api(psalms, output_root, slug))
+            written.extend(api(psalms, output_root, slug))
+        elif slug in _GPU_SLUGS:
+            written.extend(local(psalms, output_root, slug, torch_dtype=_LARGE_DTYPES[slug]))
         else:
-            written.extend(generate_local(psalms, output_root, slug))
+            written.extend(local(psalms, output_root, slug))
     return written
 
 
@@ -138,9 +178,17 @@ def main(
     argv: list[str] | None = None,
     *,
     corpus_factory: Callable[[], Corpus] = load_corpus,
+    local: Callable[..., list[str]] = generate_local,
+    api: Callable[..., list[str]] = generate_api,
 ) -> None:
-    """Generates every missing dataset for every registered model."""
-    run_generator(__doc__, generate, argv, corpus_factory=corpus_factory)
+    """Generates every missing dataset for every registered model, or for one named model."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    add_output_root_argument(parser)
+    parser.add_argument("--model", choices=sorted(MODEL_REGISTRY), default=None)
+    args = parser.parse_args(argv)
+    slugs = tuple(MODEL_REGISTRY) if args.model is None else (args.model,)
+    written = generate(corpus_factory().psalms(), args.output_root, slugs, local=local, api=api)
+    report_generated(written)
 
 
 if __name__ == "__main__":

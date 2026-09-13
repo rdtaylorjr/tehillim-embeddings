@@ -68,7 +68,7 @@ ORDERED_UNITS: tuple[str, ...] = (*sorted(_TABLE_DRIVEN), *sorted(_CLOSED))
 
 @dataclass(frozen=True, slots=True)
 class OrderedFamily:
-    """One clause family whose vectors depend on within-colon order."""
+    """One clause family whose vectors depend on within-half-verse order."""
 
     unit: str
     vocabulary: tuple[str, ...]

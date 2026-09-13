@@ -52,7 +52,7 @@ class PhrasePsalm:
 
 @dataclass(frozen=True, slots=True)
 class ClausePsalm:
-    """One psalm's clauses and clause atoms, with the word fraction each puts in every colon."""
+    """One psalm's clauses and clause atoms, with each one's word fraction per half-verse."""
 
     number: int
     half_verse_nodes: tuple[int, ...] = ()
@@ -87,7 +87,7 @@ class LevelExtractor[RecordT](Protocol):
 def _overlaps(
     api: Any, otype: str, unit_nodes: tuple[int, ...]
 ) -> tuple[tuple[int, ...], Assignment]:
-    """Every `otype` node touching these colons, with the word fraction it puts in each."""
+    """Every `otype` node touching these half-verses, with the word fraction it puts in each."""
     E, L = api.E, api.L  # noqa: N806
     unit_slots = [np.asarray(E.oslots.s(unit), dtype=np.int64) for unit in unit_nodes]
     unit_flat = np.concatenate(unit_slots)
@@ -95,7 +95,7 @@ def _overlaps(
     nodes = tuple(L.d(L.u(unit_nodes[0], otype="chapter")[0], otype=otype))
     node_slots = [np.asarray(E.oslots.s(node), dtype=np.int64) for node in nodes]
     node_flat = np.concatenate(node_slots)
-    #: A node can reach past this psalm's colons, so the frame has to span both slot sets.
+    #: A node can reach past this psalm's half-verses, so the frame has to span both slot sets.
     low = int(min(unit_flat.min(), node_flat.min()))
     high = int(max(unit_flat.max(), node_flat.max()))
     slot_unit = np.full(high - low + 1, -1, dtype=np.int64)
@@ -143,7 +143,7 @@ class PhraseExtractor:
 
 
 class ClauseExtractor:
-    """Reads the clauses and clause atoms overlapping each colon, weighted by word fraction."""
+    """Reads the clauses and clause atoms overlapping each half-verse, weighted by word fraction."""
 
     @property
     def required_features(self) -> str:

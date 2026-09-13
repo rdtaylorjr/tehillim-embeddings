@@ -8,11 +8,17 @@ from pathlib import Path
 
 from core.cli import run_generator
 from core.export import dataset_path, write_dataset
+from core.spec import GeneratorSpec, partition_dirs
 from morphological import DATASET_TYPE, SUFFIX_UNIT
 from morphological.corpus import Corpus, MorphologicalPsalm
 from morphological.deploy import suffix_deploy_vectors
 
 CONSTRUCTION = "posmean"
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(DATASET_TYPE, "feature", SUFFIX_UNIT, (CONSTRUCTION,)),
+)
 
 
 def generate(psalms: list[MorphologicalPsalm], output_root: Path) -> list[str]:

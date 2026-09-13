@@ -9,6 +9,7 @@ from typing import Any
 
 from core.cli import add_config_root_argument
 from core.corpus import PSALMS_BOOK_NAME
+from core.spec import SupportSpec
 from core.support import write_external_signature_counts
 from syntactic.clause_signature import build_clause_signature
 from syntactic.corpus import ClausePsalm, Corpus, clause_corpus
@@ -38,6 +39,8 @@ _VOCABULARIES: tuple[tuple[str, str, Callable[[Any, int], str]], ...] = (
         ),
     ),
 )
+
+SPEC = SupportSpec(module=__name__, outputs=tuple(name for name, _, _ in _VOCABULARIES))
 
 
 def build_external_counts(

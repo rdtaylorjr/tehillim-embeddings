@@ -9,6 +9,7 @@ from pathlib import Path
 from core.cli import run_signature_generator
 from core.dataset_family import Construction, generate_family
 from core.ngram_dataset import NgramDataset, generate_ngram_dataset
+from core.spec import GeneratorSpec, partition_dirs
 from core.support import build_signature_vocabulary
 from morphological import DATASET_TYPE, SUFFIX_UNIT
 from morphological.corpus import Corpus, MorphologicalPsalm
@@ -21,6 +22,11 @@ from morphological.suffix import (
 )
 
 _DESCRIPTION = "Pronominal-suffix representation"
+_HOST_BUILDERS = (
+    ("host_plus_suffix", host_plus_suffix_vectors),
+    ("host_plus_suffix_psalm", host_plus_suffix_psalm_vectors),
+)
+SUPPORT_FILENAME = "morph_signature_external_support.csv"
 
 DATASET: NgramDataset[MorphologicalPsalm] = NgramDataset(
     unit=SUFFIX_UNIT,
@@ -39,6 +45,17 @@ DATASET: NgramDataset[MorphologicalPsalm] = NgramDataset(
     description=_DESCRIPTION,
 )
 
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(
+        DATASET_TYPE,
+        "feature",
+        SUFFIX_UNIT,
+        (*DATASET.constructions, *(name for name, _ in _HOST_BUILDERS)),
+    ),
+    support=(SUPPORT_FILENAME,),
+)
+
 
 def _host_constructions(
     external_counts: dict[str, int], k: int
@@ -55,10 +72,7 @@ def _host_constructions(
                 description=f"{_DESCRIPTION}, construction={name}.",
             ),
         )
-        for name, builder in (
-            ("host_plus_suffix", host_plus_suffix_vectors),
-            ("host_plus_suffix_psalm", host_plus_suffix_psalm_vectors),
-        )
+        for name, builder in _HOST_BUILDERS
     ]
 
 
@@ -92,7 +106,7 @@ def main(
     run_signature_generator(
         __doc__,
         generate,
-        "morph_signature_external_support.csv",
+        SUPPORT_FILENAME,
         MIN_EXTERNAL_SUPPORT_K,
         argv,
         corpus_factory=corpus_factory,

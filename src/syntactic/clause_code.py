@@ -57,7 +57,7 @@ class Scope(Enum):
     GENRE = "genre"
 
 
-#: Excluding parallel and defective empties 472 of 5,203 colons (9.07%), so genre only.
+#: Excluding parallel and defective empties 472 of 5,203 half-verses (9.07%), so genre only.
 SHIPPABLE_SCOPES: tuple[Scope, ...] = (Scope.GENRE,)
 
 

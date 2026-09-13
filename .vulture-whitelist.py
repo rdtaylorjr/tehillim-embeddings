@@ -1,5 +1,7 @@
 """Symbols vulture cannot see used: the Colab notebook's entry points and test-only oracles."""
 
+from core import driver, provenance
+from families import shuffle
 from morphological import signature_vectorize
 from semantic import large_models
 from syntactic import function_ngram, typ_ngram
@@ -20,3 +22,14 @@ function_ngram.phrase_function_1_2_3gram_vectors
 function_ngram.phrase_function_1_2_3gram_psalm_vectors
 syntactic_signature.phrase_signature_1_2_3gram_vectors
 syntactic_signature.phrase_signature_1_2_3gram_psalm_vectors
+
+#: Read by tehillim-benchmark, which draws the shuffle controls in memory from the real dataset.
+shuffle.dataset_source
+
+#: Manifest fields are read through asdict() when the sidecar is serialised.
+provenance.Manifest.repository_revision
+provenance.Manifest.duration_s
+provenance.Manifest.rule
+
+#: Called from the Snakefile, which vulture does not scan.
+driver.provenance_of

@@ -11,6 +11,7 @@ from core.cli import add_output_root_argument, report_generated
 from core.columns import PsalmColumns
 from core.export import path_to_write, write_vectors
 from core.parallel import map_items
+from core.spec import GeneratorSpec, partition_dirs
 from lexical.constructions import FULL_WEIGHTS, vectors_for_weight
 from lexical.corpus import Corpus, LexicalPsalm
 from lexical.frequency import icf_weights as compute_icf_weights
@@ -18,6 +19,15 @@ from lexical.frequency import lex0_token_frequencies, lex_token_frequencies, tot
 from lexical.vocabulary import VocabularyKey, build_vocabulary, columns_for_key
 
 _VOCAB_NAMES: dict[VocabularyKey, str] = {"lex0": "homograph", "lex": "lexeme"}
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=tuple(
+        p
+        for name in _VOCAB_NAMES.values()
+        for p in partition_dirs("lexical", "unit", name, FULL_WEIGHTS)
+    ),
+)
 
 
 @dataclass(frozen=True, slots=True)

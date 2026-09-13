@@ -8,7 +8,7 @@ import numpy as np
 
 from core.ngram import ngram_psalm_vectors, ngram_vectors
 from syntactic.assignment import majority_mask
-from syntactic.clause_columns import colon_sequences
+from syntactic.clause_columns import half_verse_sequences
 
 if TYPE_CHECKING:
     from syntactic.corpus import ClausePsalm
@@ -20,7 +20,7 @@ __all__ = [
     "clause_edge_distance_psalm_vectors",
     "clause_edge_distance_vectors",
     "distance_bin",
-    "edge_reaches_outside_colon",
+    "edge_reaches_outside_half_verse",
 ]
 
 #: Marks a daughter whose mother lies outside the psalm's extracted clause atoms.
@@ -51,38 +51,38 @@ def _mother_position(psalm: ClausePsalm) -> list[int | None]:
 
 
 def clause_edge_distance_columns(psalm: ClausePsalm) -> tuple[tuple[str, ...], ...]:
-    """One dependency-span sequence per colon, keyed to the daughter's colon."""
+    """One dependency-span sequence per half-verse, keyed to the daughter's half-verse."""
     mothers = _mother_position(psalm)
     values = tuple(
         NO_MOTHER if mother is None else distance_bin(position - mother)
         for position, mother in enumerate(mothers)
     )
     assignment = psalm.clause_atom_assignment
-    return colon_sequences(
+    return half_verse_sequences(
         values, assignment, len(psalm.half_verse_nodes), mask=majority_mask(assignment)
     )
 
 
-def edge_reaches_outside_colon(psalm: ClausePsalm) -> np.ndarray:
-    """Which clause atoms depend on a mother sitting in a different colon."""
+def edge_reaches_outside_half_verse(psalm: ClausePsalm) -> np.ndarray:
+    """Which clause atoms depend on a mother sitting in a different half-verse."""
     assignment = psalm.clause_atom_assignment
     mask = majority_mask(assignment)
-    colon_of = dict(
+    half_verse_of = dict(
         zip(assignment.node_index[mask].tolist(), assignment.unit_index[mask].tolist(), strict=True)
     )
     outside = np.zeros(len(psalm.clause_atom_nodes), dtype=bool)
     for position, mother in enumerate(_mother_position(psalm)):
         if mother is None:
             continue
-        outside[position] = colon_of.get(position) != colon_of.get(mother)
+        outside[position] = half_verse_of.get(position) != half_verse_of.get(mother)
     return outside
 
 
 def clause_edge_distance_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
-    """One `edge_distance` histogram per colon node, over the closed span vocabulary."""
+    """One `edge_distance` histogram per half-verse node, over the closed span vocabulary."""
     return ngram_vectors(psalms, clause_edge_distance_columns, EDGE_DISTANCE_VOCABULARY, (1,))
 
 
 def clause_edge_distance_psalm_vectors(psalms: list[ClausePsalm]) -> dict[int, np.ndarray]:
-    """Psalm-broadcast `edge_distance`, pooled across the psalm's colons."""
+    """Psalm-broadcast `edge_distance`, pooled across the psalm's half-verses."""
     return ngram_psalm_vectors(psalms, clause_edge_distance_columns, EDGE_DISTANCE_VOCABULARY, (1,))

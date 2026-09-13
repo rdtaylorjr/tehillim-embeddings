@@ -7,6 +7,7 @@ from pathlib import Path
 
 from core.cli import run_generator
 from core.ngram_dataset import NgramDataset, generate_ngram_dataset
+from core.spec import GeneratorSpec, partition_dirs
 from syntactic import DATASET_TYPE
 from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.vocabulary import FUNCTION_VOCABULARY, function_columns
@@ -28,6 +29,13 @@ DATASET = NgramDataset(
     },
     sparse=frozenset({"1_2_3gram", "1_2_3gram_psalm"}),
     description="Phrase-function-only skeleton",
+)
+
+SPEC = GeneratorSpec(
+    module=__name__,
+    partitions=partition_dirs(
+        DATASET_TYPE, "feature", DATASET.unit, tuple(DATASET.constructions), level=DATASET.level
+    ),
 )
 
 

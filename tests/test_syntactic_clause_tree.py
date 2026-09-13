@@ -80,7 +80,7 @@ class TestClauseTreeSummary:
 
 
 class TestPsalmVectors:
-    def test_every_colon_of_a_psalm_carries_the_same_forest_shape(self):
+    def test_every_half_verse_of_a_psalm_carries_the_same_forest_shape(self):
         psalm = _psalm((10, 11), (None, 0))
 
         vectors = clause_tree_summary_psalm_vectors([psalm])
