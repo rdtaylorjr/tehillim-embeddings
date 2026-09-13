@@ -9,10 +9,10 @@ syntactic, and semantic vectors keyed to the same BHSA `half_verse` nodes.
 
 ## Data
 
-`data/` contains 339 committed Hive-partitioned Parquet files, totaling 1.2 GB. Every dense
-file has `node_id` (`int32`) and `vector` (`float32` fixed-size list) columns. Sparse trigram
-files use `node_id`, `indices`, and `values`. Schema metadata records the construction and dataset
-format version. Each semantic export has 5,203 rows, one for each `half_verse` node in the Hebrew Psalms.
+`data/` stores Hive-partitioned Parquet representations. Every dense file has `node_id` (`int32`)
+and `vector` (`float32` fixed-size list) columns. Sparse trigram files use `node_id`, `indices`,
+and `values`. Schema metadata records the construction and dataset format version. Each semantic
+export has 5,203 rows, one for each `half_verse` node in the Hebrew Psalms.
 
 `node_id` is a BHSA node identifier, so exported vectors join to the source corpus without an
 alignment layer. BHSA `half_verse` is an accentual section of the Masoretic text, marked `A`, `B`,
@@ -28,12 +28,12 @@ Model identifiers and text-state availability are registered in
 identifier used for each model family. It does not record an immutable checkpoint revision for every
 external model.
 
-| Domain | Files | Registered material |
-| --- | ---: | --- |
-| Lexical | 2,095 | Homographs, disambiguated lexemes, and surface word forms |
-| Morphology | 9,057 | Word-level grammatical features and signatures |
-| Syntax | 13,031 | Phrase-atom, phrase, and subphrase annotations |
-| Semantic | 43 | Half-verse embeddings from 17 Hebrew and multilingual models |
+| Domain | Registered material |
+| --- | --- |
+| Lexical | Homographs, disambiguated lexemes, and surface word forms |
+| Morphology | Word-level grammatical features and signatures |
+| Syntax | Phrase-atom, phrase, and subphrase annotations |
+| Semantic | Half-verse embeddings from Hebrew and multilingual models |
 
 ## Methodology
 
@@ -71,7 +71,7 @@ The repository preserves several comparison conditions in the generated data.
   outside Psalms collapse to `<RARE>`. The threshold was fixed from external support counts before
   benchmark scoring.
 - `rela=Para` at phrase-atom level and `rela=par` at subphrase level are masked to `NA` before
-  syntax vectorization, since both encode the parallelism target the benchmark evaluates.
+  syntax vectorization. These values would disclose the parallelism target evaluated elsewhere.
 - Order-sensitive lexical placement and recurrence features receive within-psalm half-verse-order
   shuffles. Morphological and syntactic n-grams receive within-half-verse word or phrase-atom-order
   shuffles. Each permutation is deterministic from its seed and node or psalm identifier. The
@@ -82,16 +82,13 @@ literary function or decide an interpretation of a psalm.
 
 ## Results
 
-The committed result of this repository is the representation corpus described above. The 43
-semantic datasets cover the 17 registered models and the applicable text states. The remaining
-296 files are the linguistic representations. Their shuffle-null permutations are rebuilt
-from seed rather than committed.
+The representation corpus contains lexical, morphological, syntactic, and semantic constructions
+of the Psalms. It does not calculate retrieval scores, clustering outcomes, significance tests, or
+claims about Hebrew poetic categories.
 
-This repository does not calculate retrieval scores, clustering outcomes, significance tests, or
-claims about Hebrew poetic categories. [`tehillim-benchmark`](https://github.com/rdtaylorjr/tehillim-benchmark)
-performs those comparisons. [`tehillim-data`](https://github.com/rdtaylorjr/tehillim-data) publishes
-the resulting measurements. Keeping representation generation separate from evaluation makes the
-construction, control, and scoring stages inspectable on their terms.
+[`tehillim-benchmark`](https://github.com/rdtaylorjr/tehillim-benchmark) performs those comparisons,
+and [`tehillim-data`](https://github.com/rdtaylorjr/tehillim-data) publishes the resulting
+measurements. Keeping construction and evaluation separate makes their conditions inspectable.
 
 ## Limitations
 
@@ -110,9 +107,11 @@ not validate a grammatical analysis. Short units can also yield sparse or zero v
 for higher-order sequences and exact surface-form recurrence. Consumers must inspect coverage and
 zero-vector behavior for each construction.
 
-The committed vectors preserve derived outputs, while construction decisions remain distributed across generators and support files. A future revision should attach code revision, corpus revision, configuration values, and support-count inputs to each output partition. It should also regenerate a defined subset under clause and phrase-atom units, so the effect of the accentual target unit becomes a measured sensitivity condition.
-
-No top-level command reconstructs the full linguistic corpus. The semantic entry point also processes the 17 registered models sequentially. Model jobs are independent and expensive, while hardware and provider rate limits require an explicit scheduling policy. A future orchestrator should record its execution plan and run compatible jobs across controlled workers without changing the representation formula.
+The committed vectors preserve derived outputs, while construction decisions remain distributed
+across generators and support files. A future release should attach code revision, corpus revision,
+configuration values, and support-count inputs to each output partition. It should also regenerate
+a defined subset under clause and phrase-atom units, so the effect of the accentual target unit
+becomes a measured sensitivity condition.
 
 ## Reproducibility
 
@@ -126,10 +125,9 @@ records minimum package versions rather than a fully locked environment. Remote-
 provider outputs limit byte-level replication of a fresh semantic run. A technical model identifier
 can identify a model family without identifying a frozen artifact.
 
-Generation is distributed across domain modules. `python -m lexical.generate` builds lexical
-homograph and lexeme files. Morphological and syntactic generators require separate module and
-configuration invocations. The repository has no manifest that enumerates every committed partition
-with its generating command and input fingerprint.
+The committed corpus has no manifest identifying every partition's generating command, external
+inputs, and model artifact. A Snakemake driver regenerates declared partitions and records manifests
+for the outputs it creates.
 
 ## Installation
 
@@ -150,19 +148,10 @@ table = pq.read_table("data/domain=lexical/unit=homograph/construction=icf/part-
 vectors = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
 ```
 
-Regenerate a linguistic family into a separate directory, or run the full verification suite:
-
-```bash
-.venv/bin/python -m lexical.generate --output-root /path/to/output
-./check.sh
-```
-
-The lexical command does not rebuild morphology or syntax. Their generators and external-support
-CSV inputs are in `src/morphological`, `src/syntactic`, and `config`. A full corpus rebuild requires an
-explicit invocation plan for those modules.
-
-Semantic generation uses `python -m semantic.generate --output-root /path/to/output`. It downloads
-local model checkpoints or requires the provider environment variables documented in
+Regenerate a lexical family with `.venv/bin/python -m lexical.generate --output-root /path/to/output`.
+Semantic generation for one model uses
+`python -m semantic.generate --output-root /path/to/output --model <slug>`. It downloads local model
+checkpoints or requires the provider environment variables documented in
 [`src/semantic/api_models.py`](src/semantic/api_models.py).
 
 ## References
