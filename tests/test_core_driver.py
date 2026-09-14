@@ -189,6 +189,26 @@ class TestProvenanceOf:
         assert before != after
         assert json.loads(before)["code"] == "code"
 
+    def test_the_worker_count_is_not_part_of_a_cells_identity(self) -> None:
+        """Running with more workers changes wall clock, never the result."""
+        from core.driver import provenance_of
+
+        four = Cell("m", "m", (), (), ["--output", "a.csv", "--workers", "4"], None)
+        eight = Cell("m", "m", (), (), ["--output", "a.csv", "--workers", "8"], None)
+        assert provenance_of(four, code_hash_of=lambda m: "c") == provenance_of(
+            eight, code_hash_of=lambda m: "c"
+        )
+
+    def test_changing_a_cell_argument_changes_its_provenance(self) -> None:
+        """A rewired input or flag reruns the cell even when code and files are unchanged."""
+        from core.driver import provenance_of
+
+        one = Cell("m", "m", (), (), ["--summary-csv", "a.csv"], None)
+        other = Cell("m", "m", (), (), ["--summary-csv", "b.csv"], None)
+        assert provenance_of(one, code_hash_of=lambda m: "c") != provenance_of(
+            other, code_hash_of=lambda m: "c"
+        )
+
 
 class TestMain:
     def test_manifest_subcommand_writes_the_run_record(self, tmp_path: Path) -> None:
