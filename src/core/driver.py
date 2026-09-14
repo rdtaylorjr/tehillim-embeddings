@@ -113,9 +113,28 @@ def plan(
     return Plan(runnable=runnable, blocked=blocked)
 
 
+#: Options that change how a cell runs, never what it produces, so they stay out of its identity.
+EXECUTION_OPTIONS: frozenset[str] = frozenset({"--workers"})
+
+
+def result_arguments(cell: Cell) -> list[str]:
+    """The cell's arguments without the execution-only options and their values."""
+    kept: list[str] = []
+    skip = False
+    for argument in cell.command_args:
+        if skip:
+            skip = False
+            continue
+        if argument in EXECUTION_OPTIONS:
+            skip = True
+            continue
+        kept.append(argument)
+    return kept
+
+
 def provenance_of(cell: Cell, code_hash_of: Callable[[str], str] = code_hash) -> str:
-    """The params string a rule carries: code identity plus the content hash of every input."""
-    record = {"code": code_hash_of(cell.module)}
+    """The params string a rule carries: code identity, the cell's arguments, every input's hash."""
+    record = {"code": code_hash_of(cell.module), "args": " ".join(result_arguments(cell))}
     record.update({str(p): file_hash(p) for p in cell.inputs if p.exists()})
     return json.dumps(record, sort_keys=True)
 
