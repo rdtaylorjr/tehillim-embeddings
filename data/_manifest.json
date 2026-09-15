@@ -360,7 +360,7 @@
     "data/domain=semantic/model=voyage_4/text=cantillation/part-0.parquet"
   ],
   "expected_cells": 46,
-  "finished": "2026-09-13T22:58:34.848865+00:00",
+  "finished": "2026-09-15T18:12:50.456567+00:00",
   "missing": [],
-  "repository_revision": "76780ff53d000e86591798be0aaa0222f377061a"
+  "repository_revision": "940a68cb8719e0879252951c8794b7f9419dda25"
 }

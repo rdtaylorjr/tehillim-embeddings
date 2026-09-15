@@ -91,8 +91,20 @@ class Manifest:
         return asdict(self)
 
 
+def _records_in(path: Path) -> dict[str, object]:
+    """The sidecar's records by cell, or none where the file is absent or predates that shape."""
+    if not path.exists():
+        return {}
+    loaded = json.loads(path.read_text())
+    if not isinstance(loaded, dict) or "cell" in loaded:
+        return {}
+    return {str(cell): record for cell, record in loaded.items()}
+
+
 def write_manifest(manifest: Manifest, directory: Path) -> Path:
-    """Writes the sidecar beside a cell's output and returns its path."""
+    """Records the cell in the directory's sidecar, keeping the other cells that wrote there."""
     path = directory / MANIFEST_NAME
-    path.write_text(json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n")
+    records = _records_in(path)
+    records[manifest.cell] = manifest.to_dict()
+    path.write_text(json.dumps(records, indent=2, sort_keys=True) + "\n")
     return path

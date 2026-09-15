@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
+from core.parallel import default_max_workers
 from core.shuffle import DEFAULT_N_SHUFFLES
 from core.support import load_external_signature_counts, write_external_signature_counts
 
@@ -22,6 +23,11 @@ def add_output_root_argument(parser: argparse.ArgumentParser) -> None:
 def add_config_root_argument(parser: argparse.ArgumentParser) -> None:
     """The directory holding the external support tables a signature vocabulary is built from."""
     parser.add_argument("--config-root", type=Path, required=True)
+
+
+def add_workers_argument(parser: argparse.ArgumentParser) -> None:
+    """The worker-process count, defaulting to the machine's cores."""
+    parser.add_argument("--workers", type=int, default=default_max_workers())
 
 
 def add_shuffle_arguments(parser: argparse.ArgumentParser) -> None:

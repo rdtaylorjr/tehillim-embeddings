@@ -107,16 +107,29 @@ class TestRenderRules:
             command_args=["--output-root", "d"],
             resource=None,
         )
-        text = render_rules([cell], python="py", provenance={"syntactic.generate_typ": "abc"})
+        text = render_rules([cell], python="py", provenance="provenance_at_run")
         assert "rule cell__syntactic_generate_typ:" in text
-        assert "provenance=" in text
-        assert "abc" in text
         assert "--cell syntactic.generate_typ" in text
         assert "resources:" not in text
+        assert (
+            "provenance=lambda wildcards, name='syntactic.generate_typ': provenance_at_run(name),"
+            in text
+        )
+
+    def test_the_provenance_params_take_only_wildcards_so_snakemake_tracks_them(
+        self, tmp_path: Path
+    ) -> None:
+        """A callable naming input, output, threads or resources drops out of the params record."""
+        cell = Cell("m.c", "m", (), (tmp_path / "p",), [], None)
+        expression = render_rules([cell], python="py", provenance="at_run").split("provenance=")[1]
+        namespace: dict[str, object] = {"at_run": lambda name: f"seen {name}"}
+        params = eval(expression.split(",\n")[0], namespace)
+        assert params.__code__.co_varnames[: params.__code__.co_argcount] == ("wildcards", "name")
+        assert params(object()) == "seen m.c"
 
     def test_gpu_and_api_cells_declare_their_resource(self, tmp_path: Path) -> None:
         cell = Cell("semantic.generate.k", "semantic.generate", (), (tmp_path / "p",), [], "gpu")
-        text = render_rules([cell], python="py", provenance={"semantic.generate.k": "h"})
+        text = render_rules([cell], python="py", provenance="provenance_at_run")
         assert "resources:\n        gpu=1" in text
 
 
@@ -139,7 +152,7 @@ class TestRunCell:
         cell = Cell("m", "m", (support,), (out,), ["--output-root", "d"], None)
         run_cell(cell, main=fake_main, revision=lambda: "rev", code_hash_of=lambda m: "code")
         assert calls == [["--output-root", "d"]]
-        manifest = json.loads((out.parent / "_manifest.json").read_text())
+        manifest = json.loads((out.parent / "_manifest.json").read_text())["m"]
         assert manifest["cell"] == "m"
         assert manifest["code_hash"] == "code"
         assert manifest["repository_revision"] == "rev"
@@ -249,7 +262,7 @@ class TestRenderRulesRunner:
             None,
         )
         text = render_rules(
-            [cell], python="py", provenance={cell.name: "h"}, runner="library.driver", threads=4
+            [cell], python="py", provenance="provenance_at_run", runner="library.driver", threads=4
         )
         assert "py -m library.driver run --cell genre.lexical.summary" in text
         assert "    threads: 4" in text

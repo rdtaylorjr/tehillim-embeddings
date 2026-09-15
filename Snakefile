@@ -14,12 +14,20 @@ GPU = bool(int(config.get("gpu", 0)))
 GPU_FLAG = " --gpu" if GPU else ""
 
 PLAN = default_plan(DATA_ROOT, CONFIG_ROOT, gpu=GPU)
-PROVENANCE = {cell.name: provenance_of(cell) for cell in PLAN.runnable}
+CELLS_BY_NAME = {cell.name: cell for cell in PLAN.runnable}
+
+
+def provenance_at_run(name):
+    """Hashes a cell's code, arguments and inputs when Snakemake schedules it, inputs regenerated."""
+    return provenance_of(CELLS_BY_NAME[name])
+
 
 RULES = HERE / ".snakemake" / "cells.smk"
 RULES.parent.mkdir(exist_ok=True)
 ROOTS = f"--data-root {DATA_ROOT} --config-root {CONFIG_ROOT}{GPU_FLAG}"
-RULES.write_text(render_rules(PLAN.runnable, python=PYTHON, provenance=PROVENANCE, roots=ROOTS))
+RULES.write_text(
+    render_rules(PLAN.runnable, python=PYTHON, provenance="provenance_at_run", roots=ROOTS)
+)
 
 include: str(RULES)
 

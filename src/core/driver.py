@@ -148,7 +148,7 @@ def render_rules(
     cells: Sequence[Cell],
     *,
     python: str,
-    provenance: Mapping[str, str],
+    provenance: str,
     roots: str = "",
     runner: str = "core.driver",
     threads: int = 1,
@@ -163,7 +163,9 @@ def render_rules(
         lines.append("    output:")
         lines.append("        " + ",\n        ".join(repr(str(p)) for p in cell.outputs) + ",")
         lines.append("    params:")
-        lines.append(f"        provenance={provenance[cell.name]!r},")
+        #: Snakemake evaluates a wildcards-only callable at scheduling, after inputs regenerate.
+        params = f"lambda wildcards, name={cell.name!r}: {provenance}(name)"
+        lines.append(f"        provenance={params},")
         if cell.resource is not None:
             lines.append("    resources:")
             lines.append(f"        {cell.resource}=1,")
