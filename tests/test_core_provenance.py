@@ -81,7 +81,24 @@ class TestManifest:
         )
         path = write_manifest(manifest, out.parent)
         assert path.name == "_manifest.json"
-        assert json.loads(path.read_text()) == manifest.to_dict()
+        assert json.loads(path.read_text()) == {manifest.cell: manifest.to_dict()}
+
+    def test_cells_sharing_a_directory_each_keep_their_record(self, tmp_path: Path) -> None:
+        """Several cells write one interface directory, so the sidecar is a map by cell."""
+        first = Manifest("a", "gen", {}, "h1", {}, {}, "rev", "t", 1.0)
+        second = Manifest("b", "gen", {}, "h2", {}, {}, "rev", "t", 2.0)
+        rerun = Manifest("a", "gen", {}, "h3", {}, {}, "rev", "t", 3.0)
+        for manifest in (first, second, rerun):
+            path = write_manifest(manifest, tmp_path)
+        record = json.loads(path.read_text())
+        assert set(record) == {"a", "b"}
+        assert record["a"]["code_hash"] == "h3"
+        assert record["b"]["code_hash"] == "h2"
+
+    def test_a_sidecar_that_is_not_a_map_by_cell_is_replaced(self, tmp_path: Path) -> None:
+        (tmp_path / "_manifest.json").write_text('{"cell": "old", "code_hash": "x"}')
+        path = write_manifest(Manifest("a", "gen", {}, "h", {}, {}, "rev", "t", 1.0), tmp_path)
+        assert set(json.loads(path.read_text())) == {"a"}
 
 
 class TestCodeHashAcrossRoots:

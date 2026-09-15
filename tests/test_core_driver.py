@@ -152,7 +152,7 @@ class TestRunCell:
         cell = Cell("m", "m", (support,), (out,), ["--output-root", "d"], None)
         run_cell(cell, main=fake_main, revision=lambda: "rev", code_hash_of=lambda m: "code")
         assert calls == [["--output-root", "d"]]
-        manifest = json.loads((out.parent / "_manifest.json").read_text())
+        manifest = json.loads((out.parent / "_manifest.json").read_text())["m"]
         assert manifest["cell"] == "m"
         assert manifest["code_hash"] == "code"
         assert manifest["repository_revision"] == "rev"

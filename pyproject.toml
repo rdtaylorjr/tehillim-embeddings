@@ -8,6 +8,7 @@ license = { text = "MIT" }
 dependencies = [
     "text-fabric>=13.1.0",
     "numpy>=1.26",
+    "scipy>=1.12",
     "pyarrow>=17.0",
 ]
 
@@ -92,6 +93,8 @@ max-args = 8
 "src/*/generate*.py" = ["T201"]
 "src/*/scripts/*.py" = ["T201", "ANN401"]
 "src/syntactic/skeleton.py" = ["T201"]
+# The skip line on stderr is what a cell's log captures and the parity check reads.
+"src/core/skips.py" = ["T201"]
 "src/semantic/local_models.py" = ["T201", "ANN401", "PLR0913"]
 # Text-Fabric names features at runtime and torch ships no types, so Any is accurate here.
 "src/core/corpus.py" = ["ANN401"]
