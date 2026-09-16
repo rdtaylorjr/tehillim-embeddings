@@ -11,6 +11,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import scipy.sparse as sp
 
+from core.partition import Partition, PartitionError, Scope
+
 TEXT_VARIANTS = ("consonantal", "vocalized", "cantillation")
 
 #: One node's nonzero entries, as the lists Parquet returns or as the arrays a builder produces.
@@ -23,21 +25,21 @@ _SHUFFLE_DRAW = re.compile(r"shuffle\d+$")
 DENSE_BATCH_ROWS = 256
 
 
-class UnnamedDatasetError(ValueError):
-    """A Parquet file outside any Hive partition names no dataset."""
+class UnnamedDatasetError(PartitionError):
+    """A Parquet file outside any partition of the tree's grammar names no dataset."""
+
+
+def partition_of(path: Path) -> Partition:
+    """The partition a dataset file sits under, read from its path."""
+    try:
+        return Partition.parse(path)
+    except PartitionError as error:
+        raise UnnamedDatasetError(str(error)) from None
 
 
 def dataset_identifier(path: Path) -> str:
-    """Joins every Hive partition value between the file and its `domain=` root, deepest first."""
-    parts = []
-    node = path.parent
-    while "=" in node.name and not node.name.startswith("domain="):
-        parts.append(node.name.split("=", 1)[1])
-        node = node.parent
-    #: An unpartitioned file names no dataset, and a blank name would reach an output as a row.
-    if not parts:
-        raise UnnamedDatasetError(f"{path} carries no Hive partition, so it names no dataset")
-    return "_".join(reversed(parts))
+    """The name consumers know a dataset by: its partition values below `domain=`."""
+    return partition_of(path).identifier
 
 
 def split_model_name(model: str, text_variants: tuple[str, ...] = TEXT_VARIANTS) -> tuple[str, str]:
@@ -54,9 +56,23 @@ def split_model_name(model: str, text_variants: tuple[str, ...] = TEXT_VARIANTS)
     return model.removeprefix("semantic_"), "unknown"
 
 
-def discover_domains(root: Path) -> tuple[str, ...]:
-    """The representation domains present in the tree."""
-    return tuple(sorted(p.name.split("=", 1)[1] for p in root.glob("domain=*") if p.is_dir()))
+def scope_root(root: Path, scope: Scope) -> Path:
+    """The directory every dataset of one scope sits under, which is what a consumer sweeps."""
+    return root / scope.directory
+
+
+def domain_root(root: Path, scope: Scope, domain: str) -> Path:
+    """The directory every dataset of one domain of one scope sits under."""
+    return scope_root(root, scope) / f"domain={domain}"
+
+
+def discover_domains(root: Path, scope: Scope) -> tuple[str, ...]:
+    """The representation domains present under one scope of the tree."""
+    return tuple(
+        sorted(
+            p.name.split("=", 1)[1] for p in scope_root(root, scope).glob("domain=*") if p.is_dir()
+        )
+    )
 
 
 def is_shuffle_draw(path: Path) -> bool:
@@ -65,9 +81,12 @@ def is_shuffle_draw(path: Path) -> bool:
 
 
 def names_a_dataset(path: Path) -> bool:
-    """A parquet outside a Hive partition tree is some other output, so a sweep passes it over."""
-    parent = path.parent.name
-    return "=" in parent and not parent.startswith("domain=")
+    """A parquet outside the tree's grammar is some other output, so a sweep passes it over."""
+    try:
+        Partition.parse(path)
+    except PartitionError:
+        return False
+    return True
 
 
 def dataset_paths(root: Path) -> list[Path]:

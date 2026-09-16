@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import add_output_root_argument, report_generated
-from core.export import dataset_path, write_dataset
-from core.spec import GeneratorSpec, partition_dirs
+from core.export import path_to_write, write_vectors
+from core.partition import BHSA_HALF_VERSE, SURFACE_TYPE, Partition, family
+from core.spec import GeneratorSpec
 from core.text import TextTier
+from lexical import DOMAIN
 from lexical.constructions import FULL_WEIGHTS, vectors_for_weight
 from lexical.frequency import icf_weights as compute_icf_weights
 from lexical.frequency import total_token_count
@@ -25,7 +26,7 @@ SPEC = GeneratorSpec(
     partitions=tuple(
         p
         for tier in _TIERS
-        for p in partition_dirs("lexical", "unit", "word", FULL_WEIGHTS, text=tier)
+        for p in family(BHSA_HALF_VERSE, DOMAIN, FULL_WEIGHTS, type=SURFACE_TYPE, text=tier)
     ),
 )
 
@@ -41,21 +42,19 @@ def generate_surface(
         vocabulary = build_surface_vocabulary(psalms, tier=tier)
         columns = columns_for_tier(psalms, tier)
         for weight in FULL_WEIGHTS:
-            if dataset_path(output_root, "word", weight, text=tier, unit_key="unit").exists():
-                continue
-            print(
-                f"computing surface unit=word text={tier} construction={weight}...",
-                file=sys.stderr,
+            partition = Partition(
+                BHSA_HALF_VERSE, DOMAIN, type=SURFACE_TYPE, text=tier, construction=weight
             )
+            path = path_to_write(output_root, partition)
+            if path is None:
+                continue
             vectors = vectors_for_weight(columns, vocabulary, weight, icf_weights_by_tier[tier])
             description = (
                 f"Surface word-form vectors, {tier} text, construction={weight}, "
                 f"dimension {len(vocabulary)}."
             )
-            write_dataset(
-                output_root, "word", weight, vectors, description, text=tier, unit_key="unit"
-            )
-            written.append(f"word_{tier}_{weight}")
+            write_vectors(path, vectors, description)
+            written.append(partition.identifier)
     return written
 
 

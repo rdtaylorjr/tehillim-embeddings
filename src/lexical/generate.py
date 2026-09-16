@@ -11,7 +11,9 @@ from core.cli import add_output_root_argument, report_generated
 from core.columns import PsalmColumns
 from core.export import path_to_write, write_vectors
 from core.parallel import map_items
-from core.spec import GeneratorSpec, partition_dirs
+from core.partition import BHSA_HALF_VERSE, Partition, family
+from core.spec import GeneratorSpec
+from lexical import DOMAIN
 from lexical.constructions import FULL_WEIGHTS, vectors_for_weight
 from lexical.corpus import Corpus, LexicalPsalm
 from lexical.frequency import icf_weights as compute_icf_weights
@@ -25,7 +27,7 @@ SPEC = GeneratorSpec(
     partitions=tuple(
         p
         for name in _VOCAB_NAMES.values()
-        for p in partition_dirs("lexical", "unit", name, FULL_WEIGHTS)
+        for p in family(BHSA_HALF_VERSE, DOMAIN, FULL_WEIGHTS, type=name)
     ),
 )
 
@@ -44,12 +46,15 @@ class _VocabularyContext:
 
 def write_construction(context: _VocabularyContext, weight: str) -> str | None:
     """Writes one construction's dataset, or returns None when it is already written."""
-    path = path_to_write(context.output_root, context.vocab_name, weight, unit_key="unit")
+    path = path_to_write(
+        context.output_root,
+        Partition(BHSA_HALF_VERSE, DOMAIN, type=context.vocab_name, construction=weight),
+    )
     if path is None:
         return None
     vectors = vectors_for_weight(context.columns, context.vocabulary, weight, context.icf_weights)
     description = (
-        f"Lexical vectors over the {context.vocab_name} unit (BHSA {context.key} feature), "
+        f"Lexical vectors over the {context.vocab_name} type (BHSA {context.key} feature), "
         f"construction={weight}, dimension {len(context.vocabulary)}."
     )
     write_vectors(path, vectors, description)

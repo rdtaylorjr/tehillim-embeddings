@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from core.export import path_to_write, write_sparse_vectors, write_vectors
 from core.parallel import map_constructions
+from core.partition import BHSA_HALF_VERSE, Partition, Scope
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -27,37 +28,42 @@ class Construction[PsalmT]:
 
 
 @dataclass(frozen=True, slots=True)
-class _Partition[PsalmT]:
+class _Job[PsalmT]:
     """Everything one construction needs, pickled once per worker rather than once per build."""
 
     psalms: tuple[PsalmT, ...]
     output_root: Path
-    unit: str
+    scope: Scope
     domain: str
+    feature: str
     level: str | None
+
+    def partition(self, construction: str) -> Partition:
+        """The partition one construction of the family is written at."""
+        return Partition(
+            self.scope,
+            self.domain,
+            level=self.level,
+            feature=self.feature,
+            construction=construction,
+        )
 
 
 def write_construction[PsalmT](
-    partition: _Partition[PsalmT], item: tuple[str, Construction[PsalmT]]
+    job: _Job[PsalmT], item: tuple[str, Construction[PsalmT]]
 ) -> str | None:
     """Writes one construction's dataset, or returns None when it is already written."""
     name, construction = item
-    path = path_to_write(
-        partition.output_root,
-        partition.unit,
-        name,
-        domain=partition.domain,
-        unit_key="feature",
-        level=partition.level,
-    )
+    partition = job.partition(name)
+    path = path_to_write(job.output_root, partition)
     if path is None:
         return None
-    vectors = construction.build(list(partition.psalms))
+    vectors = construction.build(list(job.psalms))
     if construction.sparse_dim is None:
         write_vectors(path, vectors, construction.description)
     else:
         write_sparse_vectors(path, vectors, construction.sparse_dim, construction.description)
-    return f"{partition.unit}_{name}"
+    return partition.identifier
 
 
 def generate_family[PsalmT](
@@ -65,11 +71,12 @@ def generate_family[PsalmT](
     output_root: Path,
     constructions: Sequence[tuple[str, Construction[PsalmT]]],
     *,
-    unit: str,
     domain: str,
+    feature: str,
     level: str | None = None,
+    scope: Scope = BHSA_HALF_VERSE,
     max_workers: int | None = None,
 ) -> list[str]:
     """Writes each not-yet-written construction of one family, returns the names written."""
-    partition = _Partition(tuple(psalms), output_root, unit, domain, level)
-    return map_constructions(write_construction, partition, constructions, max_workers=max_workers)
+    job = _Job(tuple(psalms), output_root, scope, domain, feature, level)
+    return map_constructions(write_construction, job, constructions, max_workers=max_workers)

@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class NgramDataset[PsalmT: NumberedPsalm]:
     """Everything that separates one feature's n-gram datasets from another's."""
 
-    unit: str
+    feature: str
     domain: str
     columns_of: ColumnsOf[PsalmT]
     vocabulary: tuple[str, ...]
@@ -93,7 +93,7 @@ def generate_ngram_dataset[PsalmT: NumberedPsalm](
         psalms,
         output_root,
         family,
-        unit=dataset.unit,
+        feature=dataset.feature,
         domain=dataset.domain,
         level=dataset.level,
         max_workers=max_workers,

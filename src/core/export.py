@@ -1,4 +1,4 @@
-"""Parquet writers shared by every domain: dense and sparse, keyed by BHSA half-verse node id."""
+"""Parquet writers shared by every domain: dense and sparse, keyed by the corpus's node id."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+
+from core.partition import Partition
 
 DATASET_VERSION = "1.0"
 
@@ -96,74 +98,11 @@ def write_sparse_vectors(
 
 
 def _write(table: pa.Table, path: Path, metadata: dict[str, str]) -> None:
-    """Stamps schema metadata and writes the table, creating the parent directory."""
+    """Stamps the partition's keys and the schema metadata, then writes the table."""
+    #: The file carries the keys its path spells, so the two cannot disagree.
+    stamped = {**metadata, **Partition.parse(path).metadata()}
     path.parent.mkdir(parents=True, exist_ok=True)
-    pq.write_table(table.replace_schema_metadata(metadata), path, compression="zstd")
-
-
-#: `domain` defaults to lexical only because that family predates the parameter.
-def dataset_path(
-    output_root: Path,
-    vocab: str,
-    weight: str,
-    *,
-    unit_key: str,
-    level: str | None = None,
-    text: str | None = None,
-    domain: str = "lexical",
-) -> Path:
-    """Hive-partitioned `.parquet` path for a unit/construction, with optional level/text tiers."""
-    level_segment = (f"level={level}",) if level is not None else ()
-    text_segment = (f"text={text}",) if text is not None else ()
-    return (
-        output_root.joinpath(
-            f"domain={domain}",
-            *level_segment,
-            f"{unit_key}={vocab}",
-            *text_segment,
-            f"construction={weight}",
-        )
-        / "part-0.parquet"
-    )
-
-
-def write_dataset(
-    output_root: Path,
-    vocab: str,
-    weight: str,
-    vectors: dict[int, np.ndarray],
-    description: str,
-    *,
-    unit_key: str,
-    level: str | None = None,
-    text: str | None = None,
-    domain: str = "lexical",
-) -> None:
-    """Writes one Parquet file: columns node_id (int32) and vector (float32 list)."""
-    path = dataset_path(
-        output_root, vocab, weight, unit_key=unit_key, level=level, text=text, domain=domain
-    )
-    write_vectors(path, vectors, description)
-
-
-def write_sparse_dataset(
-    output_root: Path,
-    vocab: str,
-    weight: str,
-    sparse_vectors: dict[int, tuple[np.ndarray, np.ndarray]],
-    dim: int,
-    description: str,
-    *,
-    unit_key: str,
-    level: str | None = None,
-    text: str | None = None,
-    domain: str = "lexical",
-) -> None:
-    """Writes one sparse Parquet file: node_id, indices (list<int32>), values (list<float32>)."""
-    path = dataset_path(
-        output_root, vocab, weight, unit_key=unit_key, level=level, text=text, domain=domain
-    )
-    write_sparse_vectors(path, sparse_vectors, dim, description)
+    pq.write_table(table.replace_schema_metadata(stamped), path, compression="zstd")
 
 
 def skip_if_written(path: Path, label: str) -> Path | None:
@@ -174,18 +113,24 @@ def skip_if_written(path: Path, label: str) -> Path | None:
     return path
 
 
-def path_to_write(
+def path_to_write(output_root: Path, partition: Partition) -> Path | None:
+    """The file a partition belongs at, or None when it is already written."""
+    return skip_if_written(partition.file(output_root), partition.directory)
+
+
+def write_dataset(
+    output_root: Path, partition: Partition, vectors: dict[int, np.ndarray], description: str
+) -> None:
+    """Writes one partition's dense Parquet file."""
+    write_vectors(partition.file(output_root), vectors, description)
+
+
+def write_sparse_dataset(
     output_root: Path,
-    vocab: str,
-    construction: str,
-    *,
-    unit_key: str,
-    level: str | None = None,
-    text: str | None = None,
-    domain: str = "lexical",
-) -> Path | None:
-    """The path a construction belongs at, or None when it is already written."""
-    path = dataset_path(
-        output_root, vocab, construction, unit_key=unit_key, level=level, text=text, domain=domain
-    )
-    return skip_if_written(path, f"{domain} {unit_key}={vocab} construction={construction}")
+    partition: Partition,
+    sparse_vectors: dict[int, tuple[np.ndarray, np.ndarray]],
+    dim: int,
+    description: str,
+) -> None:
+    """Writes one partition's sparse Parquet file."""
+    write_sparse_vectors(partition.file(output_root), sparse_vectors, dim, description)

@@ -22,7 +22,7 @@ type SupportedBuilder = Callable[..., dict[int, Any]]
 class SupportedDataset[PsalmT]:
     """Everything that separates one support-table family's datasets from another's."""
 
-    unit: str
+    feature: str
     domain: str
     dense: Mapping[str, SupportedBuilder]
     sparse: Mapping[str, SupportedBuilder]
@@ -60,7 +60,7 @@ def generate_supported_dataset[PsalmT](
         psalms,
         output_root,
         family,
-        unit=dataset.unit,
+        feature=dataset.feature,
         domain=dataset.domain,
         level=dataset.level,
         max_workers=max_workers,

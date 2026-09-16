@@ -7,9 +7,10 @@ import pkgutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.partition import Partition
+
 #: The packages whose generate* modules the driver plans over.
 FAMILY_PACKAGES: tuple[str, ...] = ("lexical", "morphological", "syntactic", "semantic")
-PART_FILE = "part-0.parquet"
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,7 +18,7 @@ class GeneratorSpec:
     """One generator: the partitions it writes, the support tables it reads, its resource."""
 
     module: str
-    partitions: tuple[str, ...]
+    partitions: tuple[Partition, ...]
     support: tuple[str, ...] = ()
     resource: str | None = None
 
@@ -45,30 +46,9 @@ class SupportSpec:
             raise ValueError(msg)
 
 
-def partition_dirs(
-    domain: str,
-    unit_key: str,
-    unit: str,
-    constructions: tuple[str, ...],
-    *,
-    level: str | None = None,
-    text: str | None = None,
-) -> tuple[str, ...]:
-    """Hive-relative directories in the tree's segment order, one per construction."""
-    head = [f"domain={domain}"]
-    if level is not None:
-        head.append(f"level={level}")
-    head.append(f"{unit_key}={unit}")
-    if text is not None:
-        head.append(f"text={text}")
-    if not constructions:
-        return ("/".join(head),)
-    return tuple("/".join([*head, f"construction={c}"]) for c in constructions)
-
-
 def partition_paths(spec: GeneratorSpec, root: Path) -> tuple[Path, ...]:
     """The parquet file each declared partition is written at under the root."""
-    return tuple(root / partition / PART_FILE for partition in spec.partitions)
+    return tuple(partition.file(root) for partition in spec.partitions)
 
 
 def discover_specs(packages: tuple[str, ...] = FAMILY_PACKAGES) -> list[GeneratorSpec]:

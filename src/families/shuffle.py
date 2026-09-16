@@ -7,7 +7,6 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from core.export import dataset_path
 from core.ngram import (
     concatenated_1_2_3gram_dim,
     ngram_psalm_vectors,
@@ -16,6 +15,7 @@ from core.ngram import (
     sparse_ngram_vectors,
 )
 from core.ngram_dataset import NgramDataset, order_sensitive_constructions
+from core.partition import BHSA_HALF_VERSE, Partition
 from core.shuffle import (
     shuffled_order_by_psalm,
     shuffled_within_half_verse_order,
@@ -118,8 +118,8 @@ FULL_SIGNATURE_SUPPORT = "phrase_full_signature_external_support.csv"
 
 LEXICAL_VOCABULARY_KEY: VocabularyKey = "lex0"
 
-#: Every domain names its partition `feature=`, except the lexical one that predates it.
-UNIT_KEYS = {"lexical": "unit"}
+#: The lexical domain keys its datasets by vocabulary type; the others by the feature counted.
+_TYPE_KEYED = {"lexical"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,22 +139,22 @@ def draw(draws: Draws, seed: int) -> Draw:
     return draws.build(psalms, draws.permute(psalms, seed))
 
 
-def _dataset_path(key: str, output_root: Path, construction: str) -> Path:
-    """The Hive-partitioned file a family writes under, for whichever construction is named."""
+def _partition(key: str, construction: str) -> Partition:
+    """The partition a family writes under, for whichever construction is named."""
     domain, *middle, _ = key.split("/")
-    return dataset_path(
-        output_root,
-        middle[-1],
-        construction,
-        unit_key=UNIT_KEYS.get(domain, "feature"),
+    keyed = "type" if domain in _TYPE_KEYED else "feature"
+    return Partition(
+        BHSA_HALF_VERSE,
+        domain,
         level=middle[0] if len(middle) == 2 else None,
-        domain=domain,
+        construction=construction,
+        **{keyed: middle[-1]},
     )
 
 
 def dataset_source(key: str, data_root: Path) -> Path:
     """The unshuffled dataset a family's draws are the null for, under the same partition."""
-    return _dataset_path(key, data_root, key.rsplit("/", 1)[1])
+    return _partition(key, key.rsplit("/", 1)[1]).file(data_root)
 
 
 # --- permutations, module level so a worker can unpickle them ------------------------------
@@ -467,7 +467,7 @@ def load_clause_supported(
 
 def load_clause(
     key: str,
-    unit: str,
+    feature: str,
     construction: str,
     config_root: Path,
     *,
@@ -476,7 +476,7 @@ def load_clause(
 ) -> Draws:
     """Binds the clause corpus through the ordered-family record that carries its vocabulary."""
     psalms = corpus_factory().psalms()
-    family = resolve_family(unit, config_root)
+    family = resolve_family(feature, config_root)
     return Draws(
         key=key,
         psalms=tuple(psalms),
@@ -527,11 +527,11 @@ def _declared_rows(
     }
 
 
-def _clause_rows(unit: str, sparse_by_construction: Mapping[str, bool]) -> Registry:
-    """One row per clause construction of a unit, whose vocabulary its family record carries."""
+def _clause_rows(feature: str, sparse_by_construction: Mapping[str, bool]) -> Registry:
+    """One row per clause construction of a feature, whose vocabulary its family record carries."""
     return {
-        f"syntactic/clause/{unit}/{name}": partial(
-            load_clause, f"syntactic/clause/{unit}/{name}", unit, name, sparse=sparse
+        f"syntactic/clause/{feature}/{name}": partial(
+            load_clause, f"syntactic/clause/{feature}/{name}", feature, name, sparse=sparse
         )
         for name, sparse in sparse_by_construction.items()
     }
@@ -618,7 +618,7 @@ PHRASE_FUNCTION_SPARSE = {
     ),
 }
 
-#: Sparseness follows the construction, not the unit: only the 3-gram widths are stored sparse.
+#: Sparseness follows the construction, not the feature: only the 3-gram widths are stored sparse.
 #: Every atomic morphology feature carries the same four order-sensitive constructions.
 MORPH_FEATURES: tuple[FeatureKey, ...] = (
     "gn",
