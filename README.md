@@ -11,13 +11,15 @@ syntactic, and semantic vectors keyed to the same BHSA `half_verse` nodes.
 
 `data/` stores Hive-partitioned Parquet representations. Every dense file has `node_id` (`int32`)
 and `vector` (`float32` fixed-size list) columns. Sparse trigram files use `node_id`, `indices`,
-and `values`. Schema metadata records the construction and dataset format version. Each semantic
-export has 5,203 rows, one for each `half_verse` node in the Hebrew Psalms.
+and `values`. Schema metadata records the dataset description, format version, and the partition
+values encoded in its path. Each semantic export has 5,203 rows, one for each `half_verse` node in
+the Hebrew Psalms.
 
-`node_id` is a BHSA node identifier, so exported vectors join to the source corpus without an
-alignment layer. BHSA `half_verse` is an accentual section of the Masoretic text, marked `A`, `B`,
-or `C`. It provides a stable comparison target. It does not settle the relation between accentual,
-syntactic, prosodic, and literary segmentation.
+Paths begin with the source `corpus` and node `unit`; the committed data use
+`corpus=bhsa/unit=half_verse/`. `node_id` joins a vector directly to that corpus's Text-Fabric
+node, so vectors from different corpora must remain separate. BHSA `half_verse` is an accentual
+section of the Masoretic text, marked `A`, `B`, or `C`. It provides a stable comparison target. It
+does not settle the relation between accentual, syntactic, prosodic, and literary segmentation.
 
 The repository reads BHSA features through [Text-Fabric](https://github.com/annotation/text-fabric)
 at checkout `v1.8.1`. Its lexical, morphological, and syntactic features preserve ETCBC analytical
@@ -139,12 +141,15 @@ export TEHILLIM_BHSA_PATH=/path/to/bhsa/tf/2021
 
 ## Usage
 
-Read a committed representation by its partition path:
+Read a committed representation by its full partition path:
 
 ```python
 import pyarrow.parquet as pq
 
-table = pq.read_table("data/domain=lexical/unit=homograph/construction=icf/part-0.parquet")
+table = pq.read_table(
+    "data/corpus=bhsa/unit=half_verse/domain=lexical/type=homograph/"
+    "construction=icf/part-0.parquet"
+)
 vectors = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
 ```
 
