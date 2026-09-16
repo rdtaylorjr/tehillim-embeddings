@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from core.export import dataset_path as _dataset_path
+from core.partition import BHSA_HALF_VERSE, Partition
 from morphological.corpus import MorphologicalPsalm
 from morphological.generate_signature import generate
 
 
 def dataset_path(output_root, vocab, weight):
-    return _dataset_path(output_root, vocab, weight, domain="morphological", unit_key="feature")
+    partition = Partition(BHSA_HALF_VERSE, "morphological", feature=vocab, construction=weight)
+    return partition.file(output_root)
 
 
 def _psalm(*, number, nodes, **feature_columns):

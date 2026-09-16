@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from core.export import dataset_path as _dataset_path
+from core.partition import BHSA_HALF_VERSE, Partition
 from syntactic.corpus import PhrasePsalm
 from syntactic.generate_complexity import generate
 
 
 def dataset_path(output_root, vocab, weight):
-    return _dataset_path(
-        output_root, vocab, weight, domain="syntactic", unit_key="feature", level="phrase"
+    partition = Partition(
+        BHSA_HALF_VERSE, "syntactic", level="phrase", feature=vocab, construction=weight
     )
+    return partition.file(output_root)
 
 
 def _psalm(*, number, nodes, n_words, phrase_id, phrase_atom_count):
@@ -39,7 +40,7 @@ class TestGenerate:
     def test_writes_both_constructions(self, tmp_path):
         written = generate(_psalms(), tmp_path)
 
-        assert set(written) == {"complexity_core", "complexity_core_psalm"}
+        assert set(written) == {"phrase_complexity_core", "phrase_complexity_core_psalm"}
         assert dataset_path(tmp_path, "complexity", "core").exists()
         assert dataset_path(tmp_path, "complexity", "core_psalm").exists()
 

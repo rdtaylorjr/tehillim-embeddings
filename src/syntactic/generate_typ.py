@@ -7,15 +7,16 @@ from pathlib import Path
 
 from core.cli import run_generator
 from core.ngram_dataset import NgramDataset, generate_ngram_dataset
-from core.spec import GeneratorSpec, partition_dirs
-from syntactic import DATASET_TYPE
+from core.partition import BHSA_HALF_VERSE, family
+from core.spec import GeneratorSpec
+from syntactic import DOMAIN
 from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.vocabulary import TYP_VOCABULARY, typ_columns
 
 #: The trigram block is overwhelmingly zero at this dimension, so it is stored sparsely.
 DATASET = NgramDataset(
-    unit="typ",
-    domain=DATASET_TYPE,
+    feature="typ",
+    domain=DOMAIN,
     level="phrase",
     columns_of=typ_columns,
     vocabulary=TYP_VOCABULARY,
@@ -33,8 +34,12 @@ DATASET = NgramDataset(
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(
-        DATASET_TYPE, "feature", DATASET.unit, tuple(DATASET.constructions), level=DATASET.level
+    partitions=family(
+        BHSA_HALF_VERSE,
+        DOMAIN,
+        tuple(DATASET.constructions),
+        level=DATASET.level,
+        feature=DATASET.feature,
     ),
 )
 

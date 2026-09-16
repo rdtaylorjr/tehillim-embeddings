@@ -70,7 +70,7 @@ ORDERED_UNITS: tuple[str, ...] = (*sorted(_TABLE_DRIVEN), *sorted(_CLOSED))
 class OrderedFamily:
     """One clause family whose vectors depend on within-half-verse order."""
 
-    unit: str
+    feature: str
     vocabulary: tuple[str, ...]
     columns_of: ColumnsOf
     #: The sequence a permutation indexes, which is the vectorized one unless it is derived.
@@ -79,22 +79,22 @@ class OrderedFamily:
     sparse: tuple[str, ...]
 
 
-def resolve_family(unit: str, config_root: Path) -> OrderedFamily:
+def resolve_family(feature: str, config_root: Path) -> OrderedFamily:
     """Binds a family's frozen vocabulary and column builder, whichever source it declares."""
-    if unit in _TABLE_DRIVEN:
-        filename, k, columns = _TABLE_DRIVEN[unit]
+    if feature in _TABLE_DRIVEN:
+        filename, k, columns = _TABLE_DRIVEN[feature]
         counts = load_external_signature_counts(config_root / filename)
         return OrderedFamily(
-            unit=unit,
+            feature=feature,
             vocabulary=build_signature_vocabulary(counts, k),
             columns_of=partial(columns, external_counts=counts, k=k),
             permute_columns=partial(columns, external_counts=counts, k=k),
             dense=("1_2gram", "1_2gram_psalm"),
             sparse=_SPARSE_CONSTRUCTIONS,
         )
-    vocabulary, columns_of, permute_columns = _CLOSED[unit]
+    vocabulary, columns_of, permute_columns = _CLOSED[feature]
     return OrderedFamily(
-        unit=unit,
+        feature=feature,
         vocabulary=vocabulary,
         columns_of=columns_of,
         permute_columns=permute_columns,

@@ -6,8 +6,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_generator
-from core.spec import GeneratorSpec, partition_dirs
-from syntactic import DATASET_TYPE
+from core.partition import BHSA_HALF_VERSE, family
+from core.spec import GeneratorSpec
+from syntactic import DOMAIN
 from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.skeleton import generate_skeleton
 from syntactic.subphrase_vectorize import (
@@ -19,7 +20,7 @@ from syntactic.subphrase_vectorize import (
     subphrase_rela_1gram_vectors,
 )
 
-_UNIT = "subphrase_rela"
+_FEATURE = "subphrase_rela"
 _DESCRIPTION = "Safe subphrase-relation skeleton (par masked)"
 
 _CONSTRUCTIONS = (
@@ -33,8 +34,12 @@ _CONSTRUCTIONS = (
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(
-        DATASET_TYPE, "feature", _UNIT, tuple(name for name, _ in _CONSTRUCTIONS), level="phrase"
+    partitions=family(
+        BHSA_HALF_VERSE,
+        DOMAIN,
+        tuple(name for name, _ in _CONSTRUCTIONS),
+        level="phrase",
+        feature=_FEATURE,
     ),
 )
 
@@ -44,7 +49,7 @@ def generate(psalms: list[PhrasePsalm], output_root: Path) -> list[str]:
     return generate_skeleton(
         psalms,
         output_root,
-        _UNIT,
+        _FEATURE,
         _CONSTRUCTIONS,
         _DESCRIPTION,
         level="phrase",

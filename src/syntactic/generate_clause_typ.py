@@ -6,9 +6,10 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_signature_generator
-from core.spec import GeneratorSpec, partition_dirs
+from core.partition import BHSA_HALF_VERSE, family
+from core.spec import GeneratorSpec
 from core.supported_dataset import SupportedDataset, generate_supported_dataset
-from syntactic import DATASET_TYPE
+from syntactic import DOMAIN
 from syntactic.clause_support import MIN_EXTERNAL_SUPPORT_K_CLAUSE_ATOM_TYP
 from syntactic.clause_typ_ngram import DENSE_BUILDERS, SPARSE_BUILDERS
 from syntactic.corpus import ClausePsalm, Corpus, clause_corpus
@@ -16,8 +17,8 @@ from syntactic.corpus import ClausePsalm, Corpus, clause_corpus
 _SUPPORT_FILE = "clause_atom_typ_external_support.csv"
 
 DATASET: SupportedDataset[ClausePsalm] = SupportedDataset(
-    unit="typ",
-    domain=DATASET_TYPE,
+    feature="typ",
+    domain=DOMAIN,
     level="clause",
     dense=DENSE_BUILDERS,
     sparse=SPARSE_BUILDERS,
@@ -28,12 +29,12 @@ DATASET: SupportedDataset[ClausePsalm] = SupportedDataset(
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(
-        DATASET_TYPE,
-        "feature",
-        DATASET.unit,
+    partitions=family(
+        BHSA_HALF_VERSE,
+        DOMAIN,
         (*DATASET.dense, *DATASET.sparse),
         level=DATASET.level,
+        feature=DATASET.feature,
     ),
     support=(_SUPPORT_FILE,),
 )

@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from semantic.export import dataset_path
+from semantic.export import partition
 from semantic.generate import generate_api, generate_local
 
 
@@ -40,7 +40,7 @@ class TestGenerateLocal:
         ]
         assert [tier for _, tier in calls] == ["consonantal", "vocalized", "cantillation"]
         for variation in ("consonantal", "vocalized", "cantillation"):
-            assert dataset_path(tmp_path, "bge_m3", variation).exists()
+            assert partition("bge_m3", variation).file(tmp_path).exists()
 
     def test_computes_only_one_variation_for_a_diacritic_stripping_model(self, tmp_path):
         calls = []
@@ -249,10 +249,10 @@ class TestSemanticSpecs:
         for slug, spec in by_slug.items():
             model_slug = MODEL_REGISTRY[slug][1]
             expected = tuple(
-                f"domain=semantic/model={model_slug}/text={tier}"
+                f"corpus=bhsa/unit=half_verse/domain=semantic/model={model_slug}/text={tier}"
                 for tier, _ in variations_for_model(slug)
             )
-            assert spec.partitions == expected
+            assert tuple(p.directory for p in spec.partitions) == expected
 
     def test_resource_classes_separate_hosted_large_and_small_models(self) -> None:
         """Hosted models need an API, Colab-only models a GPU, the rest run on the CPU."""

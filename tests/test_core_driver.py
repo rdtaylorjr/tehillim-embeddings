@@ -13,13 +13,18 @@ from core.driver import (
     render_rules,
     run_cell,
 )
+from core.partition import BHSA_HALF_VERSE, Partition
 from core.spec import GeneratorSpec, SupportSpec
 
 
 def _spec(module: str = "syntactic.generate_typ", **kwargs) -> GeneratorSpec:
     return GeneratorSpec(
         module=module,
-        partitions=("domain=syntactic/level=phrase/feature=typ/construction=1gram",),
+        partitions=(
+            Partition(
+                BHSA_HALF_VERSE, "syntactic", level="phrase", feature="typ", construction="1gram"
+            ),
+        ),
         **kwargs,
     )
 
@@ -32,7 +37,8 @@ class TestCellFor:
         assert cell.name == "syntactic.generate_typ"
         assert cell.outputs == (
             tmp_path
-            / "data/domain=syntactic/level=phrase/feature=typ/construction=1gram/part-0.parquet",
+            / "data/corpus=bhsa/unit=half_verse/domain=syntactic/level=phrase/feature=typ"
+            / "construction=1gram/part-0.parquet",
         )
         assert cell.inputs == (tmp_path / "config/phrase_signature_external_support.csv",)
         assert cell.command_args == [
@@ -46,7 +52,7 @@ class TestCellFor:
         """One semantic cell is one model, run through the shared generator with --model."""
         spec = GeneratorSpec(
             module="semantic.generate:berel",
-            partitions=("domain=semantic/model=berel/text=consonantal",),
+            partitions=(Partition(BHSA_HALF_VERSE, "semantic", model="berel", text="consonantal"),),
             resource="gpu",
         )
         cell = cell_for(spec, tmp_path, tmp_path / "c")
@@ -86,7 +92,7 @@ class TestPlan:
             _spec(),
             GeneratorSpec(
                 module="semantic.generate:kalm-embedding",
-                partitions=("domain=semantic/model=k/text=consonantal",),
+                partitions=(Partition(BHSA_HALF_VERSE, "semantic", model="k", text="consonantal"),),
                 resource="gpu",
             ),
         ]

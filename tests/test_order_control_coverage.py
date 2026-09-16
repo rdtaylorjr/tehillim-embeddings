@@ -23,8 +23,8 @@ def _declarations() -> list[pytest.param]:
             dataset = getattr(module, "DATASET", None)
             if isinstance(dataset, (NgramDataset, SupportedDataset)):
                 level = f"/{dataset.level}" if dataset.level else ""
-                prefix = f"{dataset.domain}{level}/{dataset.unit}"
-                found.append(pytest.param(dataset, prefix, id=dataset.unit))
+                prefix = f"{dataset.domain}{level}/{dataset.feature}"
+                found.append(pytest.param(dataset, prefix, id=dataset.feature))
     return found
 
 

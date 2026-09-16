@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from core.export import dataset_path as _dataset_path
+from core.partition import BHSA_HALF_VERSE, Partition
 from syntactic.corpus import PhrasePsalm
 from syntactic.generate_signature import generate
 
 
 def dataset_path(output_root, vocab, weight):
-    return _dataset_path(
-        output_root, vocab, weight, domain="syntactic", unit_key="feature", level="phrase"
+    partition = Partition(
+        BHSA_HALF_VERSE, "syntactic", level="phrase", feature=vocab, construction=weight
     )
+    return partition.file(output_root)
 
 
 def _psalm(*, number, nodes, typ, function):
@@ -44,7 +45,7 @@ class TestGenerate:
             "1_2_3gram",
             "1_2_3gram_psalm",
         ):
-            assert f"signature_{construction}" in written
+            assert f"phrase_signature_{construction}" in written
             assert dataset_path(tmp_path, "signature", construction).exists()
 
     def test_skips_variants_whose_dataset_already_exists(self, tmp_path):

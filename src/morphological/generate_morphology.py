@@ -9,8 +9,9 @@ from pathlib import Path
 from core.cli import run_generator
 from core.dataset_family import Construction, generate_family
 from core.ngram import concatenated_1_2_3gram_dim
-from core.spec import GeneratorSpec, partition_dirs
-from morphological import DATASET_TYPE
+from core.partition import BHSA_HALF_VERSE, family
+from core.spec import GeneratorSpec
+from morphological import DOMAIN
 from morphological.atomic import (
     SPARSE_TRIGRAM_FEATURES,
     FeatureKey,
@@ -66,9 +67,9 @@ SPEC = GeneratorSpec(
     partitions=tuple(
         p
         for feature in _FEATURES
-        for p in partition_dirs(DATASET_TYPE, "feature", f"morph_{feature}", _FEATURE_CONSTRUCTIONS)
+        for p in family(BHSA_HALF_VERSE, DOMAIN, _FEATURE_CONSTRUCTIONS, feature=f"morph_{feature}")
     )
-    + partition_dirs(DATASET_TYPE, "feature", "morph_full", _FULL_CONSTRUCTIONS),
+    + family(BHSA_HALF_VERSE, DOMAIN, _FULL_CONSTRUCTIONS, feature="morph_full"),
 )
 
 
@@ -107,8 +108,8 @@ def generate(psalms: list[MorphologicalPsalm], output_root: Path) -> list[str]:
                 psalms,
                 output_root,
                 _constructions(feature),
-                unit=f"morph_{feature}",
-                domain=DATASET_TYPE,
+                feature=f"morph_{feature}",
+                domain=DOMAIN,
             )
         )
     written.extend(
@@ -137,8 +138,8 @@ def generate(psalms: list[MorphologicalPsalm], output_root: Path) -> list[str]:
                     ),
                 ),
             ],
-            unit="morph_full",
-            domain=DATASET_TYPE,
+            feature="morph_full",
+            domain=DOMAIN,
         )
     )
     return written

@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from core.export import dataset_path as _dataset_path
+from core.partition import BHSA_HALF_VERSE, Partition
 from syntactic.corpus import PhrasePsalm
 from syntactic.generate_rela import generate
 from syntactic.rela import SAFE_RELA_VOCABULARY
 
 
 def dataset_path(output_root, vocab, weight):
-    return _dataset_path(
-        output_root, vocab, weight, domain="syntactic", unit_key="feature", level="phrase"
+    partition = Partition(
+        BHSA_HALF_VERSE, "syntactic", level="phrase", feature=vocab, construction=weight
     )
+    return partition.file(output_root)
 
 
 def _psalm(*, number, nodes, rela):
@@ -27,12 +28,12 @@ class TestGenerate:
         written = generate(_psalms(), tmp_path)
 
         assert set(written) == {
-            "rela_1gram",
-            "rela_1gram_psalm",
-            "rela_1_2gram",
-            "rela_1_2gram_psalm",
-            "rela_1_2_3gram",
-            "rela_1_2_3gram_psalm",
+            "phrase_rela_1gram",
+            "phrase_rela_1gram_psalm",
+            "phrase_rela_1_2gram",
+            "phrase_rela_1_2gram_psalm",
+            "phrase_rela_1_2_3gram",
+            "phrase_rela_1_2_3gram_psalm",
         }
         assert dataset_path(tmp_path, "rela", "1gram").exists()
         assert dataset_path(tmp_path, "rela", "1gram_psalm").exists()

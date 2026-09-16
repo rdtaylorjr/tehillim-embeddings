@@ -6,9 +6,9 @@ import numpy as np
 import pyarrow.parquet as pq
 import pytest
 
-from core.export import dataset_path
 from core.ngram import concatenated_1_2_3gram_dim
 from core.ngram_dataset import order_sensitive_constructions
+from core.partition import BHSA_HALF_VERSE, Partition
 from morphological.corpus import MorphologicalPsalm
 from morphological.generate_pos import DATASET as SP
 from morphological.generate_pos import generate as generate_sp
@@ -46,22 +46,29 @@ DATASETS = [
 ]
 
 
-def _path(dataset, output_root, construction):
-    return dataset_path(
-        output_root,
-        dataset.unit,
-        construction,
-        domain=dataset.domain,
-        unit_key="feature",
+def _partition(dataset, construction):
+    return Partition(
+        BHSA_HALF_VERSE,
+        dataset.domain,
         level=dataset.level,
+        feature=dataset.feature,
+        construction=construction,
     )
+
+
+def _path(dataset, output_root, construction):
+    return _partition(dataset, construction).file(output_root)
+
+
+def _identifier(dataset, construction):
+    return _partition(dataset, construction).identifier
 
 
 @pytest.mark.parametrize(("dataset", "generate", "psalms"), DATASETS)
 def test_writes_the_declared_family_and_nothing_else(dataset, generate, psalms, tmp_path):
     written = generate(psalms, tmp_path)
 
-    assert set(written) == {f"{dataset.unit}_{c}" for c in dataset.constructions}
+    assert set(written) == {_identifier(dataset, c) for c in dataset.constructions}
     assert all(_path(dataset, tmp_path, c).exists() for c in dataset.constructions)
 
 

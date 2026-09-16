@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from core.export import dataset_path
+from core.partition import BHSA_HALF_VERSE, Partition
 from lexical.generate_surface import generate_surface
 from lexical.surface_corpus import SurfacePsalm
 
@@ -67,13 +67,21 @@ class TestGenerateSurface:
         }
         for tier in _TIERS:
             for weight in _FULL_WEIGHTS:
-                assert dataset_path(tmp_path, "word", weight, text=tier, unit_key="unit").exists()
+                assert (
+                    Partition(
+                        BHSA_HALF_VERSE, "lexical", type="word", text=tier, construction=weight
+                    )
+                    .file(tmp_path)
+                    .exists()
+                )
 
     def test_vocabulary_dimension_matches_distinct_forms(self, tmp_path):
         generate_surface(_psalms(), tmp_path, _icf_weights_by_tier())
 
         table = pq.read_table(
-            dataset_path(tmp_path, "word", "binary", text="consonantal", unit_key="unit")
+            Partition(
+                BHSA_HALF_VERSE, "lexical", type="word", text="consonantal", construction="binary"
+            ).file(tmp_path)
         )
         # distinct forms across fixtures: א, ב, ג
         assert len(table["vector"].to_pylist()[0]) == 3
@@ -82,7 +90,13 @@ class TestGenerateSurface:
         generate_surface(_psalms(), tmp_path, _icf_weights_by_tier())
 
         table = pq.read_table(
-            dataset_path(tmp_path, "word", "icf_position4", text="consonantal", unit_key="unit")
+            Partition(
+                BHSA_HALF_VERSE,
+                "lexical",
+                type="word",
+                text="consonantal",
+                construction="icf_position4",
+            ).file(tmp_path)
         )
         assert len(table["vector"].to_pylist()[0]) == 3 * 4
 
@@ -90,7 +104,13 @@ class TestGenerateSurface:
         generate_surface(_psalms(), tmp_path, _icf_weights_by_tier())
 
         table = pq.read_table(
-            dataset_path(tmp_path, "word", "icf_position_mean", text="consonantal", unit_key="unit")
+            Partition(
+                BHSA_HALF_VERSE,
+                "lexical",
+                type="word",
+                text="consonantal",
+                construction="icf_position_mean",
+            ).file(tmp_path)
         )
         assert len(table["vector"].to_pylist()[0]) == 6
 
@@ -98,9 +118,13 @@ class TestGenerateSurface:
         generate_surface(_psalms(), tmp_path, _icf_weights_by_tier())
 
         table = pq.read_table(
-            dataset_path(
-                tmp_path, "word", "icf_position4_psalm", text="consonantal", unit_key="unit"
-            )
+            Partition(
+                BHSA_HALF_VERSE,
+                "lexical",
+                type="word",
+                text="consonantal",
+                construction="icf_position4_psalm",
+            ).file(tmp_path)
         )
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert by_node[100] == by_node[101]

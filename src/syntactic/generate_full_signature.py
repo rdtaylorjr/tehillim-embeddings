@@ -6,9 +6,10 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_signature_generator
-from core.spec import GeneratorSpec, partition_dirs
+from core.partition import BHSA_HALF_VERSE, family
+from core.spec import GeneratorSpec
 from core.supported_dataset import SupportedDataset, generate_supported_dataset
-from syntactic import DATASET_TYPE
+from syntactic import DOMAIN
 from syntactic.corpus import Corpus, PhrasePsalm, phrase_corpus
 from syntactic.full_signature_vectorize import DENSE_BUILDERS, SPARSE_BUILDERS
 from syntactic.signature_support import MIN_EXTERNAL_SUPPORT_K_FULL
@@ -16,8 +17,8 @@ from syntactic.signature_support import MIN_EXTERNAL_SUPPORT_K_FULL
 _SUPPORT_FILE = "phrase_full_signature_external_support.csv"
 
 DATASET: SupportedDataset[PhrasePsalm] = SupportedDataset(
-    unit="full_signature",
-    domain=DATASET_TYPE,
+    feature="full_signature",
+    domain=DOMAIN,
     level="phrase",
     dense=DENSE_BUILDERS,
     sparse=SPARSE_BUILDERS,
@@ -26,12 +27,12 @@ DATASET: SupportedDataset[PhrasePsalm] = SupportedDataset(
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(
-        DATASET_TYPE,
-        "feature",
-        DATASET.unit,
+    partitions=family(
+        BHSA_HALF_VERSE,
+        DOMAIN,
         (*DATASET.dense, *DATASET.sparse),
         level=DATASET.level,
+        feature=DATASET.feature,
     ),
     support=(_SUPPORT_FILE,),
 )

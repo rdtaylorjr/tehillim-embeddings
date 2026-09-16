@@ -2,37 +2,22 @@ from pathlib import Path
 
 import pytest
 
-from core.spec import GeneratorSpec, discover_specs, partition_dirs, partition_paths
+from core.partition import BHSA_HALF_VERSE, Partition
+from core.spec import GeneratorSpec, discover_specs, partition_paths
 
-
-class TestPartitionDirs:
-    def test_builds_hive_dirs_in_bhsa_tree_order(self) -> None:
-        """domain, then level, then the unit key, then text, then construction."""
-        dirs = partition_dirs(
-            "syntactic", "feature", "typ", ("1gram", "1gram_psalm"), level="phrase"
-        )
-        assert dirs == (
-            "domain=syntactic/level=phrase/feature=typ/construction=1gram",
-            "domain=syntactic/level=phrase/feature=typ/construction=1gram_psalm",
-        )
-
-    def test_text_tier_sits_between_unit_and_construction(self) -> None:
-        """Lexical surface datasets carry a text tier after the unit."""
-        (only,) = partition_dirs("lexical", "unit", "word", ("icf",), text="vocalized")
-        assert only == "domain=lexical/unit=word/text=vocalized/construction=icf"
-
-    def test_semantic_layout_has_model_and_text_only(self) -> None:
-        """Semantic partitions use model as the unit key and no construction segment."""
-        (only,) = partition_dirs("semantic", "model", "berel", (), text="consonantal")
-        assert only == "domain=semantic/model=berel/text=consonantal"
+TYP_1GRAM = Partition(
+    BHSA_HALF_VERSE, "syntactic", level="phrase", feature="typ", construction="1gram"
+)
 
 
 class TestPartitionPaths:
     def test_appends_the_parquet_part_under_the_root(self, tmp_path: Path) -> None:
         """Every partition holds exactly one part-0.parquet file."""
-        spec = GeneratorSpec(module="m", partitions=("domain=x/unit=y/construction=z",))
+        spec = GeneratorSpec(module="m", partitions=(TYP_1GRAM,))
         assert partition_paths(spec, tmp_path) == (
-            tmp_path / "domain=x/unit=y/construction=z/part-0.parquet",
+            tmp_path
+            / "corpus=bhsa/unit=half_verse/domain=syntactic/level=phrase/feature=typ"
+            / "construction=1gram/part-0.parquet",
         )
 
 
@@ -45,7 +30,7 @@ class TestGeneratorSpec:
     def test_rejects_duplicate_partitions(self) -> None:
         """Two rules writing one path would race, so the spec refuses it."""
         with pytest.raises(ValueError, match="duplicate"):
-            GeneratorSpec(module="m", partitions=("a", "a"))
+            GeneratorSpec(module="m", partitions=(TYP_1GRAM, TYP_1GRAM))
 
 
 class TestDiscoverSpecs:
@@ -59,7 +44,7 @@ class TestDiscoverSpecs:
 
     def test_no_two_specs_claim_one_partition(self) -> None:
         """Partitions are owned by exactly one generator."""
-        seen: dict[str, str] = {}
+        seen: dict[Partition, str] = {}
         for spec in discover_specs():
             for partition in spec.partitions:
                 assert partition not in seen, (partition, seen.get(partition), spec.module)
@@ -70,7 +55,7 @@ class TestDiscoverSpecs:
         root = Path(__file__).resolve().parents[1] / "data"
         if not root.exists():
             pytest.skip("no generated tree in this checkout")
-        on_disk = {str(p.parent.relative_to(root)) for p in root.rglob("part-0.parquet")}
+        on_disk = {Partition.parse(p.relative_to(root)) for p in root.rglob("part-0.parquet")}
         declared = {p for spec in discover_specs() for p in spec.partitions}
         assert declared == on_disk
 

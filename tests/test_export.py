@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pyarrow.parquet as pq
 
-from semantic.export import dataset_path, node_vectors, write_dataset
+from semantic.export import node_vectors, partition, write_dataset
 
 
 def _psalm(*, number: int, half_verses, half_verse_nodes):
@@ -14,9 +14,11 @@ def _psalm(*, number: int, half_verses, half_verse_nodes):
 
 class TestDatasetPath:
     def test_points_at_the_hive_partitioned_parquet_file(self, tmp_path):
-        path = dataset_path(tmp_path, "bge_m3", "vocalized")
+        path = partition("bge_m3", "vocalized").file(tmp_path)
         expected = (
-            tmp_path / "domain=semantic" / "model=bge_m3" / "text=vocalized" / "part-0.parquet"
+            tmp_path
+            / "corpus=bhsa/unit=half_verse/domain=semantic/model=bge_m3/text=vocalized"
+            / "part-0.parquet"
         )
         assert path == expected
 
@@ -49,7 +51,7 @@ class TestWriteDataset:
 
         write_dataset(tmp_path, "bge_m3", "vocalized", vectors, "a description")
 
-        table = pq.read_table(dataset_path(tmp_path, "bge_m3", "vocalized"))
+        table = pq.read_table(partition("bge_m3", "vocalized").file(tmp_path))
         by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
         assert set(by_node) == {100, 101}
         assert np.array_equal(by_node[100], vectors[100])
@@ -60,7 +62,7 @@ class TestWriteDataset:
 
         write_dataset(tmp_path, "bge_m3", "vocalized", vectors, "a description")
 
-        table = pq.read_table(dataset_path(tmp_path, "bge_m3", "vocalized"))
+        table = pq.read_table(partition("bge_m3", "vocalized").file(tmp_path))
         assert (
             table["vector"].type.value_type == "float32"
             or str(table["vector"].type.value_type) == "float"
@@ -71,7 +73,7 @@ class TestWriteDataset:
 
         write_dataset(tmp_path, "bge_m3", "vocalized", vectors, "a specific description")
 
-        table = pq.read_table(dataset_path(tmp_path, "bge_m3", "vocalized"))
+        table = pq.read_table(partition("bge_m3", "vocalized").file(tmp_path))
         assert table.schema.metadata[b"description"] == b"a specific description"
 
     def test_creates_parent_directories(self, tmp_path):
@@ -79,4 +81,4 @@ class TestWriteDataset:
 
         write_dataset(tmp_path / "nested", "bge_m3", "vocalized", vectors, "d")
 
-        assert dataset_path(tmp_path / "nested", "bge_m3", "vocalized").exists()
+        assert partition("bge_m3", "vocalized").file(tmp_path / "nested").exists()

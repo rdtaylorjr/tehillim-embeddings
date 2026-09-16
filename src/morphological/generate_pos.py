@@ -7,15 +7,16 @@ from pathlib import Path
 
 from core.cli import run_generator
 from core.ngram_dataset import NgramDataset, generate_ngram_dataset
-from core.spec import GeneratorSpec, partition_dirs
-from morphological import DATASET_TYPE
+from core.partition import BHSA_HALF_VERSE, family
+from core.spec import GeneratorSpec
+from morphological import DOMAIN
 from morphological.corpus import Corpus, MorphologicalPsalm
 from morphological.vocabulary import SP_VOCABULARY, sp_columns
 
 #: The POS vocabulary is small enough that even the trigram block is stored densely.
 DATASET = NgramDataset(
-    unit="sp",
-    domain=DATASET_TYPE,
+    feature="sp",
+    domain=DOMAIN,
     columns_of=sp_columns,
     vocabulary=SP_VOCABULARY,
     constructions={
@@ -31,7 +32,9 @@ DATASET = NgramDataset(
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(DATASET_TYPE, "feature", DATASET.unit, tuple(DATASET.constructions)),
+    partitions=family(
+        BHSA_HALF_VERSE, DOMAIN, tuple(DATASET.constructions), feature=DATASET.feature
+    ),
 )
 
 

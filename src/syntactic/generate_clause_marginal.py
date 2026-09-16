@@ -8,9 +8,10 @@ from pathlib import Path
 
 from core.cli import add_config_root_argument, add_output_root_argument, report_generated
 from core.export import path_to_write, write_vectors
-from core.spec import GeneratorSpec, partition_dirs
+from core.partition import BHSA_HALF_VERSE, Partition, family
+from core.spec import GeneratorSpec
 from core.support import build_signature_vocabulary, load_external_signature_counts
-from syntactic import DATASET_TYPE
+from syntactic import DOMAIN
 from syntactic.clause_marginal import (
     MarginalSide,
     clause_marginal_psalm_vectors,
@@ -22,14 +23,14 @@ from syntactic.clause_support import (
 )
 from syntactic.corpus import ClausePsalm, Corpus, clause_corpus
 
-_UNIT = "marginal"
+_FEATURE = "marginal"
 _BUILDERS = {"typ_rela": clause_marginal_vectors, "typ_rela_psalm": clause_marginal_psalm_vectors}
 _TYP_SUPPORT = "clause_typ_external_support.csv"
 _RELA_SUPPORT = "clause_rela_external_support.csv"
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(DATASET_TYPE, "feature", _UNIT, tuple(_BUILDERS), level="clause"),
+    partitions=family(BHSA_HALF_VERSE, DOMAIN, tuple(_BUILDERS), level="clause", feature=_FEATURE),
     support=(_TYP_SUPPORT, _RELA_SUPPORT),
 )
 
@@ -48,11 +49,9 @@ def generate(
     for construction, builder in _BUILDERS.items():
         path = path_to_write(
             output_root,
-            _UNIT,
-            construction,
-            domain=DATASET_TYPE,
-            unit_key="feature",
-            level="clause",
+            Partition(
+                BHSA_HALF_VERSE, DOMAIN, level="clause", feature=_FEATURE, construction=construction
+            ),
         )
         if path is None:
             continue
@@ -61,7 +60,7 @@ def generate(
             f"typ k={typ.k}, rela k={rela.k}), construction={construction}."
         )
         write_vectors(path, builder(psalms, typ, rela), description)
-        written.append(f"{_UNIT}_{construction}")
+        written.append(f"{_FEATURE}_{construction}")
     return written
 
 

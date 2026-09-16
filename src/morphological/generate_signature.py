@@ -10,9 +10,10 @@ from core.cli import run_signature_generator
 from core.export import path_to_write, write_sparse_vectors, write_vectors
 from core.ngram import concatenated_1_2_3gram_dim
 from core.parallel import map_constructions
-from core.spec import GeneratorSpec, partition_dirs
+from core.partition import BHSA_HALF_VERSE, Partition, family
+from core.spec import GeneratorSpec
 from core.support import build_signature_vocabulary
-from morphological import ATOMIC_UNIT, DATASET_TYPE, SIGNATURE_UNIT
+from morphological import ATOMIC_FEATURE, DOMAIN, SIGNATURE_FEATURE
 from morphological.corpus import Corpus, MorphologicalPsalm
 from morphological.signature_support import MIN_EXTERNAL_SUPPORT_K
 from morphological.signature_vectorize import (
@@ -34,8 +35,10 @@ SUPPORT_FILENAME = "morph_signature_external_support.csv"
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(DATASET_TYPE, "feature", ATOMIC_UNIT, tuple(ATOMIC_BUILDERS))
-    + partition_dirs(DATASET_TYPE, "feature", SIGNATURE_UNIT, (*DENSE_BUILDERS, *SPARSE_BUILDERS)),
+    partitions=family(BHSA_HALF_VERSE, DOMAIN, tuple(ATOMIC_BUILDERS), feature=ATOMIC_FEATURE)
+    + family(
+        BHSA_HALF_VERSE, DOMAIN, (*DENSE_BUILDERS, *SPARSE_BUILDERS), feature=SIGNATURE_FEATURE
+    ),
     support=(SUPPORT_FILENAME,),
 )
 
@@ -55,9 +58,10 @@ def write_construction(context: _Context, construction: str) -> str | None:
     """Writes one construction's dataset, or returns None when it is already written."""
     psalms = list(context.psalms)
     atomic_builder = ATOMIC_BUILDERS.get(construction)
-    unit = ATOMIC_UNIT if atomic_builder is not None else SIGNATURE_UNIT
+    feature = ATOMIC_FEATURE if atomic_builder is not None else SIGNATURE_FEATURE
     path = path_to_write(
-        context.output_root, unit, construction, domain=DATASET_TYPE, unit_key="feature"
+        context.output_root,
+        Partition(BHSA_HALF_VERSE, DOMAIN, feature=feature, construction=construction),
     )
     if path is None:
         return None

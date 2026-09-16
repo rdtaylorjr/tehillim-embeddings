@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import pyarrow.parquet as pq
 
-from core.export import dataset_path as _dataset_path
+from core.partition import BHSA_HALF_VERSE, Partition
 from syntactic.corpus import PhrasePsalm
 from syntactic.generate_marginal import generate
 
 
 def dataset_path(output_root, vocab, weight):
-    return _dataset_path(
-        output_root, vocab, weight, domain="syntactic", unit_key="feature", level="phrase"
+    partition = Partition(
+        BHSA_HALF_VERSE, "syntactic", level="phrase", feature=vocab, construction=weight
     )
+    return partition.file(output_root)
 
 
 def _psalm(*, number, nodes, typ, function):
@@ -35,8 +36,8 @@ class TestGenerate:
         written = generate(_psalms(), tmp_path)
 
         assert set(written) == {
-            "marginal_typ_function",
-            "marginal_typ_function_psalm",
+            "phrase_marginal_typ_function",
+            "phrase_marginal_typ_function_psalm",
         }
         assert dataset_path(tmp_path, "marginal", "typ_function").exists()
         assert dataset_path(tmp_path, "marginal", "typ_function_psalm").exists()

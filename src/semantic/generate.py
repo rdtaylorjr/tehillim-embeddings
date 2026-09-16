@@ -13,10 +13,10 @@ import numpy as np
 
 from core.cli import add_output_root_argument, report_generated
 from core.export import write_vectors
-from core.spec import GeneratorSpec, partition_dirs
+from core.spec import GeneratorSpec
 from semantic import api_models
 from semantic.api_models import API_KEY_ENV_VARS
-from semantic.export import node_vectors, path_to_write
+from semantic.export import node_vectors, partition, path_to_write
 from semantic.large_models import LARGE_MODELS
 from semantic.local_models import compute_half_verse_embeddings, select_half_verses
 from semantic.registry import (
@@ -47,11 +47,7 @@ def resource_for(slug: str) -> str | None:
 def _spec_for(slug: str) -> GeneratorSpec:
     """One model's cell: its text partitions and the resource its generation holds."""
     model_slug = MODEL_REGISTRY[slug][1]
-    partitions = tuple(
-        p
-        for tier, _ in variations_for_model(slug)
-        for p in partition_dirs("semantic", "model", model_slug, (), text=tier)
-    )
+    partitions = tuple(partition(model_slug, tier) for tier, _ in variations_for_model(slug))
     return GeneratorSpec(
         module=f"{__name__}:{slug}", partitions=partitions, resource=resource_for(slug)
     )

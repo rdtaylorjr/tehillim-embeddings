@@ -6,8 +6,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_generator
-from core.spec import GeneratorSpec, partition_dirs
-from syntactic import DATASET_TYPE
+from core.partition import BHSA_HALF_VERSE, family
+from core.spec import GeneratorSpec
+from syntactic import DOMAIN
 from syntactic.clause_kind import (
     clause_kind_1_2_3gram_psalm_vectors,
     clause_kind_1_2_3gram_vectors,
@@ -19,7 +20,7 @@ from syntactic.clause_kind import (
 from syntactic.corpus import ClausePsalm, Corpus, clause_corpus
 from syntactic.skeleton import generate_skeleton
 
-_UNIT = "kind"
+_FEATURE = "kind"
 _DESCRIPTION = "Clause-kind inventory (VC/NC/WP), majority half-verse assignment"
 
 _CONSTRUCTIONS = (
@@ -33,8 +34,12 @@ _CONSTRUCTIONS = (
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(
-        DATASET_TYPE, "feature", _UNIT, tuple(name for name, _ in _CONSTRUCTIONS), level="clause"
+    partitions=family(
+        BHSA_HALF_VERSE,
+        DOMAIN,
+        tuple(name for name, _ in _CONSTRUCTIONS),
+        level="clause",
+        feature=_FEATURE,
     ),
 )
 
@@ -44,7 +49,7 @@ def generate(psalms: list[ClausePsalm], output_root: Path) -> list[str]:
     return generate_skeleton(
         psalms,
         output_root,
-        _UNIT,
+        _FEATURE,
         _CONSTRUCTIONS,
         _DESCRIPTION,
         level="clause",

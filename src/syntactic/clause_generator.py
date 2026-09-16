@@ -11,8 +11,9 @@ import numpy as np
 from core.export import path_to_write, write_sparse_vectors, write_vectors
 from core.ngram import concatenated_1_2_3gram_dim
 from core.parallel import map_constructions
+from core.partition import BHSA_HALF_VERSE, Partition
 from core.support import build_signature_vocabulary
-from syntactic import DATASET_TYPE
+from syntactic import DOMAIN
 from syntactic.corpus import ClausePsalm
 
 type DenseBuilder = Callable[
@@ -28,9 +29,9 @@ __all__ = ["ClauseFamily", "generate_family"]
 
 @dataclass(frozen=True, slots=True)
 class ClauseFamily:
-    """One clause feature's unit name, prose, and the builders each construction dispatches to."""
+    """One clause feature's name, prose, and the builders each construction dispatches to."""
 
-    unit: str
+    feature: str
     description: str
     dense: Mapping[str, DenseBuilder]
     sparse: Mapping[str, SparseBuilder]
@@ -53,11 +54,13 @@ def write_construction(context: _Context, construction: str) -> str | None:
     family = context.family
     path = path_to_write(
         context.output_root,
-        family.unit,
-        construction,
-        domain=DATASET_TYPE,
-        unit_key="feature",
-        level="clause",
+        Partition(
+            BHSA_HALF_VERSE,
+            DOMAIN,
+            level="clause",
+            feature=family.feature,
+            construction=construction,
+        ),
     )
     if path is None:
         return None
@@ -72,7 +75,7 @@ def write_construction(context: _Context, construction: str) -> str | None:
     else:
         sparse_dim = concatenated_1_2_3gram_dim(len(context.vocabulary))
         write_sparse_vectors(path, family.sparse[construction](*args), sparse_dim, description)
-    return f"{family.unit}_{construction}"
+    return f"{family.feature}_{construction}"
 
 
 def generate_family(

@@ -9,9 +9,10 @@ from pathlib import Path
 from core.cli import run_signature_generator
 from core.dataset_family import Construction, generate_family
 from core.ngram_dataset import NgramDataset, generate_ngram_dataset
-from core.spec import GeneratorSpec, partition_dirs
+from core.partition import BHSA_HALF_VERSE, family
+from core.spec import GeneratorSpec
 from core.support import build_signature_vocabulary
-from morphological import DATASET_TYPE, SUFFIX_UNIT
+from morphological import DOMAIN, SUFFIX_FEATURE
 from morphological.corpus import Corpus, MorphologicalPsalm
 from morphological.signature_support import MIN_EXTERNAL_SUPPORT_K
 from morphological.suffix import (
@@ -29,8 +30,8 @@ _HOST_BUILDERS = (
 SUPPORT_FILENAME = "morph_signature_external_support.csv"
 
 DATASET: NgramDataset[MorphologicalPsalm] = NgramDataset(
-    unit=SUFFIX_UNIT,
-    domain=DATASET_TYPE,
+    feature=SUFFIX_FEATURE,
+    domain=DOMAIN,
     columns_of=psalm_suffix_signatures,
     vocabulary=SUFFIX_VOCABULARY,
     constructions={
@@ -47,11 +48,11 @@ DATASET: NgramDataset[MorphologicalPsalm] = NgramDataset(
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(
-        DATASET_TYPE,
-        "feature",
-        SUFFIX_UNIT,
+    partitions=family(
+        BHSA_HALF_VERSE,
+        DOMAIN,
         (*DATASET.constructions, *(name for name, _ in _HOST_BUILDERS)),
+        feature=SUFFIX_FEATURE,
     ),
     support=(SUPPORT_FILENAME,),
 )
@@ -91,8 +92,8 @@ def generate(
         psalms,
         output_root,
         _host_constructions(external_counts, k),
-        unit=SUFFIX_UNIT,
-        domain=DATASET_TYPE,
+        feature=SUFFIX_FEATURE,
+        domain=DOMAIN,
         max_workers=max_workers,
     )
 

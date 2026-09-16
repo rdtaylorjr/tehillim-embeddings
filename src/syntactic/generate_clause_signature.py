@@ -6,8 +6,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 from core.cli import run_signature_generator
-from core.spec import GeneratorSpec, partition_dirs
-from syntactic import DATASET_TYPE
+from core.partition import BHSA_HALF_VERSE, family
+from core.spec import GeneratorSpec
+from syntactic import DOMAIN
 from syntactic.clause_generator import ClauseFamily, generate_family
 from syntactic.clause_rela_vectorize import (
     SIGNATURE_DENSE_BUILDERS,
@@ -17,7 +18,7 @@ from syntactic.clause_support import MIN_EXTERNAL_SUPPORT_K_CLAUSE_SIGNATURE
 from syntactic.corpus import ClausePsalm, Corpus, clause_corpus
 
 FAMILY = ClauseFamily(
-    unit="signature",
+    feature="signature",
     description="Joint clause typ:rela signature (Resu and ReVo removed)",
     dense=SIGNATURE_DENSE_BUILDERS,
     sparse=SIGNATURE_SPARSE_BUILDERS,
@@ -27,8 +28,12 @@ _SUPPORT_FILE = "clause_signature_external_support.csv"
 
 SPEC = GeneratorSpec(
     module=__name__,
-    partitions=partition_dirs(
-        DATASET_TYPE, "feature", FAMILY.unit, (*FAMILY.dense, *FAMILY.sparse), level="clause"
+    partitions=family(
+        BHSA_HALF_VERSE,
+        DOMAIN,
+        (*FAMILY.dense, *FAMILY.sparse),
+        level="clause",
+        feature=FAMILY.feature,
     ),
     support=(_SUPPORT_FILE,),
 )

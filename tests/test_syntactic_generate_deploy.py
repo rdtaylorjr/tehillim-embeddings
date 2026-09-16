@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from core.export import dataset_path as _dataset_path
+from core.partition import BHSA_HALF_VERSE, Partition
 from syntactic.corpus import PhrasePsalm
 from syntactic.generate_deploy import generate
 
 
 def dataset_path(output_root, vocab, weight):
-    return _dataset_path(
-        output_root, vocab, weight, domain="syntactic", unit_key="feature", level="phrase"
+    partition = Partition(
+        BHSA_HALF_VERSE, "syntactic", level="phrase", feature=vocab, construction=weight
     )
+    return partition.file(output_root)
 
 
 def _psalm(*, number, nodes, typ, function):
@@ -36,7 +37,7 @@ class TestGenerate:
     def test_writes_the_phrase_signature_posmean_dataset(self, tmp_path):
         written = generate(_psalms(), tmp_path, _external_counts(), k=1000)
 
-        assert written == ["signature_posmean"]
+        assert written == ["phrase_signature_posmean"]
         assert dataset_path(tmp_path, "signature", "posmean").exists()
 
     def test_skips_when_the_dataset_already_exists(self, tmp_path):

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from core.dataset_family import Builder, Construction, generate_family
-from syntactic import DATASET_TYPE
+from syntactic import DOMAIN
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -15,14 +15,14 @@ if TYPE_CHECKING:
 def generate_skeleton[RecordT](
     psalms: list[RecordT],
     output_root: Path,
-    unit: str,
+    feature: str,
     constructions: Sequence[tuple[str, Builder[RecordT]]],
     description: str,
     *,
     level: str,
     max_workers: int | None = None,
 ) -> list[str]:
-    """Writes each not-yet-written `<unit>` construction, returns the qualified names written."""
+    """Writes each not-yet-written `<feature>` construction, returns the qualified names written."""
     family = [
         (name, Construction(build=builder, description=f"{description}, construction={name}."))
         for name, builder in constructions
@@ -31,8 +31,8 @@ def generate_skeleton[RecordT](
         psalms,
         output_root,
         family,
-        unit=unit,
-        domain=DATASET_TYPE,
+        feature=feature,
+        domain=DOMAIN,
         level=level,
         max_workers=max_workers,
     )
