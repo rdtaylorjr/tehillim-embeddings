@@ -1,0 +1,19 @@
+{
+  "semantic.generate.bhsa-half_verse.cohere": {
+    "cell": "semantic.generate.bhsa-half_verse.cohere",
+    "code_hash": "77fd64f48e1d94449161a8892096d48f89374d1674ff4097090b10cc3eeccf18",
+    "duration_s": 52.053405,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=cohere_embed_v4/text=cantillation/part-0.parquet": "bd16a690d3e32fbe5d079f40062c277317473a92cb20cb2d42fee70fe3a7b8c0",
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=cohere_embed_v4/text=consonantal/part-0.parquet": "54358cc73e2d44e0baa95a86304e9bb99d5dc92650f419deeca4e0e8ba91d9b4",
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=cohere_embed_v4/text=vocalized/part-0.parquet": "a82d25c5cc792f7100305cfa4d44924f6d21ef417216901be789d9d42fc2d06a"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=half_verse --model cohere"
+    },
+    "repository_revision": "a3cf260902a092eee4c892e4a1ee81984411757a",
+    "rule": "cell__semantic_generate_bhsa_half_verse_cohere",
+    "started": "2026-09-17T16:41:23.812351+00:00"
+  }
+}

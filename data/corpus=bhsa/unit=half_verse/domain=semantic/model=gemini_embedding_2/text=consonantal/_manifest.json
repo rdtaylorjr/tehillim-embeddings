@@ -1,0 +1,19 @@
+{
+  "semantic.generate.bhsa-half_verse.gemini": {
+    "cell": "semantic.generate.bhsa-half_verse.gemini",
+    "code_hash": "77fd64f48e1d94449161a8892096d48f89374d1674ff4097090b10cc3eeccf18",
+    "duration_s": 173.205194,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=gemini_embedding_2/text=cantillation/part-0.parquet": "49ffb901ff2f4355d458a36e4ed0ad7e7bf4221c4a12c146ece4d773088b3226",
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=gemini_embedding_2/text=consonantal/part-0.parquet": "95dbaf4fdc9d99d758d033098ce8a0f064e8c0c35cc496778e9b0b986eb40703",
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=gemini_embedding_2/text=vocalized/part-0.parquet": "f91dfacd31bbc47c64e9ec1ee864b71b5281665f5bd8d6d851bf30cad0b2edb2"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=half_verse --model gemini"
+    },
+    "repository_revision": "a3cf260902a092eee4c892e4a1ee81984411757a",
+    "rule": "cell__semantic_generate_bhsa_half_verse_gemini",
+    "started": "2026-09-17T16:45:33.211709+00:00"
+  }
+}

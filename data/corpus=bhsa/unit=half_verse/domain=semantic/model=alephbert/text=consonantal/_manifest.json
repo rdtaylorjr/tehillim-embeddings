@@ -1,0 +1,17 @@
+{
+  "semantic.generate.bhsa-half_verse.alephbert": {
+    "cell": "semantic.generate.bhsa-half_verse.alephbert",
+    "code_hash": "77fd64f48e1d94449161a8892096d48f89374d1674ff4097090b10cc3eeccf18",
+    "duration_s": 22.367997,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=alephbert/text=consonantal/part-0.parquet": "20cf21fc938cdaccee8f80421e967a2d4f8735c15a999b041a97865c52ab079a"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=half_verse --model alephbert"
+    },
+    "repository_revision": "a3cf260902a092eee4c892e4a1ee81984411757a",
+    "rule": "cell__semantic_generate_bhsa_half_verse_alephbert",
+    "started": "2026-09-17T16:40:39.257124+00:00"
+  }
+}

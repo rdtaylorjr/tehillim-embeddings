@@ -1,0 +1,19 @@
+{
+  "semantic.generate.bhsa-half_verse.gte-multilingual-base": {
+    "cell": "semantic.generate.bhsa-half_verse.gte-multilingual-base",
+    "code_hash": "77fd64f48e1d94449161a8892096d48f89374d1674ff4097090b10cc3eeccf18",
+    "duration_s": 249.039966,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=gte_multilingual_base/text=cantillation/part-0.parquet": "3eb738804cd3ed2bf762c43bec62aeb0069ad2abbb38f54d39526aed71a13d1f",
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=gte_multilingual_base/text=consonantal/part-0.parquet": "ee2e03a9fe5eb75f7104e5ac55624e6ef6b3c4b37e61bb1687376792b4be2c71",
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=gte_multilingual_base/text=vocalized/part-0.parquet": "66a4127884bd276f4e2b54cdbf8e150852cba8aa1e7fd45362504b28bf4ab0a5"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=half_verse --model gte-multilingual-base"
+    },
+    "repository_revision": "a3cf260902a092eee4c892e4a1ee81984411757a",
+    "rule": "cell__semantic_generate_bhsa_half_verse_gte_multilingual_base",
+    "started": "2026-09-17T16:39:52.679602+00:00"
+  }
+}

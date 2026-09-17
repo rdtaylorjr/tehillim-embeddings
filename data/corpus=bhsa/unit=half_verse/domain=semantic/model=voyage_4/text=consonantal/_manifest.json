@@ -1,0 +1,19 @@
+{
+  "semantic.generate.bhsa-half_verse.voyage": {
+    "cell": "semantic.generate.bhsa-half_verse.voyage",
+    "code_hash": "77fd64f48e1d94449161a8892096d48f89374d1674ff4097090b10cc3eeccf18",
+    "duration_s": 49.434398,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=voyage_4/text=cantillation/part-0.parquet": "ad6b7272c59bfc07c3853af417434ee43424bf3b159ec6f6a6db81d8a66d3e34",
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=voyage_4/text=consonantal/part-0.parquet": "be3fd5a7a0dc6e4476c5e280034b5639fb5fdf419b0333d093aa0636939e198d",
+      "data/corpus=bhsa/unit=half_verse/domain=semantic/model=voyage_4/text=vocalized/part-0.parquet": "46f306cffbbe435b4eaea17304c2e0211c54cb20f32b30de07aab7169758be85"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=half_verse --model voyage"
+    },
+    "repository_revision": "a3cf260902a092eee4c892e4a1ee81984411757a",
+    "rule": "cell__semantic_generate_bhsa_half_verse_voyage",
+    "started": "2026-09-17T16:40:30.387709+00:00"
+  }
+}

@@ -12,14 +12,14 @@ syntactic, and semantic vectors keyed to the same BHSA `half_verse` nodes.
 `data/` stores Hive-partitioned Parquet representations. Every dense file has `node_id` (`int32`)
 and `vector` (`float32` fixed-size list) columns. Sparse trigram files use `node_id`, `indices`,
 and `values`. Schema metadata records the dataset description, format version, and the partition
-values encoded in its path. Each semantic export has 5,203 rows, one for each `half_verse` node in
-the Hebrew Psalms.
+values encoded in its path. BHSA `half_verse` semantic exports have 5,203 rows; additional semantic
+exports use BHSA `verse` nodes and 11Q5 verse runs.
 
-Paths begin with the source `corpus` and node `unit`; the committed data use
-`corpus=bhsa/unit=half_verse/`. `node_id` joins a vector directly to that corpus's Text-Fabric
-node, so vectors from different corpora must remain separate. BHSA `half_verse` is an accentual
-section of the Masoretic text, marked `A`, `B`, or `C`. It provides a stable comparison target. It
-does not settle the relation between accentual, syntactic, prosodic, and literary segmentation.
+Paths begin with the source `corpus` and node `unit`; semantic data include BHSA `half_verse` and
+`verse` partitions and 11Q5 `verse` partitions. `node_id` joins a vector directly to that corpus's
+Text-Fabric node, so vectors from different corpora must remain separate. BHSA `half_verse` is an
+accentual section of the Masoretic text, marked `A`, `B`, or `C`. It provides a stable comparison
+target. It does not settle the relation between accentual, syntactic, prosodic, and literary segmentation.
 
 The repository reads BHSA features through [Text-Fabric](https://github.com/annotation/text-fabric)
 at checkout `v1.8.1`. Its lexical, morphological, and syntactic features preserve ETCBC analytical
@@ -47,6 +47,9 @@ feature's applicability contributes to the representation. Syntax records phrase
 phrase `function`, `det`, relations, subphrase relations, phrase complexity, and joint
 `typ:function` signatures. Semantic models encode the corresponding Hebrew string in
 `consonantal`, `vocalized`, and `cantillation` text states where their tokenizers preserve the distinction.
+
+The current `consonantal` state contains Hebrew letters and spaces only. 11Q5 verse runs retain
+letters graded certain, probable, or possible (`c`, `p`, `q`); reconstructed letters are omitted.
 
 Feature inventories are normalized within a `half_verse`. N-gram constructions concatenate
 unigram, bigram, and trigram proportions, each normalized by its available positions. Psalm-scale
@@ -118,8 +121,9 @@ becomes a measured sensitivity condition.
 ## Reproducibility
 
 The corpus loader requests BHSA Text-Fabric checkout `v1.8.1` from `TEHILLIM_BHSA_PATH` or a local
-default path, then falls back to Text-Fabric's corpus loader. The source code requires Python 3.12 or
-later. Dense and sparse exports use Parquet format version metadata `1.0` and Zstandard compression.
+default path, then falls back to Text-Fabric's corpus loader. The 11Q5 loader also requires
+`TEHILLIM_DSS_PATH` and `TEHILLIM_SCRIBES_TF_PATH`. The source code requires Python 3.12 or later.
+Dense and sparse exports use Parquet format version metadata `1.0` and Zstandard compression.
 
 The committed linguistic files can be regenerated from BHSA and the support-count CSVs. Semantic
 regeneration additionally requires the named model checkpoints or provider credentials. The project
@@ -127,9 +131,8 @@ records minimum package versions rather than a fully locked environment. Remote-
 provider outputs limit byte-level replication of a fresh semantic run. A technical model identifier
 can identify a model family without identifying a frozen artifact.
 
-The committed corpus has no manifest identifying every partition's generating command, external
-inputs, and model artifact. A Snakemake driver regenerates declared partitions and records manifests
-for the outputs it creates.
+Each generated partition carries a manifest recording its command, inputs, code hash, outputs, and
+repository revision. The Snakemake driver regenerates declared partitions and a run-level manifest.
 
 ## Installation
 
@@ -147,8 +150,7 @@ Read a committed representation by its full partition path:
 import pyarrow.parquet as pq
 
 table = pq.read_table(
-    "data/corpus=bhsa/unit=half_verse/domain=lexical/type=homograph/"
-    "construction=icf/part-0.parquet"
+    "data/corpus=bhsa/unit=half_verse/domain=lexical/type=homograph/construction=icf/part-0.parquet"
 )
 vectors = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
 ```
