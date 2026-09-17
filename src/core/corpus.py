@@ -7,10 +7,12 @@ import queue
 import threading
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+from core.partition import HALF_VERSE
 
 DEFAULT_BHSA_CLONE = Path.home() / "Developer" / "hebrew" / "bhsa" / "tf" / "2021"
 BHSA_PATH_ENV = "TEHILLIM_BHSA_PATH"
@@ -66,12 +68,21 @@ def _as_api(result: Any) -> Any:
     return result if getattr(result, "F", None) is not None else None
 
 
+def load_locations(
+    locations: Sequence[Path], required_features: str, fabric: Callable[..., Any] = _real_fabric
+) -> Any:
+    """Loads required_features from local Text-Fabric directories read together, or None."""
+    if not all(path.exists() for path in locations):
+        return None
+    loaded = fabric(locations=[str(p) for p in locations], silent="deep").load(
+        required_features, silent="deep"
+    )
+    return _as_api(loaded)
+
+
 def _load_local(path: Path, required_features: str, fabric: Callable[..., Any]) -> Any:
     """Loads required_features from a local Text-Fabric directory, or None if unavailable."""
-    if not path.exists():
-        return None
-    loaded = fabric(locations=[str(path)], silent="deep").load(required_features, silent="deep")
-    return _as_api(loaded)
+    return load_locations([path], required_features, fabric)
 
 
 def _is_loaded(api: Any, name: str) -> bool:
@@ -139,11 +150,17 @@ def shared_api(
 
 
 class BaseCorpus[PsalmT](ABC):
-    """A loaded BHSA corpus that walks the Psalms' chapters and half-verse nodes once."""
+    """A loaded BHSA corpus that walks the Psalms' chapters and their unit nodes once."""
 
-    def __init__(self, api: Any) -> None:
-        """Wraps an already-loaded Text-Fabric API."""
+    def __init__(self, api: Any, unit: str = HALF_VERSE) -> None:
+        """Wraps an already-loaded Text-Fabric API, cutting each psalm at one node type."""
         self._api = api
+        self._unit = unit
+
+    @property
+    def unit(self) -> str:
+        """The node type the psalms are cut at."""
+        return self._unit
 
     @property
     def api(self) -> Any:
@@ -152,7 +169,7 @@ class BaseCorpus[PsalmT](ABC):
 
     @abstractmethod
     def _extract(self, number: int, half_verse_nodes: tuple[int, ...]) -> PsalmT:
-        """Builds one domain's psalm record from a psalm number and its half-verse nodes."""
+        """Builds one domain's psalm record from a psalm number and its unit nodes."""
 
     def psalms(self) -> list[PsalmT]:
         """Extracts all 150 psalms, in canonical order."""
@@ -165,7 +182,7 @@ class BaseCorpus[PsalmT](ABC):
         numbered: list[tuple[int, PsalmT]] = []
         for chapter_node in L.d(book_nodes[0], otype="chapter"):
             _, number = T.sectionFromNode(chapter_node)
-            half_verse_nodes = tuple(L.d(chapter_node, otype="half_verse"))
+            half_verse_nodes = tuple(L.d(chapter_node, otype=self._unit))
             numbered.append((number, self._extract(number, half_verse_nodes)))
 
         numbered.sort(key=lambda item: item[0])

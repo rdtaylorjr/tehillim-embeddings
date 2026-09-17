@@ -1,0 +1,17 @@
+{
+  "semantic.generate.dss-11Q5-none-verse.me5-large-instruct": {
+    "cell": "semantic.generate.dss-11Q5-none-verse.me5-large-instruct",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 25.785104,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=dss/witness=11Q5/reconstruction=none/unit=verse/domain=semantic/model=me5_large_instruct/text=consonantal/part-0.parquet": "d023e6947a68e6117abdf58d3cfb1859836833352b195057f0f01b3a1b01b39a"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=dss --witness=11Q5 --reconstruction=none --unit=verse --model me5-large-instruct"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_dss_11Q5_none_verse_me5_large_instruct",
+    "started": "2026-09-16T22:52:41.103301+00:00"
+  }
+}

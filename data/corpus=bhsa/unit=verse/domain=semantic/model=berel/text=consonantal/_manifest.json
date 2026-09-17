@@ -1,0 +1,17 @@
+{
+  "semantic.generate.bhsa-verse.berel": {
+    "cell": "semantic.generate.bhsa-verse.berel",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 41.063333,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=verse/domain=semantic/model=berel/text=consonantal/part-0.parquet": "cb78fec1afbd0162913dc6189017a5f7410e20a5e1afead875b123781b8f1edb"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=verse --model berel"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_bhsa_verse_berel",
+    "started": "2026-09-16T22:55:04.670380+00:00"
+  }
+}

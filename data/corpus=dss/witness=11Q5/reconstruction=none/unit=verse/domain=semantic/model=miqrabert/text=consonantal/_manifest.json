@@ -1,0 +1,17 @@
+{
+  "semantic.generate.dss-11Q5-none-verse.miqrabert": {
+    "cell": "semantic.generate.dss-11Q5-none-verse.miqrabert",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 17.423528,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=dss/witness=11Q5/reconstruction=none/unit=verse/domain=semantic/model=miqrabert/text=consonantal/part-0.parquet": "e3cc016eeb31fd1804232049d3464419357b93326b67b2f260aeba70204d8d75"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=dss --witness=11Q5 --reconstruction=none --unit=verse --model miqrabert"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_dss_11Q5_none_verse_miqrabert",
+    "started": "2026-09-16T22:50:26.039896+00:00"
+  }
+}

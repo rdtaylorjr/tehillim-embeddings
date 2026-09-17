@@ -2,326 +2,227 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
+
 import numpy as np
+import pyarrow.parquet as pq
 import pytest
 
+from core.partition import BHSA_HALF_VERSE, Scope
 from semantic.export import partition
-from semantic.generate import generate_api, generate_local
+from semantic.generate import SPECS, encoder_for, generate, main, resource_for, tiers_for
+from semantic.registry import MODEL_REGISTRY, variations_for_model
+from semantic.sources import SOURCES, Source, source_for
+from semantic.units import Unit
+
+SCROLL = Scope("dss", "verse", witness="11Q5", reconstruction="none")
+BHSA = source_for(BHSA_HALF_VERSE)
+SCROLL_SOURCE = source_for(SCROLL)
+
+UNITS = [
+    Unit(100, {"consonantal": "a", "vocalized": "n", "cantillation": "A"}),
+    Unit(101, {"consonantal": "b", "vocalized": "m", "cantillation": "B"}),
+]
+SCROLL_UNITS = [Unit(1857557, {"consonantal": "x"}), Unit(1857567, {"consonantal": "y"})]
 
 
-def _psalm(*, number: int, half_verses, half_verses_unvocalized, half_verses_niqqud_only=()):
-    from semantic.corpus import SemanticPsalm
+def _recording_encoder(calls: list[tuple[str, list[str]]], width: int = 2):
+    """An encoder factory that records which model saw which texts."""
 
-    return SemanticPsalm(
-        number=number,
-        half_verses=half_verses,
-        half_verses_unvocalized=half_verses_unvocalized,
-        half_verses_niqqud_only=half_verses_niqqud_only,
-        half_verse_nodes=tuple(range(number * 100, number * 100 + len(half_verses))),
-    )
+    def open_encoder(slug: str):
+        def encode(texts):
+            calls.append((slug, list(texts)))
+            return np.zeros((len(texts), width))
+
+        return nullcontext(encode)
+
+    return open_encoder
 
 
-class TestGenerateLocal:
-    def test_computes_and_writes_every_variation_for_a_diacritic_preserving_model(self, tmp_path):
-        calls = []
+class TestGenerate:
+    def test_writes_every_tier_of_a_diacritic_preserving_model(self, tmp_path):
+        calls: list[tuple[str, list[str]]] = []
 
-        def _fake_compute(psalms, model_name, *, tier, device, torch_dtype):
-            calls.append((model_name, tier))
-            return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
-
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-
-        written = generate_local(psalms, tmp_path, "bge-m3", compute=_fake_compute)
+        written = generate(UNITS, tmp_path, BHSA, ["bge-m3"], encoder=_recording_encoder(calls))
 
         assert written == [
             "semantic_bge_m3_consonantal",
             "semantic_bge_m3_vocalized",
             "semantic_bge_m3_cantillation",
         ]
-        assert [tier for _, tier in calls] == ["consonantal", "vocalized", "cantillation"]
-        for variation in ("consonantal", "vocalized", "cantillation"):
-            assert partition("bge_m3", variation).file(tmp_path).exists()
+        assert calls == [("bge-m3", ["a", "b"]), ("bge-m3", ["n", "m"]), ("bge-m3", ["A", "B"])]
+        for tier in ("consonantal", "vocalized", "cantillation"):
+            assert partition("bge_m3", tier).file(tmp_path).exists()
 
-    def test_computes_only_one_variation_for_a_diacritic_stripping_model(self, tmp_path):
-        calls = []
+    def test_writes_only_the_consonantal_tier_of_a_diacritic_stripping_model(self, tmp_path):
+        calls: list[tuple[str, list[str]]] = []
 
-        def _fake_compute(psalms, model_name, *, tier, device, torch_dtype):
-            calls.append((model_name, tier))
-            return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
-
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-
-        written = generate_local(psalms, tmp_path, "miqrabert", compute=_fake_compute)
+        written = generate(UNITS, tmp_path, BHSA, ["miqrabert"], encoder=_recording_encoder(calls))
 
         assert written == ["semantic_miqrabert_consonantal"]
-        assert calls == [("davidmsmiley/MiqraBERT", "consonantal")]
+        assert calls == [("miqrabert", ["a", "b"])]
+
+    def test_writes_a_scroll_source_under_its_own_scope_in_its_one_tier(self, tmp_path):
+        calls: list[tuple[str, list[str]]] = []
+
+        written = generate(
+            SCROLL_UNITS, tmp_path, SCROLL_SOURCE, ["bge-m3"], encoder=_recording_encoder(calls)
+        )
+
+        assert written == ["semantic_bge_m3_consonantal"]
+        assert calls == [("bge-m3", ["x", "y"])]
+        path = partition("bge_m3", "consonantal", SCROLL).file(tmp_path)
+        table = pq.read_table(path)
+        assert table["node_id"].to_pylist() == [1857557, 1857567]
+        assert table.schema.metadata[b"witness"] == b"11Q5"
+        assert table.schema.metadata[b"reconstruction"] == b"none"
 
     def test_restricts_to_a_single_named_variation(self, tmp_path):
-        calls = []
+        calls: list[tuple[str, list[str]]] = []
 
-        def _fake_compute(psalms, model_name, *, tier, device, torch_dtype):
-            calls.append(tier)
-            return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
-
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-
-        written = generate_local(
-            psalms, tmp_path, "bge-m3", variation="vocalized", compute=_fake_compute
+        written = generate(
+            UNITS,
+            tmp_path,
+            BHSA,
+            ["bge-m3"],
+            variation="vocalized",
+            encoder=_recording_encoder(calls),
         )
 
         assert written == ["semantic_bge_m3_vocalized"]
         assert len(calls) == 1
 
-    def test_a_variation_not_offered_for_the_model_writes_nothing(self, tmp_path):
-        def _must_not_be_called(*args, **kwargs):
-            raise AssertionError("compute must not be called for an unavailable variation")
+    def test_opens_the_model_once_per_cell_and_not_at_all_when_nothing_is_missing(self, tmp_path):
+        opened: list[str] = []
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
+        def open_encoder(slug: str):
+            opened.append(slug)
+            return nullcontext(lambda texts: np.zeros((len(texts), 2)))
 
-        written = generate_local(
-            psalms, tmp_path, "miqrabert", variation="vocalized", compute=_must_not_be_called
-        )
+        generate(UNITS, tmp_path, BHSA, ["bge-m3"], encoder=open_encoder)
+        assert opened == ["bge-m3"]
 
+        written = generate(UNITS, tmp_path, BHSA, ["bge-m3"], encoder=open_encoder)
         assert written == []
+        assert opened == ["bge-m3"]
 
-    def test_skips_a_variation_whose_tf_file_already_exists(self, tmp_path):
-        from semantic.export import node_vectors, write_dataset
-
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-        write_dataset(
-            tmp_path,
-            "miqrabert",
+    def test_a_tier_the_source_lacks_is_never_asked_of_the_encoder(self):
+        """A scroll has consonants only, so a model's other tiers write nothing for it."""
+        assert [tier for tier, _ in tiers_for("bge-m3", SCROLL_SOURCE)] == ["consonantal"]
+        assert [tier for tier, _ in tiers_for("bge-m3", BHSA)] == [
             "consonantal",
-            node_vectors({1: np.zeros((1, 2))}, psalms),
-            "already here",
-        )
-
-        def _must_not_be_called(*args, **kwargs):
-            raise AssertionError("compute must not be called for an already-written variation")
-
-        written = generate_local(psalms, tmp_path, "miqrabert", compute=_must_not_be_called)
-
-        assert written == []
-
-    def test_passes_device_and_torch_dtype_through(self, tmp_path):
-        calls = []
-
-        def _fake_compute(psalms, model_name, *, tier, device, torch_dtype):
-            calls.append((device, torch_dtype))
-            return {p.number: np.zeros((len(p.half_verses), 2)) for p in psalms}
-
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-
-        generate_local(
-            psalms,
-            tmp_path,
-            "miqrabert",
-            device="cuda",
-            torch_dtype="bfloat16",
-            compute=_fake_compute,
-        )
-
-        assert calls == [("cuda", "bfloat16")]
-
-
-class TestGenerateApi:
-    def test_cache_miss_calls_fetch_once_per_variation_with_flattened_half_verses(self, tmp_path):
-        calls = []
-
-        def _fake_fetch(texts, *, api_key):
-            calls.append((list(texts), api_key))
-            return np.zeros((len(texts), 3))
-
-        psalms = [
-            _psalm(
-                number=1,
-                half_verses=("a1", "a2"),
-                half_verses_unvocalized=("u1", "u2"),
-                half_verses_niqqud_only=("n1", "n2"),
-            )
+            "vocalized",
+            "cantillation",
         ]
 
-        written = generate_api(
-            psalms,
-            tmp_path,
-            "gemini",
-            fetch=_fake_fetch,
-            env={"TEHILLIM_OPENROUTER_API_KEY": "test-key"},
-        )
 
-        assert written == [
-            "semantic_gemini_embedding_2_consonantal",
-            "semantic_gemini_embedding_2_vocalized",
-            "semantic_gemini_embedding_2_cantillation",
-        ]
-        assert len(calls) == 3
-        texts_by_call = [c[0] for c in calls]
-        assert ["u1", "u2"] in texts_by_call
-        assert ["n1", "n2"] in texts_by_call
-        assert ["a1", "a2"] in texts_by_call
-        assert all(api_key == "test-key" for _, api_key in calls)
+class TestEncoderFor:
+    def test_a_hosted_model_reads_its_key_and_binds_it_to_the_fetcher(self):
+        with encoder_for("gemini", env={"TEHILLIM_OPENROUTER_API_KEY": "k"}) as encode:
+            assert encode.keywords == {"api_key": "k"}
 
-    def test_cache_hit_never_calls_fetch(self, tmp_path):
-        from semantic.export import node_vectors, write_dataset
+    def test_a_missing_key_names_the_exact_env_var_when_the_encoder_is_opened(self):
+        with (
+            pytest.raises(RuntimeError, match="TEHILLIM_OPENROUTER_API_KEY"),
+            encoder_for("gemini", env={}),
+        ):
+            pass
 
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-        for variation in ("consonantal", "vocalized", "cantillation"):
-            write_dataset(
-                tmp_path,
-                "gemini_embedding_2",
-                variation,
-                node_vectors({1: np.zeros((1, 3))}, psalms),
-                "already here",
-            )
+    def test_cohere_uses_a_separate_api_key_env_var(self):
+        with encoder_for("cohere", env={"TEHILLIM_COHERE_API_KEY": "c"}) as encode:
+            assert encode.keywords == {"api_key": "c"}
 
-        def _must_not_be_called(texts, *, api_key):
-            raise AssertionError("fetch must not be called on a cache hit")
+    def test_a_local_model_opens_with_its_registered_dtype(self):
+        seen: dict[str, object] = {}
 
-        written = generate_api(psalms, tmp_path, "gemini", fetch=_must_not_be_called, env={})
+        def fake_local(technical_name, *, device, torch_dtype):
+            seen[technical_name] = (device, torch_dtype)
+            return nullcontext(lambda texts: np.zeros((len(texts), 1)))
 
-        assert written == []
-
-    def test_missing_api_key_raises_naming_the_exact_env_var(self, tmp_path):
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-
-        def _fake_fetch(texts, *, api_key):
-            return np.zeros((1, 1))
-
-        with pytest.raises(RuntimeError, match="TEHILLIM_OPENROUTER_API_KEY"):
-            generate_api(psalms, tmp_path, "gemini", fetch=_fake_fetch, env={})
-
-    def test_missing_api_key_is_not_read_when_every_variation_is_already_cached(self, tmp_path):
-        from semantic.export import node_vectors, write_dataset
-
-        psalms = [_psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",))]
-        for variation in ("consonantal", "vocalized", "cantillation"):
-            write_dataset(
-                tmp_path,
-                "gemini_embedding_2",
-                variation,
-                node_vectors({1: np.zeros((1, 3))}, psalms),
-                "already here",
-            )
-
-        def _must_not_be_called(texts, *, api_key):
-            raise AssertionError("fetch must not be called when every variation is cached")
-
-        written = generate_api(psalms, tmp_path, "gemini", fetch=_must_not_be_called, env={})
-
-        assert written == []
-
-    def test_cohere_uses_a_separate_api_key_env_var(self, tmp_path):
-        calls = []
-
-        def _fake_fetch(texts, *, api_key):
-            calls.append(api_key)
-            return np.zeros((len(texts), 2))
-
-        psalms = [
-            _psalm(
-                number=1,
-                half_verses=("A",),
-                half_verses_unvocalized=("a",),
-                half_verses_niqqud_only=("n",),
-            )
-        ]
-
-        generate_api(
-            psalms,
-            tmp_path,
-            "cohere",
-            fetch=_fake_fetch,
-            env={"TEHILLIM_COHERE_API_KEY": "cohere-key"},
-        )
-
-        assert calls
-        assert all(key == "cohere-key" for key in calls)
+        with encoder_for("kalm-embedding", device="cuda", local=fake_local):
+            pass
+        with encoder_for("berel", local=fake_local):
+            pass
+        assert seen == {
+            MODEL_REGISTRY["kalm-embedding"][0]: ("cuda", "bfloat16"),
+            MODEL_REGISTRY["berel"][0]: (None, None),
+        }
 
 
 class TestSemanticSpecs:
-    def test_one_spec_per_registered_model_covering_its_text_variations(self) -> None:
-        """Each model declares exactly the text partitions its tokenizer distinguishes."""
-        from semantic.generate import SPECS
-        from semantic.registry import MODEL_REGISTRY, variations_for_model
+    def test_one_spec_per_source_and_model_covering_the_tiers_they_share(self) -> None:
+        """Each cell declares exactly the text partitions its model and source both have."""
+        by_name = {spec.name: spec for spec in SPECS}
+        assert set(by_name) == {
+            f"semantic.generate.{source.slug}.{slug}"
+            for source in SOURCES
+            for slug in MODEL_REGISTRY
+        }
+        for source in SOURCES:
+            for slug, (_, model_slug, _) in MODEL_REGISTRY.items():
+                spec = by_name[f"semantic.generate.{source.slug}.{slug}"]
+                expected = tuple(
+                    f"{source.scope.directory}/domain=semantic/model={model_slug}/text={tier}"
+                    for tier, _ in variations_for_model(slug)
+                    if tier in source.tiers
+                )
+                assert tuple(p.directory for p in spec.partitions) == expected
+                assert spec.args[-2:] == ("--model", slug)
 
-        by_slug = {spec.module.rsplit(":", 1)[1]: spec for spec in SPECS}
-        assert set(by_slug) == set(MODEL_REGISTRY)
-        for slug, spec in by_slug.items():
-            model_slug = MODEL_REGISTRY[slug][1]
-            expected = tuple(
-                f"corpus=bhsa/unit=half_verse/domain=semantic/model={model_slug}/text={tier}"
-                for tier, _ in variations_for_model(slug)
-            )
-            assert tuple(p.directory for p in spec.partitions) == expected
+    def test_a_scroll_cell_selects_its_scope_by_every_key_it_carries(self) -> None:
+        spec = next(s for s in SPECS if s.name == "semantic.generate.dss-11Q5-none-verse.berel")
+        assert spec.args == (
+            "--corpus=dss",
+            "--witness=11Q5",
+            "--reconstruction=none",
+            "--unit=verse",
+            "--model",
+            "berel",
+        )
 
     def test_resource_classes_separate_hosted_large_and_small_models(self) -> None:
         """Hosted models need an API, Colab-only models a GPU, the rest run on the CPU."""
-        from semantic.generate import SPECS, resource_for
-
         assert resource_for("gemini") == "api"
         assert resource_for("kalm-embedding") == "gpu"
         assert resource_for("berel") is None
         assert {spec.resource for spec in SPECS} == {"api", "gpu", None}
 
 
-class TestSemanticMainModelFilter:
-    def test_model_flag_generates_only_that_model(self, tmp_path) -> None:
-        """`--model` restricts a run to one registry slug so a driver cell is one model."""
-        from semantic import generate as module
+class TestMain:
+    def test_selects_the_source_by_its_scope_flags_and_one_model(self, tmp_path) -> None:
+        calls: list[tuple[str, list[str]]] = []
+        loaded: list[str] = []
 
-        calls: list[str] = []
+        def source_factory(scope: Scope) -> Source:
+            loaded.append(scope.directory)
+            return Source(scope, ("consonantal",), lambda: SCROLL_UNITS)
 
-        def fake_local(psalms, output_root, slug, **_):
-            calls.append(slug)
-            return [slug]
-
-        def fake_api(psalms, output_root, slug, **_):
-            calls.append(slug)
-            return [slug]
-
-        class FakeCorpus:
-            def psalms(self):
-                return []
-
-        module.main(
-            ["--output-root", str(tmp_path), "--model", "berel"],
-            corpus_factory=FakeCorpus,
-            local=fake_local,
-            api=fake_api,
+        main(
+            [
+                "--output-root",
+                str(tmp_path),
+                "--corpus=dss",
+                "--witness=11Q5",
+                "--reconstruction=none",
+                "--unit=verse",
+                "--model",
+                "berel",
+            ],
+            source_factory=source_factory,
+            encoder=_recording_encoder(calls),
         )
-        assert calls == ["berel"]
 
-    def test_without_model_flag_every_model_runs(self, tmp_path) -> None:
-        """No flag keeps the historical behaviour of writing every registered model."""
-        from semantic import generate as module
-        from semantic.registry import MODEL_REGISTRY
+        assert loaded == [SCROLL.directory]
+        assert calls == [("berel", ["x", "y"])]
+        assert partition("berel", "consonantal", SCROLL).file(tmp_path).exists()
 
-        calls: list[str] = []
+    def test_without_a_model_flag_every_model_runs(self, tmp_path) -> None:
+        calls: list[tuple[str, list[str]]] = []
 
-        def fake(psalms, output_root, slug, **_):
-            calls.append(slug)
-            return [slug]
-
-        class FakeCorpus:
-            def psalms(self):
-                return []
-
-        module.main(
-            ["--output-root", str(tmp_path)], corpus_factory=FakeCorpus, local=fake, api=fake
+        main(
+            ["--output-root", str(tmp_path), "--corpus=bhsa", "--unit=half_verse"],
+            source_factory=lambda scope: Source(scope, ("consonantal",), lambda: UNITS),
+            encoder=_recording_encoder(calls),
         )
-        assert calls == list(MODEL_REGISTRY)
 
-
-class TestLargeModelDtype:
-    def test_large_models_load_in_their_registered_dtype(self, tmp_path) -> None:
-        """A GPU cell passes the notebook's dtype so the vectors match the Colab runs."""
-        from semantic import generate as module
-
-        seen: dict[str, object] = {}
-
-        def fake_local(psalms, output_root, slug, **kwargs):
-            seen[slug] = kwargs.get("torch_dtype")
-            return [slug]
-
-        module.generate([], tmp_path, ("kalm-embedding", "berel"), local=fake_local, api=fake_local)
-        assert seen == {"kalm-embedding": "bfloat16", "berel": None}
+        assert [slug for slug, _ in calls] == list(MODEL_REGISTRY)

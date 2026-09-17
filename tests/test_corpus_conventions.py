@@ -1,4 +1,4 @@
-"""Holds the five domain corpora to one shape, so a reader learns them once."""
+"""Holds the psalm-shaped corpora to one shape, so a reader learns them once."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ import pathlib
 import pytest
 
 SRC = pathlib.Path(__file__).resolve().parent.parent / "src"
+#: The semantic corpora are not here: their rows are units keyed by node, not psalms.
 CORPUS_MODULES = [
     "lexical/corpus.py",
     "lexical/surface_corpus.py",
     "morphological/corpus.py",
-    "semantic/corpus.py",
     "syntactic/corpus.py",
 ]
 

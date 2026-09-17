@@ -67,14 +67,16 @@ class Scope:
         if not several and (self.witness is not None or self.reconstruction is not None):
             raise PartitionError(f"corpus={self.corpus} is one text: no witness or reconstruction")
 
+    def values(self) -> Iterator[tuple[str, str]]:
+        """Every present key with its value, in path order."""
+        for key in KEYS:
+            if key in _SCOPE_KEYS and (value := getattr(self, key)) is not None:
+                yield key, value
+
     @property
     def directory(self) -> str:
         """The Hive-relative directory every partition of this scope sits under."""
-        return "/".join(
-            f"{key}={value}"
-            for key in KEYS
-            if key in _SCOPE_KEYS and (value := getattr(self, key)) is not None
-        )
+        return "/".join(f"{key}={value}" for key, value in self.values())
 
 
 #: The only scope this repository writes today: the Masoretic Psalms at the accentual half-verse.

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from core.corpus import DEFAULT_BHSA_CLONE, BaseCorpus, shared_api
-from core.text import strip_accents
+from core.text import consonantal, strip_accents
 
 __all__ = ["DEFAULT_BHSA_CLONE", "SurfaceCorpus", "SurfacePsalm"]
 
@@ -43,7 +43,8 @@ class SurfaceCorpus(BaseCorpus[SurfacePsalm]):
         return SurfacePsalm(
             number=number,
             half_verse_consonantal=tuple(
-                tuple(F.g_cons_utf8.v(w) for w in words) for words in words_by_half_verse
+                tuple(consonantal(F.g_cons_utf8.v(w)) for w in words)
+                for words in words_by_half_verse
             ),
             half_verse_vocalized=tuple(
                 tuple(strip_accents(F.g_word_utf8.v(w)) for w in words)

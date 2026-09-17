@@ -1,11 +1,13 @@
-"""Model registry and corpus-data resolution for the four Colab-only encoders."""
+"""Model registry and corpus-data resolution for the Colab-only encoders."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from core.corpus import BHSA_PATH_ENV, DEFAULT_BHSA_CLONE
 from semantic.local_models import (
     BGE_MULTILINGUAL_GEMMA2_MODEL,
     F2LLM_V2_MODEL,
@@ -14,6 +16,7 @@ from semantic.local_models import (
     LLAMA_EMBED_NEMOTRON_MODEL,
     QWEN3_EMBEDDING_MODEL,
 )
+from semantic.scroll import DEFAULT_DSS_PATH, DEFAULT_SCRIBES_PATH, DSS_PATH_ENV, SCRIBES_PATH_ENV
 
 #: slug -> (model id, torch_dtype); "auto" uses the on-disk dtype rather than upcasting.
 LARGE_MODELS: tuple[tuple[str, str, str], ...] = (
@@ -43,21 +46,55 @@ def models_for_choice(choice: str | None) -> tuple[tuple[str, str, str], ...]:
     return tuple(model for model in LARGE_MODELS if model[0] == slug)
 
 
+@dataclass(frozen=True, slots=True)
+class Checkout:
+    """One Text-Fabric dataset a source reads: its default location and where to clone it from."""
+
+    #: The environment variable the loader reads the location from.
+    env_var: str
+    default: Path
+    repository: str
+    #: The Text-Fabric directory inside the clone.
+    subpath: str
+
+
+#: Every dataset the semantic sources read, so a Colab session can fetch what a scope needs.
+CHECKOUTS: tuple[Checkout, ...] = (
+    Checkout(BHSA_PATH_ENV, DEFAULT_BHSA_CLONE, "https://github.com/ETCBC/bhsa.git", "tf/2021"),
+    Checkout(DSS_PATH_ENV, DEFAULT_DSS_PATH, "https://github.com/ETCBC/dss.git", "tf/2.0"),
+    Checkout(
+        SCRIBES_PATH_ENV,
+        DEFAULT_SCRIBES_PATH,
+        "https://github.com/rdtaylorjr/tehillim-scribes.git",
+        "tf/2.0",
+    ),
+)
+
+
+def ensure_checkout(
+    checkout: Checkout, *, data_dir: Path, clone: Callable[[str, Path], None]
+) -> Path:
+    """The dataset's local directory, cloning it into `data_dir` when the default is absent."""
+    if checkout.default.exists():
+        return checkout.default
+    data_dir.mkdir(parents=True, exist_ok=True)
+    repository = data_dir / checkout.repository.rsplit("/", 1)[1].removesuffix(".git")
+    if not repository.exists():
+        clone(checkout.repository, repository)
+    return repository / checkout.subpath
+
+
 def ensure_corpus_data(
     *,
-    bhsa_default: Path,
     data_dir: Path,
     clone: Callable[[str, Path], None],
-) -> Path:
-    """Returns a local BHSA path, cloning into `data_dir` if missing."""
-    if bhsa_default.exists():
-        return bhsa_default
-
-    data_dir.mkdir(parents=True, exist_ok=True)
-    bhsa_repo = data_dir / "bhsa"
-    if not bhsa_repo.exists():
-        clone("https://github.com/ETCBC/bhsa.git", bhsa_repo)
-    return bhsa_repo / "tf" / "2021"
+    checkouts: tuple[Checkout, ...] = CHECKOUTS,
+) -> dict[str, str]:
+    """Every dataset's location, as the environment the sources read: set it before loading."""
+    return {
+        checkout.env_var: str(ensure_checkout(checkout, data_dir=data_dir, clone=clone))
+        for checkout in checkouts
+    }
 
 
 def gpu_memory_summary(torch_module: Any | None = None) -> str | None:

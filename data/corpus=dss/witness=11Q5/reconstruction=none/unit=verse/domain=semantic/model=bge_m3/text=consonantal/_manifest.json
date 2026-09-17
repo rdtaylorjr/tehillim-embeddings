@@ -1,0 +1,17 @@
+{
+  "semantic.generate.dss-11Q5-none-verse.bge-m3": {
+    "cell": "semantic.generate.dss-11Q5-none-verse.bge-m3",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 26.838078,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=dss/witness=11Q5/reconstruction=none/unit=verse/domain=semantic/model=bge_m3/text=consonantal/part-0.parquet": "9d85c24cade9c85d1cb3bdede15556faf49835df709ec34c382a554e537f8184"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=dss --witness=11Q5 --reconstruction=none --unit=verse --model bge-m3"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_dss_11Q5_none_verse_bge_m3",
+    "started": "2026-09-16T22:51:41.929131+00:00"
+  }
+}

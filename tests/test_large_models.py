@@ -3,7 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from semantic.large_models import (
+    CHECKOUTS,
     LARGE_MODELS,
+    Checkout,
+    ensure_checkout,
     ensure_corpus_data,
     gpu_memory_summary,
     models_for_choice,
@@ -29,7 +32,7 @@ class TestModelsForChoice:
         assert models_for_choice("f2llm")[0][0] == "f2llm-v2"
 
 
-class TestEnsureCorpusData:
+class TestEnsureCheckout:
     def test_returns_the_default_when_it_already_exists(self, tmp_path):
         bhsa = tmp_path / "bhsa"
         bhsa.mkdir()
@@ -37,13 +40,8 @@ class TestEnsureCorpusData:
         def _must_not_be_called(url: str, destination: Path) -> None:
             raise AssertionError("clone must not be called when the default already exists")
 
-        result = ensure_corpus_data(
-            bhsa_default=bhsa,
-            data_dir=tmp_path / "data",
-            clone=_must_not_be_called,
-        )
-
-        assert result == bhsa
+        checkout = Checkout("X", bhsa, "https://github.com/ETCBC/bhsa.git", "tf/2021")
+        assert ensure_checkout(checkout, data_dir=tmp_path / "d", clone=_must_not_be_called) == bhsa
 
     def test_clones_when_the_default_does_not_exist(self, tmp_path):
         clones: list[tuple[str, Path]] = []
@@ -53,14 +51,11 @@ class TestEnsureCorpusData:
             destination.mkdir(parents=True)
 
         data_dir = tmp_path / "data"
-        result = ensure_corpus_data(
-            bhsa_default=tmp_path / "missing-bhsa",
-            data_dir=data_dir,
-            clone=_fake_clone,
-        )
+        checkout = Checkout("X", tmp_path / "missing", "https://github.com/ETCBC/dss.git", "tf/2.0")
+        result = ensure_checkout(checkout, data_dir=data_dir, clone=_fake_clone)
 
-        assert result == data_dir / "bhsa" / "tf" / "2021"
-        assert clones == [("https://github.com/ETCBC/bhsa.git", data_dir / "bhsa")]
+        assert result == data_dir / "dss" / "tf" / "2.0"
+        assert clones == [("https://github.com/ETCBC/dss.git", data_dir / "dss")]
 
     def test_skips_cloning_a_repo_already_present_in_data_dir(self, tmp_path):
         data_dir = tmp_path / "data"
@@ -69,15 +64,33 @@ class TestEnsureCorpusData:
 
         def _fake_clone(url: str, destination: Path) -> None:
             clones.append(url)
-            destination.mkdir(parents=True)
 
-        ensure_corpus_data(
-            bhsa_default=tmp_path / "missing-bhsa",
-            data_dir=data_dir,
-            clone=_fake_clone,
+        checkout = Checkout(
+            "X", tmp_path / "missing", "https://github.com/ETCBC/bhsa.git", "tf/2021"
         )
+        ensure_checkout(checkout, data_dir=data_dir, clone=_fake_clone)
 
         assert clones == []
+
+
+class TestEnsureCorpusData:
+    def test_names_every_dataset_by_the_variable_its_loader_reads(self, tmp_path):
+        env = ensure_corpus_data(
+            data_dir=tmp_path, clone=lambda url, dest: dest.mkdir(parents=True)
+        )
+
+        assert set(env) == {"TEHILLIM_BHSA_PATH", "TEHILLIM_DSS_PATH", "TEHILLIM_SCRIBES_TF_PATH"}
+        assert all(
+            Path(path).parts[-2:] == ("tf", version)
+            for path, version in zip(env.values(), ("2021", "2.0", "2.0"), strict=True)
+        ) or all(Path(path).exists() for path in env.values())
+
+    def test_the_checkouts_cover_the_three_datasets_the_sources_read(self):
+        assert [c.repository.rsplit("/", 1)[1] for c in CHECKOUTS] == [
+            "bhsa.git",
+            "dss.git",
+            "tehillim-scribes.git",
+        ]
 
 
 class _FakeCuda:

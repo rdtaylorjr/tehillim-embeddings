@@ -53,17 +53,14 @@ class Plan:
 
 
 def cell_for(spec: GeneratorSpec, data_root: Path, config_root: Path) -> Cell:
-    """The cell a generator spec describes, with a `--model` flag for a per-model spec."""
-    module, _, model = spec.module.partition(":")
+    """The cell a generator spec describes, with the args that select its variant."""
     args = ["--output-root", str(data_root)]
     if spec.support:
         args += ["--config-root", str(config_root)]
-    if model:
-        args += ["--model", model]
-    name = module if not model else f"{module}.{model}"
+    args += list(spec.args)
     return Cell(
-        name=name,
-        module=module,
+        name=spec.name,
+        module=spec.module,
         inputs=support_paths(spec, config_root),
         outputs=partition_paths(spec, data_root),
         command_args=args,

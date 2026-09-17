@@ -1,0 +1,17 @@
+{
+  "semantic.generate.bhsa-verse.neodictabert": {
+    "cell": "semantic.generate.bhsa-verse.neodictabert",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 49.788355,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=verse/domain=semantic/model=neodictabert/text=consonantal/part-0.parquet": "81d055e23ae60a67fb6da866413695b8e85958ddf9909f8dcbc41c92efb4bfdf"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=verse --model neodictabert"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_bhsa_verse_neodictabert",
+    "started": "2026-09-16T22:54:10.497610+00:00"
+  }
+}

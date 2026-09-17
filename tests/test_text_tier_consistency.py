@@ -7,9 +7,8 @@ import pytest
 from core.text import TextTier, strip_accents
 from lexical.surface_corpus import SurfacePsalm
 from lexical.surface_vocabulary import half_verses_for_tier
-from semantic.corpus import SemanticPsalm
-from semantic.local_models import select_half_verses
 from semantic.registry import VARIATIONS
+from semantic.units import Unit, texts_at
 
 TIERS: tuple[TextTier, ...] = ("consonantal", "vocalized", "cantillation")
 
@@ -29,17 +28,10 @@ def test_every_registry_variation_names_a_known_tier() -> None:
 
 
 @pytest.mark.parametrize("tier", TIERS)
-def test_the_semantic_loader_returns_the_text_its_tier_names(tier: TextTier) -> None:
-    psalm = SemanticPsalm(
-        number=1,
-        half_verses=(CANTILLATED,),
-        half_verses_unvocalized=(CONSONANTS,),
-        half_verses_niqqud_only=(POINTED,),
-        half_verse_nodes=(100,),
-    )
+def test_a_unit_returns_the_text_its_tier_names(tier: TextTier) -> None:
+    unit = Unit(100, {"consonantal": CONSONANTS, "vocalized": POINTED, "cantillation": CANTILLATED})
     expected = {"consonantal": CONSONANTS, "vocalized": POINTED, "cantillation": CANTILLATED}
-
-    assert select_half_verses(psalm, tier) == (expected[tier],)
+    assert texts_at([unit], tier) == [expected[tier]]
 
 
 @pytest.mark.parametrize("tier", TIERS)

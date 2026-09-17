@@ -17,56 +17,14 @@ from semantic.local_models import (
     _repair_gte_multilingual_position_ids,
     _repair_neodictabert_rope_buffers,
     _rope_frequencies,
-    compute_half_verse_embeddings,
-    select_half_verses,
+    encoder,
 )
 
 
-def _psalm(
-    *,
-    number: int = 1,
-    half_verses: tuple[str, ...],
-    half_verses_unvocalized: tuple[str, ...],
-    half_verses_niqqud_only: tuple[str, ...] = (),
-):
-    from semantic.corpus import SemanticPsalm
-
-    return SemanticPsalm(
-        number=number,
-        half_verses=half_verses,
-        half_verses_unvocalized=half_verses_unvocalized,
-        half_verses_niqqud_only=half_verses_niqqud_only,
-    )
-
-
-class TestSelectHalfVerses:
-    """One tier names the text state, so no second flag can contradict it."""
-
-    @staticmethod
-    def _psalm_of_three_tiers():
-        return _psalm(
-            half_verses=("cantillated",),
-            half_verses_unvocalized=("consonants",),
-            half_verses_niqqud_only=("pointed",),
-        )
-
-    def test_the_cantillation_tier_keeps_the_accents(self):
-        assert select_half_verses(self._psalm_of_three_tiers(), "cantillation") == ("cantillated",)
-
-    def test_the_vocalized_tier_keeps_niqqud_without_accents(self):
-        assert select_half_verses(self._psalm_of_three_tiers(), "vocalized") == ("pointed",)
-
-    def test_the_consonantal_tier_keeps_neither(self):
-        assert select_half_verses(self._psalm_of_three_tiers(), "consonantal") == ("consonants",)
-
-    def test_every_tier_selects_a_different_text(self):
-        psalm = self._psalm_of_three_tiers()
-
-        selected = {
-            select_half_verses(psalm, tier) for tier in ("consonantal", "vocalized", "cantillation")
-        }
-
-        assert len(selected) == 3
+def _run(model_name, texts=("A",), **kwargs):
+    """Opens the model as an encoder for one call over the texts."""
+    with encoder(model_name, **kwargs) as encode:
+        return encode(list(texts))
 
 
 class TestRopeFrequencies:
@@ -262,6 +220,52 @@ class TestRepairGteMultilingualPositionIds:
         _repair_gte_multilingual_position_ids(auto_model)
 
         assert torch.equal(healthy.position_ids, torch.arange(512).unsqueeze(0))
+
+
+class TestRepairGteMultilingualAttentionMask:
+    def test_binds_the_4x_helper_where_the_model_lacks_it(self):
+        import torch
+
+        from semantic.local_models import _repair_gte_multilingual_attention_mask
+
+        class _Model:
+            dtype = torch.float32
+
+        model = _Model()
+        _repair_gte_multilingual_attention_mask(model)
+        mask = torch.tensor([[1, 1, 0]])
+        bias = model.get_extended_attention_mask(mask, (1, 3))
+        assert bias.shape == (1, 1, 1, 3)
+        assert bias[0, 0, 0, 0] == 0.0
+        assert bias[0, 0, 0, 2] == torch.finfo(torch.float32).min
+
+    def test_a_three_dimensional_mask_broadcasts_over_heads(self):
+        import torch
+
+        from semantic.local_models import _extended_attention_mask
+
+        bias = _extended_attention_mask(torch.ones(2, 3, 3), (2, 3), dtype=torch.float32)
+        assert bias.shape == (2, 1, 3, 3)
+        assert bool((bias == 0).all())
+
+    def test_leaves_a_model_that_has_the_helper_untouched(self):
+        from semantic.local_models import _repair_gte_multilingual_attention_mask
+
+        class _Model:
+            def get_extended_attention_mask(self, mask, shape):
+                return "own"
+
+        model = _Model()
+        _repair_gte_multilingual_attention_mask(model)
+        assert model.get_extended_attention_mask(None, None) == "own"
+
+    def test_refuses_a_mask_of_another_rank(self):
+        import torch
+
+        from semantic.local_models import _extended_attention_mask
+
+        with pytest.raises(ValueError, match="expected 2 or 3"):
+            _extended_attention_mask(torch.ones(3), (3,), dtype=torch.float32)
 
 
 class TestEvictGteMultilingualDynamicModule:
@@ -495,7 +499,7 @@ class TestLoadRawTransformerDevice:
         assert model.device == "cpu"
 
 
-class TestComputeHalfVerseEmbeddingsDevice:
+class TestEncoderDevice:
     def test_passes_device_through_to_sentence_transformer_factory(self):
         calls = []
 
@@ -516,11 +520,7 @@ class TestComputeHalfVerseEmbeddingsDevice:
             )
             return _FakeModel()
 
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-
-        compute_half_verse_embeddings(
-            [psalm], "some-model", device="cpu", sentence_transformer_factory=_fake_factory
-        )
+        _run("some-model", texts=("A",), device="cpu", sentence_transformer_factory=_fake_factory)
 
         assert calls == [{"model_name": "some-model", "trust_remote_code": True, "device": "cpu"}]
 
@@ -535,16 +535,12 @@ class TestComputeHalfVerseEmbeddingsDevice:
             calls.append(device)
             return _FakeModel()
 
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-
-        compute_half_verse_embeddings(
-            [psalm], "some-model", sentence_transformer_factory=_fake_factory
-        )
+        _run("some-model", texts=("A",), sentence_transformer_factory=_fake_factory)
 
         assert calls == [None]
 
 
-class TestComputeHalfVerseEmbeddingsTorchDtype:
+class TestEncoderTorchDtype:
     def test_passes_torch_dtype_through_as_model_kwargs(self):
         calls = []
 
@@ -556,10 +552,11 @@ class TestComputeHalfVerseEmbeddingsTorchDtype:
             calls.append(model_kwargs)
             return _FakeModel()
 
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-
-        compute_half_verse_embeddings(
-            [psalm], "some-model", torch_dtype="float16", sentence_transformer_factory=_fake_factory
+        _run(
+            "some-model",
+            texts=("A",),
+            torch_dtype="float16",
+            sentence_transformer_factory=_fake_factory,
         )
 
         assert calls == [{"torch_dtype": "float16"}]
@@ -576,16 +573,43 @@ class TestComputeHalfVerseEmbeddingsTorchDtype:
             calls.append(True)
             return _FakeModel()
 
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-
-        compute_half_verse_embeddings(
-            [psalm], "some-model", sentence_transformer_factory=_fake_factory
-        )
+        _run("some-model", texts=("A",), sentence_transformer_factory=_fake_factory)
 
         assert calls == [True]
 
 
-class TestComputeHalfVerseEmbeddingsRawTransformerModelsRouteAroundSentenceTransformer:
+class TestGteLoadsInFloat32OnTheCpu:
+    def test_gte_defaults_to_cpu_and_float32_where_neither_is_given(self):
+        from semantic.local_models import GTE_MULTILINGUAL_MODEL
+
+        calls = []
+
+        class _AutoModel:
+            dtype = None
+
+            def modules(self):
+                return iter(())
+
+        class _Sub:
+            auto_model = _AutoModel()
+
+        class _FakeModel:
+            def __getitem__(self, index):
+                return _Sub()
+
+            def encode(self, texts, normalize_embeddings=True):
+                return np.zeros((len(texts), 3))
+
+        def _fake_factory(model_name, *, trust_remote_code=False, device=None, model_kwargs=None):
+            calls.append((device, model_kwargs))
+            return _FakeModel()
+
+        _run(GTE_MULTILINGUAL_MODEL, sentence_transformer_factory=_fake_factory)
+
+        assert calls == [("cpu", {"torch_dtype": "float32"})]
+
+
+class TestEncoderRawTransformerModelsRouteAroundSentenceTransformer:
     def test_kalm_and_harrier_are_both_in_the_raw_transformer_set(self):
         assert KALM_EMBEDDING_MODEL in RAW_TRANSFORMER_MODELS
         assert HARRIER_OSS_MODEL in RAW_TRANSFORMER_MODELS
@@ -606,11 +630,9 @@ class TestComputeHalfVerseEmbeddingsRawTransformerModelsRouteAroundSentenceTrans
             assert model == "fake-model"
             return np.zeros((len(texts), 4))
 
-        psalm = _psalm(half_verses=("A", "B"), half_verses_unvocalized=("C", "D"))
-
-        result = compute_half_verse_embeddings(
-            [psalm],
+        result = _run(
             model_name,
+            texts=("A", "B"),
             torch_dtype="bfloat16",
             device="cuda",
             sentence_transformer_factory=_fail,
@@ -620,9 +642,11 @@ class TestComputeHalfVerseEmbeddingsRawTransformerModelsRouteAroundSentenceTrans
         )
 
         assert calls == [(model_name, "bfloat16", "cuda")]
-        assert result[1].shape == (2, 4)
+        assert result.shape == (2, 4)
 
-    def test_loads_once_and_reuses_across_psalms(self):
+    def test_loads_once_and_pools_in_batches(self):
+        from semantic.local_models import RAW_BATCH
+
         load_calls = []
         encode_calls = []
 
@@ -631,24 +655,21 @@ class TestComputeHalfVerseEmbeddingsRawTransformerModelsRouteAroundSentenceTrans
             return "tok", "mdl"
 
         def _fake_pooler(texts, tokenizer, model):
-            encode_calls.append(texts)
+            encode_calls.append(list(texts))
             return np.zeros((len(texts), 2))
 
-        psalms = [
-            _psalm(number=1, half_verses=("A",), half_verses_unvocalized=("a",)),
-            _psalm(number=2, half_verses=("B",), half_verses_unvocalized=("b",)),
-        ]
-
-        compute_half_verse_embeddings(
-            psalms,
+        texts = [f"t{i}" for i in range(RAW_BATCH + 1)]
+        result = _run(
             HARRIER_OSS_MODEL,
+            texts=texts,
             raw_transformer_loader=_fake_raw_transformer_loader,
             last_token_pooler=_fake_pooler,
             release_gpu_memory=lambda: None,
         )
 
         assert len(load_calls) == 1
-        assert len(encode_calls) == 2
+        assert [len(batch) for batch in encode_calls] == [RAW_BATCH, 1]
+        assert result.shape == (RAW_BATCH + 1, 2)
 
 
 class TestNoTrustRemoteCodeModels:
@@ -698,11 +719,9 @@ class TestNoTrustRemoteCodeModels:
             calls.append(trust_remote_code)
             return _FakeModel()
 
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-
-        compute_half_verse_embeddings(
-            [psalm],
+        _run(
             F2LLM_V2_MODEL,
+            texts=("A",),
             sentence_transformer_factory=_fake_factory,
             release_gpu_memory=lambda: None,
         )
@@ -738,20 +757,22 @@ class TestNoTrustRemoteCodeModels:
         assert calls == [True, True]
 
 
-class TestComputeHalfVerseEmbeddingsGteRetry:
+class TestEncoderGteRetry:
     # The fake mirrors a real SentenceTransformer's module list: subscriptable, .auto_model on [0].
     class _FakeAutoModel:
+        dtype = None
+
         def modules(self):
             return iter(())
 
     class _FakeSubModule:
         def __init__(self):
-            self.auto_model = TestComputeHalfVerseEmbeddingsGteRetry._FakeAutoModel()
+            self.auto_model = TestEncoderGteRetry._FakeAutoModel()
 
     class _FakeModel:
         def __init__(self, ok):
             self._ok = ok
-            self._sub_modules = [TestComputeHalfVerseEmbeddingsGteRetry._FakeSubModule()]
+            self._sub_modules = [TestEncoderGteRetry._FakeSubModule()]
 
         def __getitem__(self, index):
             return self._sub_modules[index]
@@ -769,17 +790,15 @@ class TestComputeHalfVerseEmbeddingsGteRetry:
             attempts.append(1)
             return self._FakeModel(ok=len(attempts) >= 2)
 
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-
-        result = compute_half_verse_embeddings(
-            [psalm],
+        result = _run(
             GTE_MULTILINGUAL_MODEL,
+            texts=("A",),
             sentence_transformer_factory=_fake_factory,
             release_gpu_memory=lambda: None,
         )
 
         assert len(attempts) == 2
-        assert np.all(np.isfinite(result[1]))
+        assert np.all(np.isfinite(result))
 
     def test_raises_after_every_attempt_stays_non_finite(self):
         from semantic.local_models import GTE_MULTILINGUAL_MODEL
@@ -787,18 +806,16 @@ class TestComputeHalfVerseEmbeddingsGteRetry:
         def _fake_factory(model_name, *, trust_remote_code=False, device=None, model_kwargs=None):
             return self._FakeModel(ok=False)
 
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-
         with pytest.raises(RuntimeError, match="non-finite"):
-            compute_half_verse_embeddings(
-                [psalm],
+            _run(
                 GTE_MULTILINGUAL_MODEL,
+                texts=("A",),
                 sentence_transformer_factory=_fake_factory,
                 release_gpu_memory=lambda: None,
             )
 
 
-class TestComputeHalfVerseEmbeddingsRepairsAreWired:
+class TestEncoderRepairsAreWired:
     # Confirms the repair call actually happens, not just that the repair functions work alone.
     class _FakeSubModule:
         def __init__(self, auto_model):
@@ -806,7 +823,7 @@ class TestComputeHalfVerseEmbeddingsRepairsAreWired:
 
     class _FakeModel:
         def __init__(self, auto_model):
-            sub_module_cls = TestComputeHalfVerseEmbeddingsRepairsAreWired._FakeSubModule
+            sub_module_cls = TestEncoderRepairsAreWired._FakeSubModule
             self._sub_modules = [sub_module_cls(auto_model)]
 
         def __getitem__(self, index):
@@ -832,6 +849,8 @@ class TestComputeHalfVerseEmbeddingsRepairsAreWired:
                 self.config = _StubConfig()
 
         class _StubAutoModel:
+            dtype = None
+
             def __init__(self, submodule):
                 self._submodule = submodule
 
@@ -844,11 +863,9 @@ class TestComputeHalfVerseEmbeddingsRepairsAreWired:
         def _fake_factory(model_name, *, trust_remote_code=False, device=None):
             return fake_model
 
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-
-        compute_half_verse_embeddings(
-            [psalm],
+        _run(
             NEODICTABERT_MODEL,
+            texts=("A",),
             sentence_transformer_factory=_fake_factory,
             release_gpu_memory=lambda: None,
         )
@@ -865,6 +882,8 @@ class TestComputeHalfVerseEmbeddingsRepairsAreWired:
                 self.position_ids = torch.tensor([0, 4335441888, 59023, -1, 7453010313431162915])
 
         class _StubAutoModel:
+            dtype = None
+
             def __init__(self, submodule):
                 self._submodule = submodule
 
@@ -877,11 +896,9 @@ class TestComputeHalfVerseEmbeddingsRepairsAreWired:
         def _fake_factory(model_name, *, trust_remote_code=False, device=None, model_kwargs=None):
             return fake_model
 
-        psalm = _psalm(half_verses=("A",), half_verses_unvocalized=("B",))
-
-        compute_half_verse_embeddings(
-            [psalm],
+        _run(
             GTE_MULTILINGUAL_MODEL,
+            texts=("A",),
             sentence_transformer_factory=_fake_factory,
             release_gpu_memory=lambda: None,
         )

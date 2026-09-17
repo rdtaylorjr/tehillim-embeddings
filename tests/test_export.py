@@ -1,84 +1,34 @@
+"""Where a semantic dataset is written, and when an existing one is skipped."""
+
 from __future__ import annotations
 
-import numpy as np
-import pyarrow.parquet as pq
-
-from semantic.export import node_vectors, partition, write_dataset
+from core.partition import Scope
+from semantic.export import partition, path_to_write
 
 
-def _psalm(*, number: int, half_verses, half_verse_nodes):
-    from semantic.corpus import SemanticPsalm
-
-    return SemanticPsalm(number=number, half_verses=half_verses, half_verse_nodes=half_verse_nodes)
-
-
-class TestDatasetPath:
-    def test_points_at_the_hive_partitioned_parquet_file(self, tmp_path):
-        path = partition("bge_m3", "vocalized").file(tmp_path)
-        expected = (
-            tmp_path
-            / "corpus=bhsa/unit=half_verse/domain=semantic/model=bge_m3/text=vocalized"
-            / "part-0.parquet"
-        )
-        assert path == expected
+def test_the_partition_defaults_to_the_masoretic_half_verse(tmp_path):
+    path = partition("bge_m3", "vocalized").file(tmp_path)
+    assert path == (
+        tmp_path
+        / "corpus=bhsa/unit=half_verse/domain=semantic/model=bge_m3/text=vocalized"
+        / "part-0.parquet"
+    )
 
 
-class TestNodeVectors:
-    def test_maps_each_half_verse_node_to_its_vector(self):
-        psalms = [_psalm(number=1, half_verses=("A", "B"), half_verse_nodes=(100, 101))]
-        embeddings = {1: np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)}
-
-        values = node_vectors(embeddings, psalms)
-
-        assert set(values) == {100, 101}
-        assert np.array_equal(values[100], [1.0, 2.0])
-        assert np.array_equal(values[101], [3.0, 4.0])
-
-    def test_skips_a_psalm_missing_from_the_embeddings_dict(self):
-        psalms = [_psalm(number=1, half_verses=("A",), half_verse_nodes=(100,))]
-
-        values = node_vectors({}, psalms)
-
-        assert values == {}
+def test_a_scroll_scope_places_the_same_model_under_its_witness(tmp_path):
+    scope = Scope("dss", "verse", witness="11Q5", reconstruction="none")
+    path = partition("bge_m3", "consonantal", scope).file(tmp_path)
+    assert path == (
+        tmp_path
+        / "corpus=dss/witness=11Q5/reconstruction=none/unit=verse/domain=semantic/model=bge_m3"
+        / "text=consonantal/part-0.parquet"
+    )
 
 
-class TestWriteDataset:
-    def test_round_trips_node_ids_and_vectors_exactly(self, tmp_path):
-        vectors = {
-            100: np.array([1.0, -2.5, 0.0], dtype=np.float32),
-            101: np.array([3.25, 4.0, -1.0], dtype=np.float32),
-        }
-
-        write_dataset(tmp_path, "bge_m3", "vocalized", vectors, "a description")
-
-        table = pq.read_table(partition("bge_m3", "vocalized").file(tmp_path))
-        by_node = dict(zip(table["node_id"].to_pylist(), table["vector"].to_pylist(), strict=True))
-        assert set(by_node) == {100, 101}
-        assert np.array_equal(by_node[100], vectors[100])
-        assert np.array_equal(by_node[101], vectors[101])
-
-    def test_stores_float32_regardless_of_input_dtype(self, tmp_path):
-        vectors = {100: np.array([1.0, 2.0], dtype=np.float64)}
-
-        write_dataset(tmp_path, "bge_m3", "vocalized", vectors, "a description")
-
-        table = pq.read_table(partition("bge_m3", "vocalized").file(tmp_path))
-        assert (
-            table["vector"].type.value_type == "float32"
-            or str(table["vector"].type.value_type) == "float"
-        )
-
-    def test_stores_the_description_in_file_metadata(self, tmp_path):
-        vectors = {100: np.array([1.0], dtype=np.float32)}
-
-        write_dataset(tmp_path, "bge_m3", "vocalized", vectors, "a specific description")
-
-        table = pq.read_table(partition("bge_m3", "vocalized").file(tmp_path))
-        assert table.schema.metadata[b"description"] == b"a specific description"
-
-    def test_creates_parent_directories(self, tmp_path):
-        vectors = {100: np.array([1.0], dtype=np.float32)}
-
-        write_dataset(tmp_path / "nested", "bge_m3", "vocalized", vectors, "d")
-
-        assert partition("bge_m3", "vocalized").file(tmp_path / "nested").exists()
+def test_path_to_write_skips_a_written_dataset(tmp_path, capsys):
+    path = path_to_write(tmp_path, "bge_m3", "vocalized")
+    assert path == partition("bge_m3", "vocalized").file(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"")
+    assert path_to_write(tmp_path, "bge_m3", "vocalized") is None
+    assert "model=bge_m3/text=vocalized" in capsys.readouterr().err

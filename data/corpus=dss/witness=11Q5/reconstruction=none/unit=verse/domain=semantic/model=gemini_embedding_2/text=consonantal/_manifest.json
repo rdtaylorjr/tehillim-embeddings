@@ -1,0 +1,17 @@
+{
+  "semantic.generate.dss-11Q5-none-verse.gemini": {
+    "cell": "semantic.generate.dss-11Q5-none-verse.gemini",
+    "code_hash": "78ae527cb557a676f2f2ca5b523f764767e44bdea05c0329001e34bbc5590697",
+    "duration_s": 21.128131,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=dss/witness=11Q5/reconstruction=none/unit=verse/domain=semantic/model=gemini_embedding_2/text=consonantal/part-0.parquet": "e5878f9f85163049af0d3bdd1eac3d099d19fb85129a978a10c07f58c263115d"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=dss --witness=11Q5 --reconstruction=none --unit=verse --model gemini"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_dss_11Q5_none_verse_gemini",
+    "started": "2026-09-17T03:50:01.441747+00:00"
+  }
+}

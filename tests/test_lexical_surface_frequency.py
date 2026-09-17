@@ -36,9 +36,10 @@ class _FakeApi:
 
 def _fake_api() -> _FakeApi:
     # Words 1,2 share consonantal "בר"; an accent (U+0591) on word 1 splits them at that tier.
+    # Word 3 carries a shin dot in g_cons_utf8, which the consonantal tier removes.
     words = [1, 2, 3]
-    g_cons = _FakeFeature({1: "בר", 2: "בר", 3: "אש"})
-    g_word = _FakeFeature({1: "ב֑ר", 2: "בר", 3: "אש"})
+    g_cons = _FakeFeature({1: "בר", 2: "בר", 3: "אשׁ"})
+    g_word = _FakeFeature({1: "ב֑ר", 2: "בר", 3: "אשׁ"})
     return _FakeApi(_FakeF(_FakeOtype(words), g_cons, g_word))
 
 
@@ -51,10 +52,10 @@ class TestSurfaceTokenFrequencies:
     def test_cantillation_tier_reads_g_word_utf8_as_is(self) -> None:
         frequencies = surface_token_frequencies(_fake_api(), tier="cantillation")
 
-        assert frequencies == {"ב֑ר": 1, "בר": 1, "אש": 1}
+        assert frequencies == {"ב֑ר": 1, "בר": 1, "אשׁ": 1}
 
     def test_vocalized_tier_strips_the_cantillation_mark(self) -> None:
         frequencies = surface_token_frequencies(_fake_api(), tier="vocalized")
 
         # Word 1's cantillation mark is stripped, so it now matches word 2's plain "בר".
-        assert frequencies == {"בר": 2, "אש": 1}
+        assert frequencies == {"בר": 2, "אשׁ": 1}

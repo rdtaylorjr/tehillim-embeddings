@@ -1,19 +1,19 @@
-"""Computes half-verse embeddings from local sentence-embedding models."""
+"""Opens a local embedding model as an Encoder: one call over texts, one row each."""
 
 from __future__ import annotations
 
 import sys
-from collections.abc import Callable, MutableMapping
+from collections.abc import Callable, Iterator, MutableMapping, Sequence
+from contextlib import contextmanager
+from functools import partial
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
-from core.text import TextTier
+from semantic.units import Encoder
 
 if TYPE_CHECKING:
     import torch
-
-    from semantic.corpus import SemanticPsalm
 
 MIQRABERT_MODEL = "davidmsmiley/MiqraBERT"
 ALEPHBERT_MODEL = "imvladikon/sentence-transformers-alephbert"
@@ -32,15 +32,6 @@ GTE_MULTILINGUAL_MODEL = "Alibaba-NLP/gte-multilingual-base"
 _GTE_MULTILINGUAL_MAX_ATTEMPTS = 5
 
 ME5_LARGE_INSTRUCT_MODEL = "intfloat/multilingual-e5-large-instruct"
-
-
-def select_half_verses(psalm: SemanticPsalm, tier: TextTier) -> tuple[str, ...]:
-    """Selects a psalm's half-verse texts for one text tier."""
-    if tier == "consonantal":
-        return psalm.half_verses_unvocalized
-    if tier == "vocalized":
-        return psalm.half_verses_niqqud_only
-    return psalm.half_verses
 
 
 def _rope_frequencies(
@@ -101,6 +92,32 @@ def _repair_gte_multilingual_position_ids(auto_model: Any) -> None:
         if torch.equal(position_ids, expected):
             continue
         module.position_ids.copy_(expected)
+
+
+def _extended_attention_mask(
+    attention_mask: torch.Tensor, input_shape: Any, device: Any = None, dtype: Any = None
+) -> torch.Tensor:
+    """Transformers 4.x's `PreTrainedModel.get_extended_attention_mask`, which 5.x removed."""
+    import torch
+
+    del input_shape, device
+    dtype = torch.float32 if dtype is None else dtype
+    if attention_mask.dim() == 3:
+        extended = attention_mask[:, None, :, :]
+    elif attention_mask.dim() == 2:
+        extended = attention_mask[:, None, None, :]
+    else:
+        raise ValueError(f"attention mask has {attention_mask.dim()} dimensions, expected 2 or 3")
+    extended = extended.to(dtype=dtype)
+    return (1.0 - extended) * torch.finfo(dtype).min
+
+
+def _repair_gte_multilingual_attention_mask(auto_model: Any) -> None:
+    """Restores the 4.x mask helper this checkpoint's remote code calls, where 5.x lacks it."""
+    if not hasattr(auto_model, "get_extended_attention_mask"):
+        auto_model.get_extended_attention_mask = partial(
+            _extended_attention_mask, dtype=auto_model.dtype
+        )
 
 
 #: SentenceTransformer can't load these: KaLM crashes, Harrier needs a processor it lacks.
@@ -187,73 +204,66 @@ def _release_gpu_memory() -> None:
         torch.mps.empty_cache()
 
 
-def _raw_transformer_embeddings(
-    psalms: list[SemanticPsalm],
+#: Texts per forward pass of a raw transformer, whose pooler holds one batch on the device.
+RAW_BATCH = 32
+
+
+def _in_batches(
+    encode: Callable[[list[str]], np.ndarray], batch: int
+) -> Callable[[Sequence[str]], np.ndarray]:
+    """Runs an encoder over slices of a text list and stacks the rows."""
+
+    def encode_all(texts: Sequence[str]) -> np.ndarray:
+        rows = [encode(list(texts[start : start + batch])) for start in range(0, len(texts), batch)]
+        return np.concatenate(rows, axis=0)
+
+    return encode_all
+
+
+@contextmanager
+def _raw_transformer_encoder(
     model_name: str,
     *,
-    tier: TextTier,
     device: str | None,
     torch_dtype: str | None,
     raw_transformer_loader: Callable[..., tuple[Any, Any]],
     last_token_pooler: Callable[[list[str], Any, Any], np.ndarray],
     release_gpu_memory: Callable[[], None],
-) -> dict[int, np.ndarray]:
-    """Encodes with plain transformers and last-token pooling, for checkpoints ST cannot load."""
-    tokenizer, raw_model = raw_transformer_loader(
-        model_name, torch_dtype=torch_dtype, device=device
+) -> Iterator[Encoder]:
+    """Plain transformers with last-token pooling, for checkpoints ST cannot load."""
+    loaded: list[Any] = list(
+        raw_transformer_loader(model_name, torch_dtype=torch_dtype, device=device)
     )
-    embeddings: dict[int, np.ndarray] = {}
-    for psalm in psalms:
-        half_verses = select_half_verses(psalm, tier)
-        embeddings[psalm.number] = np.asarray(
-            last_token_pooler(list(half_verses), tokenizer, raw_model)
-        )
-    del tokenizer, raw_model
-    release_gpu_memory()
-    return embeddings
+
+    def pooled(texts: list[str]) -> np.ndarray:
+        return last_token_pooler(texts, loaded[0], loaded[1])
+
+    try:
+        yield _in_batches(pooled, RAW_BATCH)
+    finally:
+        loaded.clear()
+        release_gpu_memory()
 
 
-def compute_half_verse_embeddings(
-    psalms: list[SemanticPsalm],
+@contextmanager
+def _sentence_transformer_encoder(
     model_name: str,
     *,
-    tier: TextTier = "cantillation",
-    device: str | None = None,
-    torch_dtype: str | None = None,
-    sentence_transformer_factory: Callable[..., Any] | None = None,
-    raw_transformer_loader: Callable[..., tuple[Any, Any]] = _load_raw_transformer,
-    last_token_pooler: Callable[[list[str], Any, Any], np.ndarray] = _encode_last_token_pooled,
-    release_gpu_memory: Callable[[], None] = _release_gpu_memory,
-) -> dict[int, np.ndarray]:
-    """Encodes every psalm's half-verses at one text tier, on the best device available."""
-    if model_name in RAW_TRANSFORMER_MODELS:
-        return _raw_transformer_embeddings(
-            psalms,
-            model_name,
-            tier=tier,
-            device=device,
-            torch_dtype=torch_dtype,
-            raw_transformer_loader=raw_transformer_loader,
-            last_token_pooler=last_token_pooler,
-            release_gpu_memory=release_gpu_memory,
-        )
-
-    if sentence_transformer_factory is None:
-        from sentence_transformers import SentenceTransformer
-
-        factory = cast("Callable[..., Any]", SentenceTransformer)
-    else:
-        factory = sentence_transformer_factory
-
-    if model_name == GTE_MULTILINGUAL_MODEL and device is None:
-        device = "cpu"
-
+    device: str | None,
+    torch_dtype: str | None,
+    factory: Callable[..., Any],
+    release_gpu_memory: Callable[[], None],
+) -> Iterator[Encoder]:
+    """A sentence-transformers model with the repairs its checkpoint needs, reloaded on NaNs."""
+    if model_name == GTE_MULTILINGUAL_MODEL:
+        #: transformers 5 loads the checkpoint's float16 weights as they are, which overflow on
+        #: the CPU, where 4.x upcast them to float32.
+        device = "cpu" if device is None else device
+        torch_dtype = "float32" if torch_dtype is None else torch_dtype
     model_kwargs = {"model_kwargs": {"torch_dtype": torch_dtype}} if torch_dtype is not None else {}
-    attempts = _GTE_MULTILINGUAL_MAX_ATTEMPTS if model_name == GTE_MULTILINGUAL_MODEL else 1
     trust_remote_code = model_name not in NO_TRUST_REMOTE_CODE_MODELS
-    for attempt in range(1, attempts + 1):
-        if model_name == GTE_MULTILINGUAL_MODEL and attempt > 1:
-            _evict_gte_multilingual_dynamic_module()
+
+    def load() -> Any:
         model = factory(
             model_name, trust_remote_code=trust_remote_code, device=device, **model_kwargs
         )
@@ -261,22 +271,73 @@ def compute_half_verse_embeddings(
             _repair_neodictabert_rope_buffers(model[0].auto_model)
         if model_name == GTE_MULTILINGUAL_MODEL:
             _repair_gte_multilingual_position_ids(model[0].auto_model)
-        embeddings = {}
-        for psalm in psalms:
-            half_verses = select_half_verses(psalm, tier)
-            vectors = model.encode(list(half_verses), normalize_embeddings=True)
-            embeddings[psalm.number] = np.asarray(vectors)
-        del model
-        release_gpu_memory()
-        if model_name != GTE_MULTILINGUAL_MODEL or all(
-            np.all(np.isfinite(v)) for v in embeddings.values()
-        ):
-            return embeddings
-        print(
-            f"warning: {model_name} produced non-finite embeddings on attempt "
-            f"{attempt}/{attempts}, retrying with a fresh model load",
-            file=sys.stderr,
+            _repair_gte_multilingual_attention_mask(model[0].auto_model)
+        return model
+
+    loaded: list[Any] = [load()]
+    #: This checkpoint's NaN failure is intermittent, so a non-finite result reloads it and retries.
+    attempts = _GTE_MULTILINGUAL_MAX_ATTEMPTS if model_name == GTE_MULTILINGUAL_MODEL else 1
+
+    def encode(texts: Sequence[str]) -> np.ndarray:
+        for attempt in range(1, attempts + 1):
+            vectors = np.asarray(loaded[0].encode(list(texts), normalize_embeddings=True))
+            if np.all(np.isfinite(vectors)):
+                return vectors
+            print(
+                f"warning: {model_name} produced non-finite embeddings on attempt "
+                f"{attempt}/{attempts}, retrying with a fresh model load",
+                file=sys.stderr,
+            )
+            if attempt < attempts:
+                loaded.clear()
+                release_gpu_memory()
+                _evict_gte_multilingual_dynamic_module()
+                loaded.append(load())
+        raise RuntimeError(
+            f"{model_name} produced non-finite embeddings on every one of {attempts} attempts"
         )
-    raise RuntimeError(
-        f"{model_name} produced non-finite embeddings on every one of {attempts} attempts"
-    )
+
+    try:
+        yield encode
+    finally:
+        loaded.clear()
+        release_gpu_memory()
+
+
+@contextmanager
+def encoder(
+    model_name: str,
+    *,
+    device: str | None = None,
+    torch_dtype: str | None = None,
+    sentence_transformer_factory: Callable[..., Any] | None = None,
+    raw_transformer_loader: Callable[..., tuple[Any, Any]] = _load_raw_transformer,
+    last_token_pooler: Callable[[list[str], Any, Any], np.ndarray] = _encode_last_token_pooled,
+    release_gpu_memory: Callable[[], None] = _release_gpu_memory,
+) -> Iterator[Encoder]:
+    """Loads one model on the best device available, yields it as an Encoder, then frees it."""
+    if model_name in RAW_TRANSFORMER_MODELS:
+        opened = _raw_transformer_encoder(
+            model_name,
+            device=device,
+            torch_dtype=torch_dtype,
+            raw_transformer_loader=raw_transformer_loader,
+            last_token_pooler=last_token_pooler,
+            release_gpu_memory=release_gpu_memory,
+        )
+    else:
+        if sentence_transformer_factory is None:
+            from sentence_transformers import SentenceTransformer
+
+            factory = cast("Callable[..., Any]", SentenceTransformer)
+        else:
+            factory = sentence_transformer_factory
+        opened = _sentence_transformer_encoder(
+            model_name,
+            device=device,
+            torch_dtype=torch_dtype,
+            factory=factory,
+            release_gpu_memory=release_gpu_memory,
+        )
+    with opened as encode:
+        yield encode

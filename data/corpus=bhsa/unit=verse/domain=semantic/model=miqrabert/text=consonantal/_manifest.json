@@ -1,0 +1,17 @@
+{
+  "semantic.generate.bhsa-verse.miqrabert": {
+    "cell": "semantic.generate.bhsa-verse.miqrabert",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 20.948484,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=verse/domain=semantic/model=miqrabert/text=consonantal/part-0.parquet": "d7c1ee7b4c7212d4530999e9f1a009d5402975ac955bba136781de50068e43d8"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=verse --model miqrabert"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_bhsa_verse_miqrabert",
+    "started": "2026-09-16T22:53:08.153647+00:00"
+  }
+}

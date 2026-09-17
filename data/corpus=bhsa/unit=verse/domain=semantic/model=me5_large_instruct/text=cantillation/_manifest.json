@@ -1,0 +1,19 @@
+{
+  "semantic.generate.bhsa-verse.me5-large-instruct": {
+    "cell": "semantic.generate.bhsa-verse.me5-large-instruct",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 130.98079,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=verse/domain=semantic/model=me5_large_instruct/text=cantillation/part-0.parquet": "3b8208977df611f78c1ef855586b28ba3ad4900beb485bacb07d222423f6d09f",
+      "data/corpus=bhsa/unit=verse/domain=semantic/model=me5_large_instruct/text=consonantal/part-0.parquet": "d2e9cebaff75fac0095c524ab723d6ef78b4e672ae7249e5e69f56c87c359437",
+      "data/corpus=bhsa/unit=verse/domain=semantic/model=me5_large_instruct/text=vocalized/part-0.parquet": "a7d91dd95ca6a93d6d4dc1b320653eeaf4f86f9af78e7378102cb2419fa7df2b"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=verse --model me5-large-instruct"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_bhsa_verse_me5_large_instruct",
+    "started": "2026-09-16T23:01:06.334848+00:00"
+  }
+}

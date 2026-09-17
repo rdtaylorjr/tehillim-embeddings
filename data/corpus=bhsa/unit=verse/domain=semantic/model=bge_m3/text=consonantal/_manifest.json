@@ -1,0 +1,19 @@
+{
+  "semantic.generate.bhsa-verse.bge-m3": {
+    "cell": "semantic.generate.bhsa-verse.bge-m3",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 174.807748,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=bhsa/unit=verse/domain=semantic/model=bge_m3/text=cantillation/part-0.parquet": "861d60a2d91441cb8ba001c160e852cd219c96f4c6ce49599f9102408ad8a120",
+      "data/corpus=bhsa/unit=verse/domain=semantic/model=bge_m3/text=consonantal/part-0.parquet": "89c46cb8e4f4bea4cac8dda951eb0bba3b2d16fb0ac6679bfb897ccd5f85daf9",
+      "data/corpus=bhsa/unit=verse/domain=semantic/model=bge_m3/text=vocalized/part-0.parquet": "a33f136a960545a46cb333d0382ae947e61ef491f61295685b695ed802d978e0"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=bhsa --unit=verse --model bge-m3"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_bhsa_verse_bge_m3",
+    "started": "2026-09-16T22:55:50.065070+00:00"
+  }
+}

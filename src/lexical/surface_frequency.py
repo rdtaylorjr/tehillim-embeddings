@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from core.text import TextTier, strip_accents
+from core.text import TextTier, consonantal, strip_accents
 
 
 def surface_token_frequencies(api: Any, tier: TextTier) -> dict[str, int]:
@@ -13,7 +13,7 @@ def surface_token_frequencies(api: Any, tier: TextTier) -> dict[str, int]:
     frequencies: dict[str, int] = {}
     for word in F.otype.s("word"):
         if tier == "consonantal":
-            value = F.g_cons_utf8.v(word)
+            value = consonantal(F.g_cons_utf8.v(word))
         elif tier == "cantillation":
             value = F.g_word_utf8.v(word)
         else:

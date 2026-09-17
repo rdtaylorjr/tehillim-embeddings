@@ -1,0 +1,17 @@
+{
+  "semantic.generate.dss-11Q5-none-verse.alephbert": {
+    "cell": "semantic.generate.dss-11Q5-none-verse.alephbert",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 16.481214,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=dss/witness=11Q5/reconstruction=none/unit=verse/domain=semantic/model=alephbert/text=consonantal/part-0.parquet": "60db15faa1633dd00bb7848a49c7ddcb3a3a34178f849754ecbf34b6f98f0f79"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=dss --witness=11Q5 --reconstruction=none --unit=verse --model alephbert"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_dss_11Q5_none_verse_alephbert",
+    "started": "2026-09-16T22:50:44.669680+00:00"
+  }
+}

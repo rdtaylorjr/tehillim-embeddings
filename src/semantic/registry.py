@@ -120,7 +120,13 @@ TOKENIZER_STRIPS_ALL_DIACRITICS = {"miqrabert", "alephbert", "neodictabert", "be
 
 #: (tier, description): the tier names the text state, so no second flag can disagree with it.
 VARIATIONS: list[tuple[TextTier, str]] = [
-    ("consonantal", "Bare consonants. No niqqud, no cantillation."),
+    (
+        "consonantal",
+        (
+            "Letters and spaces only. No niqqud, cantillation, shin or sin dot, maqaf, paseq "
+            "or sof pasuq."
+        ),
+    ),
     ("vocalized", "Niqqud (vowel points) only. No cantillation marks."),
     ("cantillation", "Niqqud and cantillation/accent marks together (full Masoretic pointing)."),
 ]
@@ -133,10 +139,10 @@ def variations_for_model(slug: str) -> list[tuple[TextTier, str]]:
             (
                 "consonantal",
                 (
-                    "Bare consonants. No niqqud, no cantillation. This model's "
-                    "tokenizer strips niqqud and cantillation identically, so the "
-                    "vocalized and cantillation variations would carry no "
-                    "additional signal."
+                    "Letters and spaces only. No niqqud, cantillation, shin or sin dot, "
+                    "maqaf, paseq or sof pasuq. This model's tokenizer strips niqqud and "
+                    "cantillation identically, so the vocalized and cantillation "
+                    "variations would carry no additional signal."
                 ),
             )
         ]

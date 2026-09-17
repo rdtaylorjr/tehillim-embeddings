@@ -1,55 +1,59 @@
-"""Loads Hebrew Psalms half-verse text and BHSA node ids via Text-Fabric."""
+"""Loads the Psalms from the BHSA as units at one node type, one text per tier, keyed by node."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from core.corpus import DEFAULT_BHSA_CLONE, BaseCorpus, shared_api
-from core.text import strip_accents
+from core.partition import HALF_VERSE
+from core.text import consonantal, strip_accents
+from semantic.units import Unit
 
-__all__ = ["DEFAULT_BHSA_CLONE", "Corpus", "SemanticPsalm"]
+__all__ = ["DEFAULT_BHSA_CLONE", "Corpus"]
 
 _REQUIRED_FEATURES = "otype book chapter verse g_word_utf8 g_cons_utf8 trailer_utf8"
 
-#: BHSA's consonantal-only format (`g_cons_utf8` plus `trailer_utf8`), per its otext.tf.
+#: BHSA's unpointed format (`g_cons_utf8` plus `trailer_utf8`), per its otext.tf, which still
+#: carries maqaf, paseq, sof pasuq and the shin and sin dots that `consonantal` removes.
 _UNVOCALIZED_FORMAT = "text-orig-plain"
 
 
-@dataclass(frozen=True, slots=True)
-class SemanticPsalm:
-    """One psalm's half-verse texts, in three variants, and their BHSA node ids."""
-
-    number: int
-    half_verse_nodes: tuple[int, ...] = ()
-    half_verses: tuple[str, ...] = ()
-    half_verses_unvocalized: tuple[str, ...] = ()
-    half_verses_niqqud_only: tuple[str, ...] = ()
-
-
-class Corpus(BaseCorpus[SemanticPsalm]):
-    """A loaded BHSA Text-Fabric corpus, scoped to half-verse extraction."""
+class Corpus(BaseCorpus[list[Unit]]):
+    """A loaded BHSA Text-Fabric corpus, scoped to one unit's texts in the three tiers."""
 
     @classmethod
     def load(
-        cls, tf_path: Path | None = None, *, loader: Callable[..., Any] = shared_api
+        cls,
+        tf_path: Path | None = None,
+        *,
+        unit: str = HALF_VERSE,
+        loader: Callable[..., Any] = shared_api,
     ) -> Corpus:
         """Loads BHSA from `tf_path`, else $TEHILLIM_BHSA_PATH, else `DEFAULT_BHSA_CLONE`."""
-        return cls(loader(tf_path, _REQUIRED_FEATURES))
+        return cls(loader(tf_path, _REQUIRED_FEATURES), unit)
 
-    def _extract(self, number: int, half_verse_nodes: tuple[int, ...]) -> SemanticPsalm:
+    def _extract(self, number: int, half_verse_nodes: tuple[int, ...]) -> list[Unit]:
         """Renders each half-verse in the pointed, consonantal, and accent-stripped text tiers."""
+        del number  # a unit is keyed by its node, the psalm number places nothing
         L, T = self._api.L, self._api.T  # noqa: N806
-        half_verses = tuple(T.text(L.d(hv, otype="word")).strip() for hv in half_verse_nodes)
-        return SemanticPsalm(
-            number=number,
-            half_verses=half_verses,
-            half_verses_unvocalized=tuple(
-                T.text(L.d(hv, otype="word"), fmt=_UNVOCALIZED_FORMAT).strip()
-                for hv in half_verse_nodes
-            ),
-            half_verses_niqqud_only=tuple(strip_accents(half_verse) for half_verse in half_verses),
-            half_verse_nodes=half_verse_nodes,
-        )
+        units = []
+        for node in half_verse_nodes:
+            words = L.d(node, otype="word")
+            cantillation = T.text(words).strip()
+            units.append(
+                Unit(
+                    node,
+                    {
+                        "consonantal": consonantal(T.text(words, fmt=_UNVOCALIZED_FORMAT)),
+                        "vocalized": strip_accents(cantillation),
+                        "cantillation": cantillation,
+                    },
+                )
+            )
+        return units
+
+    def units(self) -> list[Unit]:
+        """Every unit of the 150 psalms, in canonical order."""
+        return [unit for psalm in self.psalms() for unit in psalm]

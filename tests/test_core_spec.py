@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from core.driver import plan
 from core.partition import BHSA_HALF_VERSE, Partition
 from core.spec import GeneratorSpec, discover_specs, partition_paths
 
@@ -32,6 +33,16 @@ class TestGeneratorSpec:
         with pytest.raises(ValueError, match="duplicate"):
             GeneratorSpec(module="m", partitions=(TYP_1GRAM, TYP_1GRAM))
 
+    def test_a_variant_and_its_args_come_together(self) -> None:
+        """A variant with no args could not be selected, args with no variant could not be named."""
+        with pytest.raises(ValueError, match="together"):
+            GeneratorSpec(module="m", partitions=(TYP_1GRAM,), variant="v")
+        with pytest.raises(ValueError, match="together"):
+            GeneratorSpec(module="m", partitions=(TYP_1GRAM,), args=("--x",))
+        spec = GeneratorSpec(module="m", partitions=(TYP_1GRAM,), variant="v", args=("--x",))
+        assert spec.name == "m.v"
+        assert GeneratorSpec(module="m", partitions=(TYP_1GRAM,)).name == "m"
+
 
 class TestDiscoverSpecs:
     def test_finds_every_generator_module_and_each_declares_a_spec(self) -> None:
@@ -40,7 +51,7 @@ class TestDiscoverSpecs:
         modules = {spec.module for spec in specs}
         assert "lexical.generate" in modules
         assert "syntactic.generate_typ" in modules
-        assert "semantic.generate" in {m.rsplit(":", 1)[0] for m in modules}
+        assert "semantic.generate" in modules
 
     def test_no_two_specs_claim_one_partition(self) -> None:
         """Partitions are owned by exactly one generator."""
@@ -51,13 +62,16 @@ class TestDiscoverSpecs:
                 seen[partition] = spec.module
 
     def test_declared_partitions_match_the_generated_tree(self) -> None:
-        """The specs reproduce the tree the hand runs produced, and nothing else."""
+        """Every file on disk is declared, and every runnable cell has written its files."""
         root = Path(__file__).resolve().parents[1] / "data"
         if not root.exists():
             pytest.skip("no generated tree in this checkout")
         on_disk = {Partition.parse(p.relative_to(root)) for p in root.rglob("part-0.parquet")}
         declared = {p for spec in discover_specs() for p in spec.partitions}
-        assert declared == on_disk
+        assert on_disk <= declared
+        runnable = plan(discover_specs(), [], root, root, available={None}).runnable
+        owed = {p for cell in runnable for p in cell.outputs}
+        assert all(p.exists() for p in owed), sorted(str(p) for p in owed if not p.exists())
 
 
 class TestSupportPaths:

@@ -48,17 +48,26 @@ class TestCellFor:
             str(tmp_path / "config"),
         ]
 
-    def test_semantic_cell_carries_its_model_flag_and_resource(self, tmp_path: Path) -> None:
-        """One semantic cell is one model, run through the shared generator with --model."""
+    def test_a_variant_cell_is_named_and_selected_by_its_declaration(self, tmp_path: Path) -> None:
+        """One module declares several cells: the variant names each, its args select it."""
         spec = GeneratorSpec(
-            module="semantic.generate:berel",
+            module="semantic.generate",
             partitions=(Partition(BHSA_HALF_VERSE, "semantic", model="berel", text="consonantal"),),
             resource="gpu",
+            variant="bhsa-half_verse.berel",
+            args=("--corpus=bhsa", "--unit=half_verse", "--model", "berel"),
         )
         cell = cell_for(spec, tmp_path, tmp_path / "c")
-        assert cell.name == "semantic.generate.berel"
+        assert cell.name == "semantic.generate.bhsa-half_verse.berel"
         assert cell.module == "semantic.generate"
-        assert cell.command_args == ["--output-root", str(tmp_path), "--model", "berel"]
+        assert cell.command_args == [
+            "--output-root",
+            str(tmp_path),
+            "--corpus=bhsa",
+            "--unit=half_verse",
+            "--model",
+            "berel",
+        ]
         assert cell.resource == "gpu"
 
 
@@ -91,9 +100,11 @@ class TestPlan:
         specs = [
             _spec(),
             GeneratorSpec(
-                module="semantic.generate:kalm-embedding",
+                module="semantic.generate",
                 partitions=(Partition(BHSA_HALF_VERSE, "semantic", model="k", text="consonantal"),),
                 resource="gpu",
+                variant="kalm-embedding",
+                args=("--model", "kalm-embedding"),
             ),
         ]
         result = plan(specs, [], tmp_path / "d", tmp_path / "c", available={None})

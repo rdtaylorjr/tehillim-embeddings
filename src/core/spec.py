@@ -21,15 +21,26 @@ class GeneratorSpec:
     partitions: tuple[Partition, ...]
     support: tuple[str, ...] = ()
     resource: str | None = None
+    #: One module can declare several cells: the variant names the cell, the args select it.
+    variant: str = ""
+    args: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         """A spec that writes nothing or writes one path twice is a declaration error."""
         if not self.partitions:
-            msg = f"{self.module}: no partitions declared"
+            msg = f"{self.name}: no partitions declared"
             raise ValueError(msg)
         if len(set(self.partitions)) != len(self.partitions):
-            msg = f"{self.module}: duplicate partitions declared"
+            msg = f"{self.name}: duplicate partitions declared"
             raise ValueError(msg)
+        if bool(self.variant) != bool(self.args):
+            msg = f"{self.name}: a variant and its args are declared together or not at all"
+            raise ValueError(msg)
+
+    @property
+    def name(self) -> str:
+        """The cell's name: the module, and the variant where the module declares several."""
+        return f"{self.module}.{self.variant}" if self.variant else self.module
 
 
 @dataclass(frozen=True, slots=True)

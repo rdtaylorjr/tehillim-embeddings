@@ -50,6 +50,8 @@ class _FakeApi:
             return [20, 10]
         if otype == "half_verse":
             return {10: [100, 101], 20: [200, 201]}[node]
+        if otype == "verse":
+            return {10: [1000], 20: [2000]}[node]
         return []
 
     def sectionFromNode(self, node: int) -> tuple[str, int]:  # noqa: N802
@@ -73,6 +75,13 @@ class TestBaseCorpus:
         corpus = _CountingCorpus(_FakeApi())
 
         assert dict(corpus.psalms()) == {1: (100, 101), 2: (200, 201)}
+
+    def test_cuts_each_chapter_at_the_unit_it_was_opened_with(self):
+        corpus = _CountingCorpus(_FakeApi(), unit="verse")
+
+        assert dict(corpus.psalms()) == {1: (1000,), 2: (2000,)}
+        assert corpus.unit == "verse"
+        assert _CountingCorpus(_FakeApi()).unit == "half_verse"
 
     def test_exposes_the_underlying_api(self):
         api = _FakeApi()

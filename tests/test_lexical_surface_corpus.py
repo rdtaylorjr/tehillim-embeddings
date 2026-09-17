@@ -19,6 +19,28 @@ class TestSurfaceCorpusLoad:
         assert "otype" in seen["features"]
         assert corpus.api == "api"
 
+    def test_the_consonantal_forms_are_letters_only(self):
+        class _Feature:
+            def __init__(self, values):
+                self._values = values
+
+            def v(self, node):
+                return self._values[node]
+
+        class _Api:
+            class F:
+                g_cons_utf8 = _Feature({1: "אשׁרי", 2: "שׂם"})
+                g_word_utf8 = _Feature({1: "אַ֥שְֽׁרֵי", 2: "שָׂם"})
+
+            class L:
+                @staticmethod
+                def d(node, otype):
+                    return [1, 2]
+
+        psalm = SurfaceCorpus(_Api())._extract(1, (100,))
+        assert psalm.half_verse_consonantal == (("אשרי", "שם"),)
+        assert psalm.half_verse_cantillation == (("אַ֥שְֽׁרֵי", "שָׂם"),)
+
 
 @pytest.mark.integration
 def test_extracts_all_150_psalms_with_three_aligned_text_tiers():

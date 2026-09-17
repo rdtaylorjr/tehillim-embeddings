@@ -1,0 +1,17 @@
+{
+  "semantic.generate.dss-11Q5-none-verse.berel": {
+    "cell": "semantic.generate.dss-11Q5-none-verse.berel",
+    "code_hash": "097eba2f2b0f1eb9cdd2eb54361b1824a8e02f429f86112723afd25fa24cf3de",
+    "duration_s": 15.641672,
+    "inputs": {},
+    "outputs": {
+      "data/corpus=dss/witness=11Q5/reconstruction=none/unit=verse/domain=semantic/model=berel/text=consonantal/part-0.parquet": "4dbc7c0ae6d3e39dbe21845f9c8b651abb46cb76b3967685a6faaf211d9e1120"
+    },
+    "parameters": {
+      "args": "--output-root data --corpus=dss --witness=11Q5 --reconstruction=none --unit=verse --model berel"
+    },
+    "repository_revision": "2f2283812d1e968d843adea585fe13435d88a454",
+    "rule": "cell__semantic_generate_dss_11Q5_none_verse_berel",
+    "started": "2026-09-16T22:51:25.099951+00:00"
+  }
+}

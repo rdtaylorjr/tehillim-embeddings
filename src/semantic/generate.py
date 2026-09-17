@@ -1,11 +1,13 @@
-"""Computes and writes semantic embedding datasets as Parquet."""
+"""Computes and writes semantic embedding datasets as Parquet, one source and model per cell."""
 
 from __future__ import annotations
 
 import argparse
 import os
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from contextlib import AbstractContextManager, contextmanager
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -13,26 +15,39 @@ import numpy as np
 
 from core.cli import add_output_root_argument, report_generated
 from core.export import write_vectors
+from core.partition import Scope
 from core.spec import GeneratorSpec
-from semantic import api_models
+from semantic import api_models, local_models
 from semantic.api_models import API_KEY_ENV_VARS
-from semantic.export import node_vectors, partition, path_to_write
+from semantic.export import partition, path_to_write
 from semantic.large_models import LARGE_MODELS
-from semantic.local_models import compute_half_verse_embeddings, select_half_verses
 from semantic.registry import (
     MODEL_REGISTRY,
     dataset_description,
     dataset_name,
     variations_for_model,
 )
+from semantic.sources import SOURCES, Source, scope_arguments, source_for
+from semantic.units import Encoder, Unit, embed
 
 if TYPE_CHECKING:
-    from semantic.corpus import Corpus, SemanticPsalm
+    from core.text import TextTier
 
 _API_SLUGS = {"gemini", "cohere", "openai", "voyage"}
 _GPU_SLUGS = {slug for slug, _, _ in LARGE_MODELS}
 #: The dtype each large model loads in, so a driver cell runs it as the Colab notebook did.
 _LARGE_DTYPES = {slug: dtype for slug, _, dtype in LARGE_MODELS}
+
+#: slug -> hosted fetch function, each `(texts, api_key=...) -> rows`.
+_FETCHERS: dict[str, Callable[..., np.ndarray]] = {
+    "gemini": api_models.fetch_gemini_embeddings,
+    "cohere": api_models.fetch_cohere_embeddings,
+    "openai": api_models.fetch_openai_embeddings,
+    "voyage": api_models.fetch_voyage_embeddings,
+}
+
+#: Opens a model as an Encoder for the length of one cell, freeing it after.
+type EncoderFactory = Callable[[str], AbstractContextManager[Encoder]]
 
 
 def resource_for(slug: str) -> str | None:
@@ -44,146 +59,107 @@ def resource_for(slug: str) -> str | None:
     return None
 
 
-def _spec_for(slug: str) -> GeneratorSpec:
-    """One model's cell: its text partitions and the resource its generation holds."""
+def tiers_for(slug: str, source: Source) -> list[tuple[TextTier, str]]:
+    """The text tiers a model writes for a source: those its tokenizer keeps and the source has."""
+    return [(tier, prose) for tier, prose in variations_for_model(slug) if tier in source.tiers]
+
+
+def _spec_for(source: Source, slug: str) -> GeneratorSpec | None:
+    """One cell per source and model, or none where the model has no tier of the source."""
     model_slug = MODEL_REGISTRY[slug][1]
-    partitions = tuple(partition(model_slug, tier) for tier, _ in variations_for_model(slug))
+    tiers = tiers_for(slug, source)
+    if not tiers:
+        return None
     return GeneratorSpec(
-        module=f"{__name__}:{slug}", partitions=partitions, resource=resource_for(slug)
+        module=__name__,
+        partitions=tuple(partition(model_slug, tier, source.scope) for tier, _ in tiers),
+        resource=resource_for(slug),
+        variant=f"{source.slug}.{slug}",
+        args=(*scope_arguments(source.scope), "--model", slug),
     )
 
 
-SPECS: tuple[GeneratorSpec, ...] = tuple(_spec_for(slug) for slug in MODEL_REGISTRY)
-
-#: slug -> real fetch function, used when `fetch` isn't passed.
-_REAL_FETCHERS: dict[str, Callable[..., np.ndarray]] = {
-    "gemini": api_models.fetch_gemini_embeddings,
-    "cohere": api_models.fetch_cohere_embeddings,
-    "openai": api_models.fetch_openai_embeddings,
-    "voyage": api_models.fetch_voyage_embeddings,
-}
+SPECS: tuple[GeneratorSpec, ...] = tuple(
+    spec
+    for source in SOURCES
+    for slug in MODEL_REGISTRY
+    if (spec := _spec_for(source, slug)) is not None
+)
 
 
-def generate_local(
-    psalms: list[SemanticPsalm],
-    output_root: Path,
+@contextmanager
+def _hosted(slug: str, env: Mapping[str, str]) -> Iterator[Encoder]:
+    """A hosted model as an Encoder, reading its key only when a dataset is actually missing."""
+    env_var = API_KEY_ENV_VARS[slug]
+    api_key = env.get(env_var)
+    if not api_key:
+        raise RuntimeError(f"{env_var} is not set, cannot fetch {slug} embeddings")
+    print(f"fetching from {slug}...", file=sys.stderr)
+    yield partial(_FETCHERS[slug], api_key=api_key)
+
+
+def encoder_for(
     slug: str,
     *,
-    variation: str | None = None,
     device: str | None = None,
-    torch_dtype: str | None = None,
-    compute: Callable[..., dict[int, np.ndarray]] = compute_half_verse_embeddings,
-) -> list[str]:
-    """Generates every not-yet-written variation for one local model slug, or only `variation`."""
-    technical_name, model_slug, _ = MODEL_REGISTRY[slug]
-    written: list[str] = []
-    for variation_name, variation_description in variations_for_model(slug):
-        if variation is not None and variation_name != variation:
-            continue
-        name = dataset_name(slug, variation_name)
-        path = path_to_write(output_root, model_slug, variation_name)
-        if path is None:
-            continue
-        embeddings = compute(
-            psalms,
-            technical_name,
-            tier=variation_name,
-            device=device,
-            torch_dtype=torch_dtype,
-        )
-        values = node_vectors(embeddings, psalms)
-        description = dataset_description(slug, variation_description)
-        write_vectors(path, values, description)
-        written.append(name)
-    return written
-
-
-def generate_api(
-    psalms: list[SemanticPsalm],
-    output_root: Path,
-    slug: str,
-    *,
-    fetch: Callable[..., np.ndarray] | None = None,
-    env: dict[str, str] | None = None,
-) -> list[str]:
-    """Reads the API key only if a variation is actually missing."""
-    if fetch is None:
-        fetch = _REAL_FETCHERS[slug]
-    if env is None:
-        env = dict(os.environ)
-
-    model_slug = MODEL_REGISTRY[slug][1]
-    written: list[str] = []
-    for variation, variation_description in variations_for_model(slug):
-        name = dataset_name(slug, variation)
-        path = path_to_write(output_root, model_slug, variation)
-        if path is None:
-            continue
-
-        env_var = API_KEY_ENV_VARS[slug]
-        api_key = env.get(env_var)
-        if not api_key:
-            raise RuntimeError(f"{env_var} is not set, cannot fetch {slug} embeddings")
-
-        texts: list[str] = []
-        spans: list[tuple[int, int, int]] = []
-        for psalm in psalms:
-            half_verses = select_half_verses(psalm, variation)
-            start = len(texts)
-            texts.extend(half_verses)
-            spans.append((psalm.number, start, len(texts)))
-
-        print(f"fetching {name} from {slug}...", file=sys.stderr)
-        vectors = fetch(texts, api_key=api_key)
-        embeddings = {number: vectors[start:end] for number, start, end in spans}
-        values = node_vectors(embeddings, psalms)
-        description = dataset_description(slug, variation_description)
-        write_vectors(path, values, description)
-        written.append(name)
-    return written
+    env: Mapping[str, str] | None = None,
+    local: Callable[..., AbstractContextManager[Encoder]] = local_models.encoder,
+) -> AbstractContextManager[Encoder]:
+    """Opens the registered model behind one slug: hosted, large local, or small local."""
+    if slug in _API_SLUGS:
+        return _hosted(slug, os.environ if env is None else env)
+    technical_name = MODEL_REGISTRY[slug][0]
+    return local(technical_name, device=device, torch_dtype=_LARGE_DTYPES.get(slug))
 
 
 def generate(
-    psalms: list[SemanticPsalm],
+    units: Sequence[Unit],
     output_root: Path,
-    slugs: tuple[str, ...] = tuple(MODEL_REGISTRY),
+    source: Source,
+    slugs: Sequence[str],
     *,
-    local: Callable[..., list[str]] = generate_local,
-    api: Callable[..., list[str]] = generate_api,
+    variation: str | None = None,
+    encoder: EncoderFactory | None = None,
 ) -> list[str]:
-    """Writes every missing dataset for the named models, hosted API and local alike."""
+    """Writes every missing dataset of the source for the named models, returns the names."""
+    scope = source.scope
     written: list[str] = []
     for slug in slugs:
-        if slug in _API_SLUGS:
-            written.extend(api(psalms, output_root, slug))
-        elif slug in _GPU_SLUGS:
-            written.extend(local(psalms, output_root, slug, torch_dtype=_LARGE_DTYPES[slug]))
-        else:
-            written.extend(local(psalms, output_root, slug))
+        model_slug = MODEL_REGISTRY[slug][1]
+        pending = [
+            (tier, prose, path)
+            for tier, prose in tiers_for(slug, source)
+            if (variation is None or tier == variation)
+            and (path := path_to_write(output_root, model_slug, tier, scope)) is not None
+        ]
+        if not pending:
+            continue
+        with (encoder or encoder_for)(slug) as encode:
+            for tier, prose, path in pending:
+                write_vectors(path, embed(units, tier, encode), dataset_description(slug, prose))
+                written.append(dataset_name(slug, tier))
     return written
-
-
-def load_corpus() -> Corpus:
-    """Imported at call time because the semantic corpus pulls in the local model stack."""
-    from semantic.corpus import Corpus
-
-    return Corpus.load()
 
 
 def main(
     argv: list[str] | None = None,
     *,
-    corpus_factory: Callable[[], Corpus] = load_corpus,
-    local: Callable[..., list[str]] = generate_local,
-    api: Callable[..., list[str]] = generate_api,
+    source_factory: Callable[[Scope], Source] = source_for,
+    encoder: EncoderFactory | None = None,
 ) -> None:
-    """Generates every missing dataset for every registered model, or for one named model."""
+    """Generates one source's missing datasets for every registered model, or for one model."""
     parser = argparse.ArgumentParser(description=__doc__)
     add_output_root_argument(parser)
+    parser.add_argument("--corpus", required=True)
+    parser.add_argument("--witness", default=None)
+    parser.add_argument("--reconstruction", default=None)
+    parser.add_argument("--unit", required=True)
     parser.add_argument("--model", choices=sorted(MODEL_REGISTRY), default=None)
     args = parser.parse_args(argv)
+    scope = Scope(args.corpus, args.unit, witness=args.witness, reconstruction=args.reconstruction)
+    source = source_factory(scope)
     slugs = tuple(MODEL_REGISTRY) if args.model is None else (args.model,)
-    written = generate(corpus_factory().psalms(), args.output_root, slugs, local=local, api=api)
+    written = generate(source.load(), args.output_root, source, slugs, encoder=encoder)
     report_generated(written)
 
 
