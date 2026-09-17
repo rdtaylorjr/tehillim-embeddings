@@ -34,13 +34,13 @@ class TestPinWorkerBlasThreads:
         """Numpy on this platform links Accelerate, which ignores OMP_NUM_THREADS."""
         assert "VECLIB_MAXIMUM_THREADS" in BLAS_THREAD_VARIABLES
 
-    def test_an_explicit_setting_is_left_alone(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """An operator who asked for 4 threads per worker meant it."""
+    def test_a_schedulers_setting_is_overridden(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Snakemake exports its thread count; four BLAS threads would compute other bits."""
         monkeypatch.setenv("OMP_NUM_THREADS", "4")
 
         pin_worker_blas_threads()
 
-        assert os.environ["OMP_NUM_THREADS"] == "4"
+        assert os.environ["OMP_NUM_THREADS"] == "1"
 
 
 class TestDefaultMaxWorkers:

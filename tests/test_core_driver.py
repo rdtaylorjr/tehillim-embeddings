@@ -114,6 +114,20 @@ class TestPlan:
 
 
 class TestRenderRules:
+    def test_a_prioritised_cell_carries_its_priority_so_long_cells_start_first(
+        self, tmp_path: Path
+    ) -> None:
+        cell = Cell(
+            name="genre.semantic.by_genre",
+            module="genre.scripts.compare_by_genre",
+            inputs=(),
+            outputs=(tmp_path / "by_genre.csv",),
+            command_args=[],
+            resource=None,
+            priority=30,
+        )
+        assert "    priority: 30\n" in render_rules([cell], python="py", provenance="at_run")
+
     def test_emits_one_rule_per_cell_with_provenance_params(self, tmp_path: Path) -> None:
         """Each rule carries its outputs, inputs, resource and a params hash for staleness."""
         cell = Cell(
@@ -128,6 +142,7 @@ class TestRenderRules:
         assert "rule cell__syntactic_generate_typ:" in text
         assert "--cell syntactic.generate_typ" in text
         assert "resources:" not in text
+        assert "priority:" not in text
         assert (
             "provenance=lambda wildcards, name='syntactic.generate_typ': provenance_at_run(name),"
             in text

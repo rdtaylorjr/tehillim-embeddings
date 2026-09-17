@@ -1,9 +1,12 @@
+import io
 import os
 
 from core.parallel import (
     chunksize_for,
     default_max_workers,
     map_in_order,
+    progress_milestones,
+    report_progress,
 )
 
 
@@ -80,8 +83,33 @@ def test_workers_start_fresh_rather_than_forking_the_parent() -> None:
     assert WORKER_CONTEXT.get_start_method() == "spawn"
 
 
-def test_a_worker_scores_one_item_then_exits() -> None:
-    """A long-lived worker keeps every scored file resident, so each item gets a fresh process."""
-    pids = {pid for _, pid in map_in_order(_pid, [1, 2, 3, 4], max_workers=2)}
-    assert len(pids) == 4
+def test_a_worker_serves_more_than_one_item() -> None:
+    """Spawning an interpreter per item cost more than the arrays a scored item leaves behind."""
+    pids = {pid for _, pid in map_in_order(_pid, list(range(64)), max_workers=2)}
+    assert len(pids) == 2
     assert os.getpid() not in pids
+
+
+def test_progress_milestones_mark_every_twentieth_and_the_end() -> None:
+    assert progress_milestones(0) == set()
+    assert progress_milestones(1) == {1}
+    assert 100 in progress_milestones(100)
+    assert len(progress_milestones(1000)) == 20
+
+
+def test_report_progress_yields_every_result_and_writes_a_line_per_milestone() -> None:
+    stream = io.StringIO()
+
+    results = list(report_progress(iter(range(40)), 40, "models", stream=stream))
+
+    lines = stream.getvalue().splitlines()
+    assert results == list(range(40))
+    assert len(lines) == 20
+    assert lines[0].startswith("progress models: 2/40 in ")
+    assert lines[-1].startswith("progress models: 40/40 in ")
+
+
+def test_map_in_order_reports_progress_for_a_pooled_run(capsys) -> None:
+    map_in_order(_double, list(range(8)), max_workers=2, label="doubles")
+
+    assert "progress doubles: 8/8" in capsys.readouterr().err

@@ -71,10 +71,10 @@ class TestMapSeeds:
 
         assert _SerialExecutor.instances[0].max_workers == 3
 
-    def test_chunks_so_each_worker_receives_the_context_a_bounded_number_of_times(self):
-        map_seeds(_double, 1, list(range(1, 101)), executor_factory=_SerialExecutor, max_workers=4)
+    def test_chunks_finely_enough_that_no_worker_runs_on_alone_at_the_end(self):
+        map_seeds(_double, 1, list(range(1, 1001)), executor_factory=_SerialExecutor, max_workers=4)
 
-        assert _SerialExecutor.instances[0].chunksizes == [25]
+        assert _SerialExecutor.instances[0].chunksizes == [1000 // (4 * 16)]
 
     def test_a_worker_failure_propagates_rather_than_being_silently_dropped(self):
         with pytest.raises(ValueError, match="seed 1 failed"):

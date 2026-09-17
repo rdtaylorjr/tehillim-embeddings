@@ -37,6 +37,8 @@ class Cell:
     outputs: tuple[Path, ...]
     command_args: list[str]
     resource: Resource
+    #: Higher runs first, so the long cells start early and the short ones fill the tail.
+    priority: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,6 +168,8 @@ def render_rules(
         if cell.resource is not None:
             lines.append("    resources:")
             lines.append(f"        {cell.resource}=1,")
+        if cell.priority:
+            lines.append(f"    priority: {cell.priority}")
         lines.append(f"    threads: {threads}")
         lines.append(f"    log: 'logs/{cell.name}.log'")
         lines.append("    shell:")

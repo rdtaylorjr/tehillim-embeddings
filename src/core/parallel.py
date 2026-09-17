@@ -1,14 +1,18 @@
-"""Process-parallel execution of independent per-seed dataset builds."""
+"""Process-parallel execution of independent items, balanced to the end and reporting as it goes."""
 
 from __future__ import annotations
 
 import multiprocessing
 import os
-from collections.abc import Callable, Iterable, Sequence
+import sys
+import time
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import AbstractContextManager
 from functools import partial
-from typing import Any
+from typing import Any, TextIO
+
+from threadpoolctl import threadpool_limits
 
 #: Fresh interpreters per worker: a forked worker copies the parent's loaded corpus page by page.
 WORKER_CONTEXT = multiprocessing.get_context("spawn")
@@ -25,9 +29,9 @@ BLAS_THREAD_VARIABLES = (
 
 
 def pin_worker_blas_threads() -> None:
-    """Gives each worker a single BLAS thread, leaving an operator's explicit setting alone."""
+    """Gives each worker exactly one BLAS thread, whatever a scheduler set for the parent."""
     for variable in BLAS_THREAD_VARIABLES:
-        os.environ.setdefault(variable, "1")
+        os.environ[variable] = "1"
 
 
 def default_max_workers() -> int:
@@ -35,27 +39,54 @@ def default_max_workers() -> int:
     return os.cpu_count() or 1
 
 
+#: Chunks per worker: the last chunk bounds how long one worker runs on while the rest sit idle.
+CHUNKS_PER_WORKER = 16
+
+
 def chunksize_for(n_items: int, max_workers: int) -> int:
-    """Items per task: enough chunks to balance load, few enough to stop repickling the payload."""
-    return max(1, n_items // (max_workers * 4))
+    """Items per task: small enough that no worker runs on alone, large enough to bound IPC."""
+    return max(1, n_items // (max_workers * CHUNKS_PER_WORKER))
+
+
+def progress_milestones(total: int, steps: int = 20) -> set[int]:
+    """The completed counts worth a progress line: every twentieth of the way, and the last."""
+    if total <= 0:
+        return set()
+    return {max(1, round(total * k / steps)) for k in range(1, steps + 1)} | {total}
+
+
+def report_progress[T](
+    results: Iterable[T], total: int, label: str, stream: TextIO | None = None
+) -> Iterator[T]:
+    """Yields results as they arrive, writing a timed count at each milestone for the cell log."""
+    milestones = progress_milestones(total)
+    started = time.monotonic()
+    for done, result in enumerate(results, start=1):
+        if done in milestones:
+            elapsed = time.monotonic() - started
+            line = f"progress {label}: {done}/{total} in {elapsed:.0f}s"
+            print(line, file=stream or sys.stderr, flush=True)
+        yield result
 
 
 def map_in_order[ItemT, ResultT](
     fn: Callable[[ItemT], ResultT],
     items: Sequence[ItemT],
     max_workers: int | None = None,
+    *,
+    label: str = "items",
 ) -> list[ResultT]:
     """Applies fn to every item, returning results in submission order so reruns stay comparable."""
     workers = default_max_workers() if max_workers is None else max_workers
     if workers <= 1 or len(items) <= 1:
-        return [fn(item) for item in items]
+        #: One BLAS thread in-process too, so a serial run and a pooled run compute the same bits.
+        with threadpool_limits(limits=1):
+            return list(report_progress((fn(item) for item in items), len(items), label))
     #: Set before the pool spawns, because a worker reads these only as it imports numpy.
     pin_worker_blas_threads()
-    #: One item per worker lifetime, so memory a scored file left behind returns to the OS.
-    with ProcessPoolExecutor(
-        max_workers=workers, mp_context=WORKER_CONTEXT, max_tasks_per_child=1
-    ) as pool:
-        return list(pool.map(fn, items, chunksize=chunksize_for(len(items), workers)))
+    with ProcessPoolExecutor(max_workers=workers, mp_context=WORKER_CONTEXT) as pool:
+        results = pool.map(fn, items, chunksize=chunksize_for(len(items), workers))
+        return list(report_progress(results, len(items), label))
 
 
 def in_worker_process() -> bool:
@@ -69,6 +100,7 @@ def map_items[ContextT, ItemT, ResultT](
     items: Iterable[ItemT],
     *,
     max_workers: int | None = None,
+    label: str = "items",
     executor_factory: Callable[..., AbstractContextManager[Any]] = ProcessPoolExecutor,
     in_worker_process: Callable[[], bool] = in_worker_process,
 ) -> list[ResultT]:
@@ -81,10 +113,14 @@ def map_items[ContextT, ItemT, ResultT](
     workers = max(1, min(requested, len(item_list)))
     #: Nesting would square the process count and exhaust memory, so an inner call stays serial.
     if workers == 1 or in_worker_process():
-        return [worker(context, item) for item in item_list]
-    chunksize = -(-len(item_list) // workers)
+        with threadpool_limits(limits=1):
+            serial = (worker(context, item) for item in item_list)
+            return list(report_progress(serial, len(item_list), label))
+    pin_worker_blas_threads()
+    chunksize = chunksize_for(len(item_list), workers)
     with executor_factory(max_workers=workers, mp_context=WORKER_CONTEXT) as pool:
-        return list(pool.map(partial(worker, context), item_list, chunksize=chunksize))
+        results = pool.map(partial(worker, context), item_list, chunksize=chunksize)
+        return list(report_progress(results, len(item_list), label))
 
 
 def map_seeds[ContextT, ResultT](
@@ -93,6 +129,7 @@ def map_seeds[ContextT, ResultT](
     seeds: Iterable[int],
     *,
     max_workers: int | None = None,
+    label: str = "seeds",
     executor_factory: Callable[..., AbstractContextManager[Any]] = ProcessPoolExecutor,
     in_worker_process: Callable[[], bool] = in_worker_process,
 ) -> list[ResultT]:
@@ -102,6 +139,7 @@ def map_seeds[ContextT, ResultT](
         context,
         seeds,
         max_workers=max_workers,
+        label=label,
         executor_factory=executor_factory,
         in_worker_process=in_worker_process,
     )
